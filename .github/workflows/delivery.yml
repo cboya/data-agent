@@ -21,8 +21,6 @@ jobs:
     env:
       OLLAMA_CHAT_MODEL: ci-chat-not-used
       OLLAMA_EMBED_MODEL: ci-embedding-not-used
-      MYSQL_ROOT_PASSWORD: ci-root-local-only
-      MYSQL_READONLY_PASSWORD: ci-reader-local-only
     steps:
       - name: Checkout
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
