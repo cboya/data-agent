@@ -1,0 +1,9 @@
+# Repository policy and architecture control surfaces.
+/.github/ @cboya
+/AGENTS.md @cboya
+/ARCHITECTURE.md @cboya
+/Taskfile.yml @cboya
+/pyproject.toml @cboya
+/compose.yaml @cboya
+/docs/architecture/SECURITY.md @cboya
+/docs/Git* @cboya

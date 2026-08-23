@@ -1,0 +1,50 @@
+name: Delivery
+
+on:
+  pull_request:
+    branches:
+      - main
+  merge_group:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: delivery-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  quality:
+    name: Delivery / Quality
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      OLLAMA_CHAT_MODEL: ci-chat-not-used
+      OLLAMA_EMBED_MODEL: ci-embedding-not-used
+      MYSQL_ROOT_PASSWORD: ci-root-local-only
+      MYSQL_READONLY_PASSWORD: ci-reader-local-only
+    steps:
+      - name: Checkout
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Task
+        uses: go-task/setup-task@a00fbb05ce67b35648be3c78cbc9fd85354c757e # v2.2.0
+        with:
+          version: 3.52.0
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@20cfd1bf945f4377ade1205e4dbc17946fc9a30d # v10.0.1
+        with:
+          version: 0.12.3
+          enable-cache: true
+          cache-local-path: .var/uv-cache
+          cache-dependency-glob: uv.lock
+
+      - name: Prepare local configuration
+        run: cp .env.example .env
+
+      - name: Bootstrap deterministic MySQL world
+        run: task bootstrap
+
+      - name: Run repository quality gate
+        run: task quality
