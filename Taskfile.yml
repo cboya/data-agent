@@ -1,0 +1,43 @@
+version: "3"
+
+env:
+  UV_CACHE_DIR: "{{.ROOT_DIR}}/.var/uv-cache"
+
+tasks:
+  sync:
+    desc: Install the locked Python development environment
+    cmds:
+      - uv sync --all-groups
+
+  bootstrap:
+    desc: Prepare the local deterministic development environment
+    deps: [sync]
+    cmds:
+      - uv run data-agent bootstrap
+
+  dev:
+    desc: Run the local FastAPI development server
+    deps: [sync]
+    cmds:
+      - uv run uvicorn 'data_agent.api:create_app' --factory --host "${APP_HOST:-127.0.0.1}" --port "${APP_PORT:-8000}" --reload
+
+  quality:
+    desc: Run formatting, lint, type, and deterministic test gates
+    deps: [sync]
+    cmds:
+      - uv run ruff format --check src tests
+      - uv run ruff check src tests
+      - uv run mypy
+      - uv run pytest
+
+  eval:
+    desc: Run the Golden Dataset evaluation
+    deps: [sync]
+    cmds:
+      - uv run data-agent eval
+
+  reset:
+    desc: Reset generated local state
+    deps: [sync]
+    cmds:
+      - uv run data-agent reset

@@ -1,0 +1,58 @@
+version: v0.1
+
+relationships:
+  - from_table: fact_order
+    from_column: user_id
+    to_table: dim_user
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 订单所属用户
+
+  - from_table: fact_order
+    from_column: channel_id
+    to_table: dim_channel
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 订单所属渠道
+
+  - from_table: dim_user
+    from_column: region_id
+    to_table: dim_region
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 用户所属地区
+
+  - from_table: dim_user
+    from_column: channel_id
+    to_table: dim_channel
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 用户注册渠道
+
+  - from_table: fact_order_item
+    from_column: order_id
+    to_table: fact_order
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 订单商品明细所属订单
+
+  - from_table: fact_order_item
+    from_column: product_id
+    to_table: dim_product
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 明细对应商品
+
+  - from_table: fact_payment_transaction
+    from_column: order_id
+    to_table: fact_order
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 支付尝试所属订单
+
+  - from_table: fact_refund
+    from_column: order_id
+    to_table: fact_order
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 退款所属订单

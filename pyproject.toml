@@ -1,0 +1,49 @@
+[build-system]
+requires = ["hatchling>=1.27"]
+build-backend = "hatchling.build"
+
+[project]
+name = "data-agent"
+version = "0.1.0"
+description = "Local conversational data agent with guarded, verified MySQL execution"
+readme = "README.md"
+requires-python = ">=3.12,<3.15"
+dependencies = [
+    "fastapi>=0.116,<1",
+    "pydantic-settings>=2.10,<3",
+    "pymysql>=1.1.2,<2",
+    "uvicorn[standard]>=0.35,<1",
+]
+
+[project.scripts]
+data-agent = "data_agent.cli:main"
+
+[dependency-groups]
+dev = [
+    "httpx>=0.28,<1",
+    "mypy>=1.17,<2",
+    "pytest>=8.4,<9",
+    "ruff>=0.12,<1",
+    "types-pymysql>=1.1.0,<2",
+]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/data_agent"]
+
+[tool.mypy]
+python_version = "3.12"
+strict = true
+files = ["src", "tests"]
+
+[tool.pytest.ini_options]
+addopts = "--strict-config --strict-markers -q"
+markers = ["integration: requires the local Docker MySQL test world"]
+testpaths = ["tests"]
+
+[tool.ruff]
+extend-exclude = [".var"]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "F", "I", "UP", "B", "SIM", "RUF"]

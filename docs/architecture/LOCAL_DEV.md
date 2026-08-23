@@ -1,0 +1,117 @@
+# Local Development Environment
+
+**Version:** v0.1.0
+
+## 1. Topology
+
+Initial MVP topology:
+
+```text
+Host
+├── Ollama :11434
+├── Data Agent API
+└── Docker/OrbStack
+    └── MySQL 8.4
+```
+
+Run the Python API on the host during the first implementation stage. Containerizing the application itself is optional after the functional loop is stable.
+
+## 2. Ollama
+
+Expected configurable endpoint:
+
+```text
+http://127.0.0.1:11434
+```
+
+Required capabilities:
+
+- chat endpoint;
+- embeddings endpoint;
+- structured JSON/JSON Schema output from local chat API.
+
+Do not hard-code model names.
+
+## 3. MySQL
+
+Use an official/pinned MySQL 8.4 image.
+
+`compose.yaml` should provide:
+
+- database health check;
+- persistent/dev volume or deterministic rebuild path;
+- bootstrap admin credentials only for migration/seed setup;
+- separate runtime read-only principal.
+
+## 4. Environment variables
+
+See root `.env.example`.
+
+The application must validate configuration at startup and fail clearly when required settings are missing.
+
+## 5. Bootstrap contract
+
+`task bootstrap` should be idempotent enough for routine development and should:
+
+1. verify required local commands;
+2. verify Ollama is reachable;
+3. verify configured models are available, or print an actionable error;
+4. start MySQL;
+5. wait for health;
+6. apply schema/migrations;
+7. seed deterministic data;
+8. create/verify read-only runtime principal;
+9. introspect database metadata;
+10. merge generated metadata with curated semantics;
+11. build lexical/embedding index;
+12. run a smoke query and a small retrieval smoke test.
+
+Model auto-pulling may be optional; do not surprise the user with large downloads unless explicitly documented.
+
+## 6. Reset contract
+
+`task reset` removes generated local DB/index state required to prove clean reproducibility, then allows `task bootstrap` to rebuild it.
+
+Do not delete curated catalog files.
+
+## 7. Model availability checks
+
+Use Ollama's supported model-list/detail API or client behavior rather than assuming a configured model exists.
+
+Errors should name the missing configured model.
+
+## 8. Networking
+
+Because the initial Python service runs on the host:
+
+```text
+Ollama → 127.0.0.1:11434
+MySQL  → published localhost port
+```
+
+Avoid unnecessary container-to-host networking complexity in the first milestone.
+
+## 9. Generated artifacts
+
+Suggested ignored/generated paths:
+
+```text
+catalog/generated/
+evals/reports/
+.var/
+```
+
+Exact path choices are implementation details, but generated state must be reproducible.
+
+## 10. Developer success criterion
+
+A new developer/Codex session should be able to reach a working state from repository instructions with:
+
+```bash
+cp .env.example .env
+task bootstrap
+task quality
+task eval
+```
+
+apart from installing Ollama and the configured local models.

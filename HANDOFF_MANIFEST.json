@@ -1,0 +1,102 @@
+{
+  "packet": "data-agent-codex-handoff",
+  "version": "v0.1.0",
+  "date": "2026-08-23",
+  "files": [
+    {
+      "path": ".env.example",
+      "sha256": "bf7abc00e303de58153b7ef04edc690cb40a3c7e8386d1ac62f7ae1750aeef5c",
+      "bytes": 554
+    },
+    {
+      "path": "AGENTS.md",
+      "sha256": "07e1bddea9636360058ba3bb6f779669a8873aa439864f2315d3fa8759cf2331",
+      "bytes": 5573
+    },
+    {
+      "path": "ARCHITECTURE.md",
+      "sha256": "97a7c9a5309b26ebfcc0d4e5ebe53d3b2ad0c95bf458b7d0b4b84228d1834d23",
+      "bytes": 11666
+    },
+    {
+      "path": "README.md",
+      "sha256": "4f6e5bd1e8ab2f1e9b30b37f9e18ac4195540585d5826a8306d55a419407f96c",
+      "bytes": 4205
+    },
+    {
+      "path": "catalog/semantic/relationships.example.yaml",
+      "sha256": "a4cfff2b8398af37c902830c470a24ee5e7191e9a548b0a271b64e6f25eea0f1",
+      "bytes": 1371
+    },
+    {
+      "path": "catalog/semantic/tables.example.yaml",
+      "sha256": "98db8290c34842dc61263438f0dac67d1fe73d8cd958cfe806076bb065cb33c6",
+      "bytes": 3598
+    },
+    {
+      "path": "docs/architecture/CATALOG_SPEC.md",
+      "sha256": "8a35fc6a639f38c2fb0c753f0b1d14df0661824d98ae22ba772fe47bc68608cb",
+      "bytes": 5922
+    },
+    {
+      "path": "docs/architecture/CONTRACTS.md",
+      "sha256": "bab90d6fe811ab72737cbc4e9bd53b90cb9c65e790386c8c186ad8b873c74d69",
+      "bytes": 9558
+    },
+    {
+      "path": "docs/architecture/DECISIONS.md",
+      "sha256": "09cbc63269bb448c6104f0ba91297aa0fe55e264fe2ee4a68a0f22c97daeb306",
+      "bytes": 4308
+    },
+    {
+      "path": "docs/architecture/EVAL_SPEC.md",
+      "sha256": "8e9371dd88efca32a2cf009372591de6d56d2e97c70cea68fa98c9e6da9e5e8c",
+      "bytes": 5129
+    },
+    {
+      "path": "docs/architecture/LLM_INTERACTIONS.md",
+      "sha256": "1e9821df12aec7c854ae055f7ae63e7b447b7124eb3b92ea0da737773a5fb1de",
+      "bytes": 4866
+    },
+    {
+      "path": "docs/architecture/LOCAL_DEV.md",
+      "sha256": "627d1cf4422baa030704503450bab9087e0a8aaff0bfbd4732d467915114dac8",
+      "bytes": 2820
+    },
+    {
+      "path": "docs/architecture/OPEN_QUESTIONS.md",
+      "sha256": "2325723c8e1bb2accf39f45c1ee8c3f79c23a6dddd59995c0ac0661df1a2d1c1",
+      "bytes": 2510
+    },
+    {
+      "path": "docs/architecture/QUALITY.md",
+      "sha256": "f626694ef35a5812f334dc8ad1a458f24e310a53a633b59e7f507776fe697a04",
+      "bytes": 1828
+    },
+    {
+      "path": "docs/architecture/SECURITY.md",
+      "sha256": "efeaee0a163f0aa7507cf82200ae5a5d1bb75cbb96fe67450e9df1a767bb082c",
+      "bytes": 5142
+    },
+    {
+      "path": "docs/exec-plans/EP-001-MVP.md",
+      "sha256": "2c127623c0ca9a67fac400d78fcaa344a6e4a6172b099851cac5ada40f874a46",
+      "bytes": 7320
+    },
+    {
+      "path": "docs/product/MVP.md",
+      "sha256": "65509d725e2293543d6de0a5fb7a31eb01d101ea98e6c90ea0672fe6abafd3de",
+      "bytes": 6284
+    },
+    {
+      "path": "docs/references/REFERENCES.md",
+      "sha256": "6f87e75206910c26fd5d0df4e5725c8bc5c927c7f1e8502f310b132cbef3faa4",
+      "bytes": 1336
+    },
+    {
+      "path": "evals/golden.example.yaml",
+      "sha256": "c4229db22cce7226432b0b09c929355cf4b6de973ab5dadd20425d7864ebaefe",
+      "bytes": 3926
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+.DS_Store
+.env
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.venv/
+.var/
+__pycache__/
+*.py[cod]
+
+catalog/generated/
+evals/reports/
