@@ -288,3 +288,21 @@ into the higher-priority prompt.
 **Reason:** Duplicating curated semantics in the system prompt creates a second authority that can
 drift from the fingerprinted catalog and contaminates attribution of planner-eval results. Prompt
 discipline and catalog business authority must remain mechanically separable.
+
+---
+
+## D-025 — Raw SQL is data; GuardedQuery is capability
+
+**Decision:** `QueryPlan.sql` remains an untrusted string. M10 parses and classifies it, resolves
+physical tables with SQLGlot scopes, applies namespace/table/construct policy, then—and only
+then—allows a Harness-owned `EXPLAIN FORMAT=JSON`. An internal immutable `GuardedQuery` binds the
+exact SQL payload, its SHA-256 digest, QueryPlan identity, `SQLGuardResult`, and accepted
+`ExplainResult` for future M11 consumption.
+
+Neither the EXPLAIN adapter nor future execution code should accept arbitrary SQL when the internal
+guarded capability can express the required authority. M10 never constructs `EXPLAIN ANALYZE` and
+does not execute the normal query.
+
+**Reason:** Separating evidence from capability prevents both validation bypass and a TOCTOU path
+where one SQL string is checked and another is explained or executed. EXPLAIN is optimizer
+inspection after deterministic guard admission, not a substitute for statement safety.

@@ -85,6 +85,15 @@ The LLM adapter and planner do not need database credentials.
 
 ## 5. SQL guard
 
+Architecture law:
+
+```text
+Raw SQL is data; GuardedQuery is capability.
+```
+
+Future normal-query execution consumes the exact immutable payload admitted by M10, not a new SQL
+string. The SQL guard runs before EXPLAIN; EXPLAIN success is never treated as statement safety.
+
 Every candidate SQL query must:
 
 1. parse successfully under the MySQL dialect;
@@ -164,6 +173,9 @@ SQL Guard → EXPLAIN → policy → execute
 ```
 
 EXPLAIN policy should reject obviously unreasonable plans in the synthetic environment.
+
+The Harness constructs exactly `EXPLAIN FORMAT=JSON` only after the SQL guard passes. Model-supplied
+EXPLAIN is rejected, and `EXPLAIN ANALYZE` is never used because it executes the statement.
 
 Exact thresholds are calibration parameters, but inability to safely inspect a plan should not cause an unsafe fallback.
 

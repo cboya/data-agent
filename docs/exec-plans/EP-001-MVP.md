@@ -366,8 +366,8 @@ Codex must update this section as milestones complete.
 [x] M6 Semantic catalog merge — complete and frozen via PR #6
 [x] M7 Hybrid retrieval — complete and frozen via PR #7
 [x] M8 RequirementState and clarification loop — complete and frozen via PR #8
-[ ] M9 Query planner — active
-[ ] M10 SQL guard + EXPLAIN gate
+[x] M9 Query planner — complete and frozen via PR #9
+[ ] M10 SQL guard + EXPLAIN gate — active
 [ ] M11 Read-only runtime
 [ ] M12 Verification
 [ ] M13 Bounded repair
@@ -556,6 +556,14 @@ catalog context itself is sufficient. The focused M9/CLI suite passes 17 tests, 
 bound-Ollama smoke passes, and complete `task quality` passes 219 tests with 6 host-only tests
 skipped. Remediation head `e2eb860` passes remote `Delivery / Quality` in run `32894798892`.
 M9 remains active pending substantive re-review; M10 remains unauthorized.
+
+M9 closure evidence (2026-08-26): implementation and acceptance PR #9; semantic-authority
+remediation commit `e2eb860`; accepted final head `e14e728`; substantive re-review approved; final
+remote `Delivery / Quality` passed in run `32894953002`; squash-merged to `main` as
+`bf29dcffe3ff33c211bb4fd2a8cb4307e8d76fc8`. The domain-neutral 21-case real-model eval passed
+all frozen gates, focused M9/CLI tests passed 17 tests, the bound-Ollama smoke passed, and complete
+`task quality` passed 219 tests with 6 host-only tests skipped. M9 is complete/frozen and M10 is
+authorized/active; M11 remains unauthorized.
 
 ## 6. Decision log
 
@@ -765,6 +773,19 @@ table precision `0.934`, and exact set `0.905`, without changing M6, M7, Golden 
 Consequences: Eval attribution is clean, catalog revisions cannot conflict with a stale
 higher-priority business mapping in the prompt, and case-specific performance improvements must be
 made in the true authority layer rather than accumulating an implicit semantic layer in prompts.
+
+2026-08-26 — M10 raw-SQL capability and MVP EXPLAIN admission
+Decision: Treat raw SQL as data and expose only an internal immutable `GuardedQuery` as future
+execution capability. SQLGlot 30.x performs MySQL parsing and scope-aware physical-table
+resolution. The Harness alone constructs `EXPLAIN FORMAT=JSON` after all guard checks; model SQL
+cannot request EXPLAIN and `EXPLAIN ANALYZE` is never constructed. Initial bounds are 64,000 SQL
+characters and 100,000 estimated rows per table access.
+Evidence: SQLGlot scope sources distinguish physical `Table` values from CTE/derived `Scope`
+values. MySQL EXPLAIN JSON exposes per-access `rows_examined_per_scan`; the deterministic ten-table
+world is far below the initial obviously-unreasonable threshold.
+Consequences: M11 can consume the exact validated SQL payload and digest rather than accept a new
+string. The row threshold is a configurable synthetic-world admission rule, not a general cost
+model; changes require recorded calibration evidence.
 
 ## 7. Deviation rule
 

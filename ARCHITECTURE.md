@@ -368,6 +368,11 @@ Before SQL reaches MySQL:
 8. run EXPLAIN and apply conservative cost policy;
 9. execute via a MySQL account with only required read privileges.
 
+Raw SQL is data; `GuardedQuery` is capability. M10 binds the exact guarded payload and SHA-256
+identity, then permits only Harness-owned `EXPLAIN FORMAT=JSON`. M11 must consume that immutable
+capability instead of accepting a new arbitrary SQL string. `EXPLAIN ANALYZE` is outside M10
+because it executes the statement.
+
 Generated SQL is never trusted merely because an LLM produced it.
 
 ## 13. Verification
