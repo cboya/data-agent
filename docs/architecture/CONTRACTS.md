@@ -170,9 +170,22 @@ class PatchOp(str, Enum):
     SET = "SET"
     CLEAR = "CLEAR"
 
-class ScalarPatch[T](BaseModel):
-    op: PatchOp = PatchOp.NO_CHANGE
-    value: T | None = None
+class NoChangeScalarPatch(BaseModel):
+    op: Literal[PatchOp.NO_CHANGE]
+    value: None = None
+
+class ClearScalarPatch(BaseModel):
+    op: Literal[PatchOp.CLEAR]
+    value: None = None
+
+class SetScalarPatch[T](BaseModel):
+    op: Literal[PatchOp.SET]
+    value: T
+
+ScalarPatch[T] = Annotated[
+    NoChangeScalarPatch | ClearScalarPatch | SetScalarPatch[T],
+    Field(discriminator="op"),
+]
 
 class RequirementPatch(BaseModel):
     version: Literal["v0.2"] = "v0.2"
@@ -246,6 +259,14 @@ The LLM proposes the decision. The harness validates and applies it.
 The model cannot write `RequirementState.status`; deterministic dialogue policy derives it after
 merge. `ASK_CLARIFICATION` is accepted only when the merged state contains a blocking ambiguity,
 and `READY` only when it contains none.
+
+The Ollama boundary does not deserialize directly into the public decision. It first validates a
+provider-facing `DialogueProposal v0.1` containing a mutation patch and an action-discriminated
+`resolution`. ASK grammar requires at least one normalized blocking ambiguity; provider
+grain/comparison enum values are then deterministically normalized into `ScalarPatch` operations.
+The normalized `DialogueDecision` is revalidated before merge. A field marked blocking cannot
+also mutate in the same turn: the Harness suppresses that field's mutation to `NO_CHANGE` (or
+empty collection operations) while preserving mutations for other explicit facts.
 
 ---
 

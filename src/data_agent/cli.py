@@ -5,6 +5,8 @@ import asyncio
 from collections.abc import Sequence
 
 from data_agent.config import Settings
+from data_agent.dialogue.evaluation import format_dialogue_eval_summary
+from data_agent.dialogue.runtime import evaluate_current_dialogue
 from data_agent.infrastructure.mysql_world import bootstrap_mysql, reset_mysql
 from data_agent.retrieval.evaluation import format_retrieval_eval_summary
 from data_agent.retrieval.runtime import (
@@ -35,9 +37,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         return 0
     if args.command == "eval":
         settings = Settings()  # type: ignore[call-arg]
-        report = asyncio.run(evaluate_current_retrieval(settings))
-        print(format_retrieval_eval_summary(report))
-        return 0 if report.passed else 1
+        retrieval_report = asyncio.run(evaluate_current_retrieval(settings))
+        dialogue_report = asyncio.run(evaluate_current_dialogue(settings))
+        print(format_retrieval_eval_summary(retrieval_report))
+        print(format_dialogue_eval_summary(dialogue_report))
+        return 0 if retrieval_report.passed and dialogue_report.passed else 1
     if args.command == "reset":
         reset_mysql()
         print("MySQL generated state removed; curated catalog files were preserved.")

@@ -222,3 +222,26 @@ entire commit and is surfaced to the caller; M8 does not hide the conflict with 
 
 **Reason:** Independent message/session repository writes permit partial durable turns. Holding a
 database transaction open during local-model inference is also unsafe and unnecessary.
+
+---
+
+## D-022 — Provider dialogue grammar is normalized before domain merge
+
+**Decision:** The public M8 result remains `DialogueDecision v0.1` carrying
+`RequirementPatch v0.2`. The Ollama structured-output boundary uses a narrower
+`DialogueProposal v0.1` adapter grammar: scalar/collection mutations are separated from an
+action-discriminated `resolution`, ASK requires at least one normalized blocking ambiguity, and
+READY permits only non-blocking ambiguity entries. Core time/grain/comparison and
+metric/dimension operations are explicit in the provider response. Provider grain/comparison enum
+values are deterministically normalized into the public `NO_CHANGE`/`SET`/`CLEAR` scalar union.
+
+If a proposal marks a field blocking while also proposing a mutation for that same field, the
+Harness conservatively suppresses that mutation to `NO_CHANGE` (or empty collection operations)
+before constructing and revalidating the public patch. Mutations for other unambiguous fields are
+retained.
+
+**Reason:** Ollama `0.32.15` did not reliably enforce a root discriminated union or choose nested
+generic scalar branches for the frozen `gemma4:latest` model. A provider adapter is allowed to be
+narrower than the domain contract, while the normalized public contract and deterministic merge
+remain provider-neutral. Suppressing a self-contradictory blocking-field mutation prevents guessed
+values from entering durable state without introducing natural-language heuristics.

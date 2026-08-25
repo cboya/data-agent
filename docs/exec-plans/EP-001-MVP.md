@@ -448,6 +448,29 @@ than merge heuristics. Successful dialogue turns will persist the inbound user m
 Session update, and optional assistant clarification through one short atomic control-schema
 transaction after model/policy validation. M9 remains unauthorized.
 
+M8 implementation note (2026-08-26): one bounded structured call consumes canonical
+`RequirementState`, the latest user message, and only the last relevant assistant clarification.
+Ollama returns provider-facing `DialogueProposal v0.1`; the Harness normalizes it into public
+`DialogueDecision v0.1` / `RequirementPatch v0.2`, performs deterministic merge, and owns final
+`CLARIFYING`/`READY`/`FAILED` status. ASK grammar requires blocking evidence. A mutation to a field
+the same proposal marks blocking is conservatively suppressed, so a correctly detected ambiguity
+cannot also persist a guessed value. Successful turns atomically commit the inbound user message,
+revision-checked Session state, and optional assistant clarification after inference/policy.
+
+The frozen standalone dialogue suite contains 24 cases / 28 turns across nine categories. Bound
+host evaluation with `gemma4:latest` digest
+`c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb`, model
+fingerprint `3abd0ade8368742786e7464c1ff3b7ffbdb048bbfb303820725ac724f01bdfe6`, Ollama
+`0.32.15`, and prompt `dialogue-understanding-v0.19` passes: action accuracy `1.000`, canonical
+state accuracy `1.000`, required clarification recall `1.000`, unnecessary clarification `0.000`,
+explicit clear `1.000`, correction `1.000`, multi-turn convergence `1.000`, and mean turns-to-ready
+`1.22`. The focused M8 suite passes 71 tests including bound Ollama structured output and real
+MySQL atomic success/stale-revision/rollback coverage. Integrated `task bootstrap` passes while
+preserving the ten-table deterministic world and M7 index fingerprint
+`e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
+`task quality` passes 198 tests with 5 explicit host-only tests skipped. M8 remains active until PR
+acceptance and merge; M9 remains unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -611,6 +634,20 @@ Consequences: JSON/trace/persistence round-trips retain scalar intent. The model
 and action, while deterministic merge/policy owns canonical state and status. Failed model/policy
 turns persist nothing; concurrency conflict rolls back the complete durable turn and requires the
 caller to rerun it.
+
+2026-08-26 — M8 provider dialogue grammar and blocker/mutation conflict handling
+Decision: Use a provider-facing `DialogueProposal v0.1` with an action-discriminated resolution
+and explicit core mutation choices, then normalize and revalidate public `DialogueDecision v0.1`
+and `RequirementPatch v0.2`. ASK requires at least one normalized blocking item. If a field is
+blocking, suppress mutation of that same field to `NO_CHANGE`/empty operations while retaining
+other unambiguous changes.
+Evidence: Ollama `0.32.15` with frozen `gemma4:latest` did not reliably enforce a root union and
+could emit a guessed time mutation together with a time blocker. Provider enum normalization plus
+blocker-field suppression closes those contradictions, and the strengthened 24-case eval proves
+that recent-time ambiguity does not leave a guessed time in canonical state.
+Consequences: Provider grammar may be narrower than the domain contract, but it is not semantic
+authority. The public patch remains provider-neutral, mutation intent is traceable, contradictory
+blocking-field values fail conservatively, and no natural-language parsing moves into the Harness.
 
 ## 7. Deviation rule
 

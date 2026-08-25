@@ -41,7 +41,7 @@ last assistant clarification only when relevant
 latest user message
 ```
 
-### Output
+### Harness output
 
 `DialogueDecision`
 
@@ -65,6 +65,13 @@ M8 uses `RequirementPatch` mutation protocol v0.2. Scalar changes are explicit
 upsert operations. The model never writes `RequirementState.status`. Successful turns atomically
 persist the inbound user message, harness-derived state, and optional assistant clarification
 after structured output and policy validation.
+
+The provider-facing structured result is `DialogueProposal v0.1`, not a second domain authority.
+It separates mutation fields from an action-discriminated `resolution`, whose ASK branch requires
+blocking ambiguity evidence and whose READY branch cannot carry blocking items. The Harness
+normalizes the provider grain/comparison enums into the public patch, suppresses any mutation to a
+field the same proposal marks blocking, and revalidates `DialogueDecision` before deterministic
+merge and action policy.
 
 ---
 

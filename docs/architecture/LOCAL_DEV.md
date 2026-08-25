@@ -51,6 +51,12 @@ explicit host integration smoke with:
 RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_ollama_adapter.py
 ```
 
+M8 adds a real structured-dialogue smoke:
+
+```bash
+RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_dialogue_ollama.py
+```
+
 M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
 The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub for bootstrap
 identity and index plumbing; substantive embedding quality evidence comes from the explicitly
@@ -137,5 +143,9 @@ task bootstrap
 task quality
 task eval
 ```
+
+`task eval` runs both the standalone retrieval eval and the standalone dialogue eval. The dialogue
+report is written under `evals/reports/`, binds the chat model digest/fingerprint, Ollama runtime,
+prompt version, and suite version, and does not invoke retrieval, planning, or SQL.
 
 apart from installing Ollama and the configured local models.

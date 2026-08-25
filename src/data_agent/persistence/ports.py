@@ -30,6 +30,19 @@ class StoredMessage:
             raise ValueError("Message sequence must be positive")
 
 
+@dataclass(frozen=True)
+class DialogueTurnSnapshot:
+    session: StoredSession
+    last_assistant: StoredMessage | None
+
+
+@dataclass(frozen=True)
+class StoredDialogueTurn:
+    session: StoredSession
+    user_message: StoredMessage
+    assistant_message: StoredMessage | None
+
+
 class SessionRepository(Protocol):
     def create(self, session: Session) -> StoredSession: ...
 
@@ -42,6 +55,19 @@ class MessageRepository(Protocol):
     def append(self, message: Message) -> StoredMessage: ...
 
     def list_for_session(self, session_id: str) -> list[StoredMessage]: ...
+
+
+class DialogueTurnStore(Protocol):
+    def load(self, session_id: str) -> DialogueTurnSnapshot: ...
+
+    def commit(
+        self,
+        *,
+        session: Session,
+        expected_revision: int,
+        user_message: Message,
+        assistant_message: Message | None,
+    ) -> StoredDialogueTurn: ...
 
 
 class RunRepository(Protocol):
