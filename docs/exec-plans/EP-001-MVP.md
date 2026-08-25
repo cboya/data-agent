@@ -578,8 +578,10 @@ keeps CTE/derived scopes non-physical, uses exact analytics namespace/table iden
 records unused `QueryPlan.tables` without changing subset into equality. MySQL executable comments,
 session variables, table-valued JSON sources, recursive CTEs, exports, intentional delays, locks,
 and optimizer/index hints fail closed. Only an issued `GuardedSQL` may enter the read-only
-Harness-owned `EXPLAIN FORMAT=JSON`; bounded JSON structure and per-access estimates must pass
-before the exact SQL/digest can become `GuardedQuery`.
+Harness-owned `EXPLAIN FORMAT=JSON`; the `explain-policy-v0.1` bounds of 1,000,000 JSON characters,
+10,000 traversed nodes, and the configurable per-access row estimate must pass before the exact
+SQL/digest can become `GuardedQuery`. Eval identity binds both `sql-guard-v0.1` and
+`explain-policy-v0.1` plus every active bound.
 
 The standalone M10 eval binds accepted M9 head `e14e728`, merge
 `bf29dcffe3ff33c211bb4fd2a8cb4307e8d76fc8`, and frozen proposal snapshot fingerprint

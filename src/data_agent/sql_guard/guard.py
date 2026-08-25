@@ -19,6 +19,8 @@ from data_agent.sql_guard.capability import GuardedSQL, PhysicalTable, issue_gua
 # Guard outcomes carry only stable codes, so suppress that library warning to avoid SQL leakage.
 logging.getLogger("sqlglot").setLevel(logging.ERROR)
 
+SQL_GUARD_POLICY_VERSION = "sql-guard-v0.1"
+
 
 class SQLViolation(StrEnum):
     SQL_TOO_LARGE = "SQL_TOO_LARGE"

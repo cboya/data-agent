@@ -14,6 +14,10 @@ from data_agent.infrastructure.mysql_world import readonly_connection
 from data_agent.sql_guard.capability import GuardedSQL
 from data_agent.sql_guard.errors import ExplainProviderError
 
+EXPLAIN_POLICY_VERSION = "explain-policy-v0.1"
+DEFAULT_MAX_EXPLAIN_CHARACTERS = 1_000_000
+DEFAULT_MAX_EXPLAIN_NODES = 10_000
+
 
 class ExplainPlanProvider(Protocol):
     """A provider that accepts only a post-guard capability, never raw SQL."""
@@ -75,8 +79,8 @@ class ExplainPolicy:
         self,
         *,
         max_estimated_rows_per_access: int,
-        max_explain_characters: int = 1_000_000,
-        max_explain_nodes: int = 10_000,
+        max_explain_characters: int = DEFAULT_MAX_EXPLAIN_CHARACTERS,
+        max_explain_nodes: int = DEFAULT_MAX_EXPLAIN_NODES,
     ) -> None:
         if max_estimated_rows_per_access < 1:
             raise ValueError("EXPLAIN row-estimate threshold must be positive")

@@ -12,6 +12,12 @@ from data_agent.sql_guard.evaluation import (
     load_sql_guard_eval_suite,
     run_sql_guard_evaluation,
 )
+from data_agent.sql_guard.explain import (
+    DEFAULT_MAX_EXPLAIN_CHARACTERS,
+    DEFAULT_MAX_EXPLAIN_NODES,
+    EXPLAIN_POLICY_VERSION,
+)
+from data_agent.sql_guard.guard import SQL_GUARD_POLICY_VERSION
 from tests.sql_guard.test_admission import RecordingProvider, explain_json
 
 
@@ -32,6 +38,10 @@ def test_frozen_security_and_m9_proposal_corpora_pass() -> None:
         analytics_schema="data_agent",
         max_sql_characters=64_000,
         max_explain_estimated_rows=100_000,
+        max_explain_characters=DEFAULT_MAX_EXPLAIN_CHARACTERS,
+        max_explain_nodes=DEFAULT_MAX_EXPLAIN_NODES,
+        sql_guard_policy_version=SQL_GUARD_POLICY_VERSION,
+        explain_policy_version=EXPLAIN_POLICY_VERSION,
     )
 
     assert report.passed is True
@@ -44,6 +54,8 @@ def test_frozen_security_and_m9_proposal_corpora_pass() -> None:
     assert report.metrics.proposal_table_scope_compliance == 1.0
     assert report.metrics.proposal_explain_admission_rate == 1.0
     assert report.epistemic_boundary.startswith("guard-and-explain-only")
+    assert report.identity.sql_guard_policy_version == SQL_GUARD_POLICY_VERSION
+    assert report.identity.explain_policy_version == EXPLAIN_POLICY_VERSION
 
 
 def test_duplicate_yaml_keys_fail_closed(tmp_path: Path) -> None:

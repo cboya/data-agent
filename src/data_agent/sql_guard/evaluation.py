@@ -165,9 +165,13 @@ class SQLGuardEvalMetrics(_EvaluationModel):
 class SQLGuardEvalIdentity(_EvaluationModel):
     suite_version: str
     sqlglot_version: str
+    sql_guard_policy_version: str
+    explain_policy_version: str
     analytics_schema: str
     max_sql_characters: int
     max_explain_estimated_rows: int
+    max_explain_characters: int
+    max_explain_nodes: int
     m9_snapshot_version: str
     m9_snapshot_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     m9_accepted_head: str
@@ -251,6 +255,10 @@ def run_sql_guard_evaluation(
     analytics_schema: str,
     max_sql_characters: int,
     max_explain_estimated_rows: int,
+    max_explain_characters: int,
+    max_explain_nodes: int,
+    sql_guard_policy_version: str,
+    explain_policy_version: str,
 ) -> SQLGuardEvalReport:
     security_results: list[SQLAdmissionCaseResult] = []
     for case in suite.cases:
@@ -325,9 +333,13 @@ def run_sql_guard_evaluation(
         identity=SQLGuardEvalIdentity(
             suite_version=suite.version,
             sqlglot_version=version("sqlglot"),
+            sql_guard_policy_version=sql_guard_policy_version,
+            explain_policy_version=explain_policy_version,
             analytics_schema=analytics_schema,
             max_sql_characters=max_sql_characters,
             max_explain_estimated_rows=max_explain_estimated_rows,
+            max_explain_characters=max_explain_characters,
+            max_explain_nodes=max_explain_nodes,
             m9_snapshot_version=snapshot.version,
             m9_snapshot_fingerprint=snapshot_fingerprint,
             m9_accepted_head=snapshot.source.accepted_head,

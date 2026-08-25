@@ -8,8 +8,14 @@ from data_agent.sql_guard.evaluation import (
     run_sql_guard_evaluation,
     write_sql_guard_eval_report,
 )
-from data_agent.sql_guard.explain import ExplainPolicy, MySQLExplainProvider
-from data_agent.sql_guard.guard import SQLGuard
+from data_agent.sql_guard.explain import (
+    DEFAULT_MAX_EXPLAIN_CHARACTERS,
+    DEFAULT_MAX_EXPLAIN_NODES,
+    EXPLAIN_POLICY_VERSION,
+    ExplainPolicy,
+    MySQLExplainProvider,
+)
+from data_agent.sql_guard.guard import SQL_GUARD_POLICY_VERSION, SQLGuard
 from data_agent.sql_guard.service import SQLAdmissionService
 
 
@@ -33,6 +39,10 @@ def evaluate_current_sql_guard(settings: Settings) -> SQLGuardEvalReport:
         analytics_schema=settings.mysql_database,
         max_sql_characters=settings.max_sql_characters,
         max_explain_estimated_rows=settings.max_explain_estimated_rows,
+        max_explain_characters=DEFAULT_MAX_EXPLAIN_CHARACTERS,
+        max_explain_nodes=DEFAULT_MAX_EXPLAIN_NODES,
+        sql_guard_policy_version=SQL_GUARD_POLICY_VERSION,
+        explain_policy_version=EXPLAIN_POLICY_VERSION,
     )
     write_sql_guard_eval_report(report)
     return report
