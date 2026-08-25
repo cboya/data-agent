@@ -42,6 +42,8 @@ class Settings(BaseSettings):
 
     max_query_time_ms: int = Field(default=5000, gt=0)
     max_result_rows: int = Field(default=1000, gt=0)
+    max_sql_characters: int = Field(default=64_000, ge=1_024, le=1_000_000)
+    max_explain_estimated_rows: int = Field(default=100_000, gt=0)
     max_sql_repair_attempts: int = Field(default=1, ge=0, le=3)
     max_retrieved_tables: int = Field(default=8, gt=0, le=100)
     max_relationship_hops: int = Field(default=1, ge=0, le=3)
