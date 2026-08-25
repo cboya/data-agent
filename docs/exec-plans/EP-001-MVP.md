@@ -504,6 +504,38 @@ remote `Delivery / Quality` passed in run `32885719303`; squash-merged to `main`
 30-turn dialogue eval passed all gates. M8 is complete/frozen and M9 is authorized/active; M10
 remains unauthorized.
 
+M9 implementation note (2026-08-26): `PlannerContextBuilder` admits only READY requirements and
+projects the exact ordered M7 final-hit documents plus only result-carried relationships, while
+revalidating M6 document/relationship authority, catalog identity, retrieval-index identity, a
+maximum eight-table bound, and a 64,000-character context bound. `gemma4:latest` consumes this
+context through the provider-neutral M4 `ChatModel` and returns public `QueryPlan v0.1` directly;
+real evidence did not justify a provider DTO. `PlannerPolicy` validates non-empty unique declared
+tables within the retrieved set and bounded assumptions/expected columns, while deliberately
+leaving SQL opaque for M10. Internal `PlanningTrace` and eval identity retain prompt, chat model,
+runtime, retrieval index, catalog/generated schema, and semantic-revision provenance without
+polluting `QueryPlan`.
+
+The frozen standalone M9 suite contains 21 no-execution cases across single-table aggregation,
+time grain, metric semantics, dimension/relationship paths, payment attempts, refund/net revenue,
+fan-out, irrelevant context, bounded-world injection, and expected shape. Bound-host evaluation
+with `gemma4:latest` digest
+`c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb`, model
+fingerprint `3abd0ade8368742786e7464c1ff3b7ffbdb048bbfb303820725ac724f01bdfe6`, Ollama
+`0.32.15`, prompt `query-planning-v0.2`, and retrieval index
+`e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336` passes:
+structured parse `1.000`, allowed-table compliance `1.000`, out-of-context probe rejection
+`1.000`, required-table recall `0.984`, plan-table precision `1.000`, exact required table set
+`0.952`, and expected-column accuracy `1.000`. Non-gating representative SQL string evidence is
+`0.619` and makes no syntax, safety, execution, or result claim. Broad 6–8-table schema slices do
+not reduce plan-table precision, so M9 evidence does not justify changing M7 or adding reranking.
+The real bound-Ollama smoke passes direct QueryPlan parsing, seven-table-to-one-table narrowing,
+stable output aliases, and MySQL `DATE_SUB` syntax. The serial eval uses a separately configured
+180-second per-case timeout while normal model calls retain the existing 60-second default.
+`task bootstrap` passes with the unchanged
+retrieval fingerprint; focused deterministic M9/CLI tests pass 16 tests; complete `task quality`
+passes 218 tests with 6 explicit host-only tests skipped. M9 remains active pending focused PR,
+remote `Delivery / Quality`, and substantive review; M10 remains unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -693,7 +725,9 @@ against current M6 catalog and retrieval-index identity. Use direct structured `
 output, and enforce only declared plan-table scope in M9.
 Evidence: M7 already exposes an accepted final schema slice and M10 is the dedicated SQL AST/security
 milestone. The existing QueryPlan shape is provider-simple and separates declared semantic scope
-from still-untrusted SQL text.
+from still-untrusted SQL text. The 21-case bound-host eval parses public QueryPlan directly in all
+cases and achieves required-table recall `0.984`, table precision `1.000`, exact set `0.952`, and
+expected-column accuracy `1.000`; broad M7 context does not justify a reranker or provider DTO.
 Consequences: The planner has no catalog/database discovery capability. Out-of-context declared
 tables fail closed, while a SQL string that lies about its table set is intentionally deferred to
 M10 rather than receiving a false M9 safety claim. Planner provenance stays in internal trace/eval

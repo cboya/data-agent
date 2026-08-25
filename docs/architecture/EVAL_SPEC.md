@@ -116,10 +116,12 @@ retrieval, planning, or SQL.
 
 - standalone M9 structured-plan parse rate;
 - allowed declared-table compliance;
+- out-of-context declared-table rejection;
 - required-table recall;
 - plan-table precision;
 - exact required-table-set accuracy;
 - expected-column accuracy where annotated;
+- representative SQL generation evidence, explicitly without a correctness claim;
 - structured-plan parse rate;
 - SQL parse rate;
 - SQL guard pass rate for valid cases;
@@ -193,7 +195,9 @@ The standalone controlled-world M9 planner gate additionally requires:
 - expected-column accuracy ≥ 0.90 where annotated.
 
 M9 evaluation never executes generated SQL and does not claim SQL syntax, safety, executable, or
-result correctness. Those claims begin only after the M10–M12 deterministic boundaries exist.
+result correctness. Representative SQL evidence is bounded case-insensitive string observation,
+not parsing or authorization. Those claims begin only after the M10–M12 deterministic boundaries
+exist.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 

@@ -43,6 +43,9 @@ Do not hard-code model names.
 Application startup runs fail-closed diagnostics against the configured endpoint and models.
 Model requests use `OLLAMA_REQUEST_TIMEOUT_SECONDS`; embedding batches and response bodies are
 bounded by `OLLAMA_MAX_EMBEDDING_BATCH` and `OLLAMA_MAX_RESPONSE_BYTES`.
+The serial 21-case M9 planner evaluation uses the separate
+`PLANNER_EVAL_REQUEST_TIMEOUT_SECONDS` bound (default 180 seconds per case) so complex bounded
+multi-table proposals do not weaken the normal 60-second online request limit.
 
 The deterministic quality suite uses transport doubles and does not require Ollama in CI. Run the
 explicit host integration smoke with:
@@ -55,6 +58,13 @@ M8 adds a real structured-dialogue smoke:
 
 ```bash
 RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_dialogue_ollama.py
+```
+
+M9 adds a real bounded-planner smoke and a standalone no-execution evaluation:
+
+```bash
+RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_planning_ollama.py
+uv run data-agent planner-eval
 ```
 
 M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
