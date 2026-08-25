@@ -362,7 +362,7 @@ fail-closed Pydantic structured output, embedding response invariants, startup c
 and digest-based model fingerprints are implemented. Focused deterministic M4 tests pass 28
 tests; the explicit host Ollama smoke passes 3 tests against the configured chat/embedding
 models; complete `task quality` passes 132 tests with those 3 host-only tests skipped. Remote
-`Delivery / Quality` and substantive review remain pending, so M4 is not complete.
+`Delivery / Quality` passes on PR #4. Substantive review remains pending, so M4 is not complete.
 
 ## 6. Decision log
 
