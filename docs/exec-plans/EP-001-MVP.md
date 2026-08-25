@@ -366,8 +366,9 @@ requires adapters to consume those fingerprints and checks the live tag-to-diges
 every chat/embed execution; moved tags fail before the inference endpoint is called. Focused
 deterministic M4/API/config tests pass 31 tests; the explicit host Ollama smoke passes 3 tests
 against the bound configured chat/embedding identities; complete `task quality` passes 135 tests
-with those 3 host-only tests skipped. The updated PR head still requires remote quality and
-substantive re-review, so M4 remains active and M5 is not authorized.
+with those 3 host-only tests skipped. Remote `Delivery / Quality` passes for remediation head
+`eac0f18` in run `32852163215`. Substantive re-review is still required, so M4 remains active and
+M5 is not authorized.
 
 ## 6. Decision log
 
