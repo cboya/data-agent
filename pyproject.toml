@@ -37,7 +37,10 @@ files = ["src", "tests"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers -q"
-markers = ["integration: requires the local Docker MySQL test world"]
+markers = [
+    "integration: requires a local external runtime",
+    "ollama: requires configured local Ollama chat and embedding models",
+]
 testpaths = ["tests"]
 
 [tool.ruff]
