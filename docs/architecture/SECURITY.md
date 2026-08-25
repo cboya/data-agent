@@ -101,8 +101,9 @@ Every candidate SQL query must:
 3. have a read-only `SELECT` or set-operation root;
 4. resolve physical tables through SQL scopes so CTE/derived aliases do not become authority;
 5. reference only unqualified/configured analytics-schema tables declared by `QueryPlan.tables`;
-6. contain no prohibited construct/function, recursive CTE, lock, or optimizer/index hint;
-7. pass configured resource rules.
+6. contain no prohibited construct, recursive CTE, lock, or optimizer/index hint;
+7. use only the explicitly approved EXPLAIN-safe analytics function surface;
+8. pass configured resource rules.
 
 String/regex checks alone are not sufficient.
 
@@ -136,9 +137,23 @@ Tables(SQL) ⊆ QueryPlan.tables
 They do not authorize an undeclared physical table, and a CTE that shadows a table name cannot
 conceal a physical reference in another namespace.
 
-## 7. Dangerous functions/behaviors
+## 7. EXPLAIN-safe functions and dangerous behaviors
 
-The implementation must maintain an explicit deny policy for dangerous/non-analytic constructs, including file/system or intentional-delay behavior where applicable.
+Plain MySQL `EXPLAIN SELECT` is not universally side-effect free. MySQL documents cases where
+optimizer processing evaluates a stored function inside a subquery while an outer query reads a
+table, allowing the function to modify data. The Guard must therefore prove an EXPLAIN-safe
+function subset before the provider is called; reader privileges are defense in depth, not the AST
+authority.
+
+Every SQLGlot `Func` node must match the versioned approved MVP surface. Unknown functions,
+loadable/stored-function shapes represented by `Anonymous`, and recognized built-ins outside that
+surface fail closed as `UNAPPROVED_FUNCTION`. The initial approved surface is limited to boolean
+AND/OR and CASE/IF expression nodes plus `SUM`, `COUNT`, `DATE`, `DATE_SUB`, `CURRENT_DATE`,
+`COALESCE`, and `CAST`. Function arguments are traversed by the same policy, so nesting cannot hide
+an unapproved call.
+
+The implementation also maintains an explicit deny policy for known dangerous/non-analytic
+constructs, including file/system or intentional-delay behavior where applicable.
 
 At minimum evaluate/reject constructs involving concepts such as:
 
@@ -192,7 +207,8 @@ estimates for physical-table queries, provider failures, and table-access estima
 access and is not a portable optimizer cost model.
 
 The Harness constructs exactly `EXPLAIN FORMAT=JSON` only after the SQL guard passes. Model-supplied
-EXPLAIN is rejected, and `EXPLAIN ANALYZE` is never used because it executes the statement.
+EXPLAIN is rejected, and `EXPLAIN ANALYZE` is never used because it executes the statement. Plain
+EXPLAIN receives only the function-approved subset; it is not treated as inherently non-executing.
 
 Exact thresholds are calibration parameters, but inability to safely inspect a plan should not cause an unsafe fallback.
 

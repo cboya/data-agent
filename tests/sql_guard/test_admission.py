@@ -66,6 +66,19 @@ def test_guard_rejection_prevents_explain() -> None:
     assert provider.candidates == []
 
 
+def test_unapproved_function_never_reaches_explain() -> None:
+    provider = RecordingProvider(explain_json())
+    plan = query_plan("SELECT * FROM fact_order WHERE id IN (SELECT unsafe_business_function(1))")
+
+    outcome = service(provider).admit(plan)
+
+    assert outcome.guard.result.violations == ["UNAPPROVED_FUNCTION:UNSAFE_BUSINESS_FUNCTION"]
+    assert outcome.guard.candidate is None
+    assert outcome.explain_result is None
+    assert outcome.guarded_query is None
+    assert provider.candidates == []
+
+
 def test_passed_guard_and_explain_issue_exact_sql_capability() -> None:
     provider = RecordingProvider(explain_json())
     sql = " SELECT id FROM fact_order "

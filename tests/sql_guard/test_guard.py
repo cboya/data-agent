@@ -69,6 +69,20 @@ def test_subset_authority_reports_unused_declared_tables(guard: SQLGuard) -> Non
     assert evaluation.unused_declared_tables == ("dim_user",)
 
 
+def test_approved_analytics_function_surface_passes(guard: SQLGuard) -> None:
+    evaluation = guard.evaluate(
+        query_plan(
+            "SELECT DATE(DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) AS period, "
+            "COUNT(id) AS order_count, "
+            "CAST(COALESCE(SUM(CASE WHEN status = 'PAID' THEN paid_amount ELSE 0 END), 0) "
+            "AS DECIMAL(18, 2)) AS paid_amount FROM fact_order"
+        )
+    )
+
+    assert evaluation.result.status is GuardStatus.PASSED
+    assert evaluation.candidate is not None
+
+
 @pytest.mark.parametrize(
     "sql",
     [
@@ -150,6 +164,11 @@ def test_sql_tables_must_be_subset_of_query_plan_tables(guard: SQLGuard) -> None
         ("SELECT HIGH_PRIORITY * FROM fact_order", SQLViolation.OPTIMIZER_HINT),
         ("SELECT /*!50000 SLEEP(1) */ 1", SQLViolation.PROHIBITED_CONSTRUCT),
         ("SELECT @unsafe := 1", SQLViolation.PROHIBITED_CONSTRUCT),
+        (
+            "SELECT * FROM fact_order WHERE id IN (SELECT unsafe_business_function(1))",
+            SQLViolation.UNAPPROVED_FUNCTION,
+        ),
+        ("SELECT RAND() FROM fact_order", SQLViolation.UNAPPROVED_FUNCTION),
         (
             "SELECT * FROM JSON_TABLE('[]', '$[*]' COLUMNS(value INT PATH '$')) AS jt",
             SQLViolation.PROHIBITED_CONSTRUCT,

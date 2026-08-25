@@ -68,7 +68,9 @@ uv run data-agent planner-eval
 ```
 
 M10 adds a deterministic standalone SQL guard and MySQL JSON EXPLAIN evaluation. It uses the
-accepted M9 proposal snapshot, does not call Ollama, and never executes the proposed query:
+accepted M9 proposal snapshot, does not call Ollama, and never submits the candidate as a normal
+query. Before plain EXPLAIN, the Guard rejects unknown/stored/loadable-function shapes and admits
+only the versioned EXPLAIN-safe analytics function surface:
 
 ```bash
 task m10-eval
@@ -168,6 +170,7 @@ task eval
 `task eval` runs the standalone retrieval, dialogue, planner, and SQL-guard evaluations. M10 writes
 its machine-readable report under `evals/reports/`, binds SQLGlot/policy configuration and the
 accepted M9 snapshot fingerprint, runs only Harness-owned JSON EXPLAIN, and does not execute normal
-SQL.
+SQL. Plain EXPLAIN is protected by the pre-provider approved-function policy rather than assumed to
+be inherently side-effect free.
 
 apart from installing Ollama and the configured local models.

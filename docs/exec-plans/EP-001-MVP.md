@@ -277,6 +277,8 @@ Acceptance:
 - only unqualified or configured analytics-schema tables are authorized;
 - DML, DDL, unsupported statements, recursive CTEs, file access, delays, locks, and hints fail
   closed;
+- every function is recognized as part of the versioned EXPLAIN-safe analytics surface; unknown,
+  stored-function, and loadable-function shapes fail closed before the provider;
 - exact SQL text/digest, plan identity, guard evidence, and EXPLAIN evidence bind an internal
   immutable `GuardedQuery` capability;
 - only the Harness may construct `EXPLAIN FORMAT=JSON`, and only after guard pass;
@@ -580,19 +582,29 @@ session variables, table-valued JSON sources, recursive CTEs, exports, intention
 and optimizer/index hints fail closed. Only an issued `GuardedSQL` may enter the read-only
 Harness-owned `EXPLAIN FORMAT=JSON`; the `explain-policy-v0.1` bounds of 1,000,000 JSON characters,
 10,000 traversed nodes, and the configurable per-access row estimate must pass before the exact
-SQL/digest can become `GuardedQuery`. Eval identity binds both `sql-guard-v0.1` and
+SQL/digest can become `GuardedQuery`. Eval identity binds both `sql-guard-v0.2` and
 `explain-policy-v0.1` plus every active bound.
 
 The standalone M10 eval binds accepted M9 head `e14e728`, merge
 `bf29dcffe3ff33c211bb4fd2a8cb4307e8d76fc8`, and frozen proposal snapshot fingerprint
-`cc80748eef14bf8fcd70681fa2d88d74ef7a844865b37b1d13736832db193db9`. Its 38-case
+`cc80748eef14bf8fcd70681fa2d88d74ef7a844865b37b1d13736832db193db9`. Its 40-case
 adversarial guard and valid-EXPLAIN decisions both score `1.000`. Across the 21 real M9 proposals,
 SQL parse, guard admission, and physical-table compliance each score `1.000`; EXPLAIN admission is
 `0.905`, with `net-revenue` and `item-units-and-payment-attempts` correctly rejected by MySQL
 EXPLAIN and retained as future M13 repair evidence rather than prompting an M9 change. No normal
-query ran and no result-correctness claim is made. Focused M10/config tests pass 79 tests,
-`task bootstrap` passes, and complete `task quality` passes 290 tests with 6 host-only tests
+query ran and no result-correctness claim is made. Focused M10/config tests pass 83 tests,
+`task bootstrap` passes, and complete `task quality` passes 294 tests with 6 host-only tests
 skipped. M10 remains active pending substantive review; M11 remains unauthorized.
+
+M10 EXPLAIN-function-safety remediation note (2026-08-26): substantive review identified that
+plain MySQL `EXPLAIN SELECT` may evaluate a stored function in a subquery when the outer query reads
+a table, so a dangerous-function denylist alone did not prove EXPLAIN safety. Policy
+`sql-guard-v0.2` now requires every SQLGlot `Func` node to match the narrow analytics surface used
+by the frozen M9 corpus; every `Anonymous` or otherwise unapproved function fails closed. The
+focused regression uses `unsafe_business_function(1)` under an authorized `fact_order` query and
+proves `RecordingProvider.candidates` remains empty. Positive regressions cover `DATE`, `DATE_SUB`,
+`CURRENT_DATE`, `SUM`, `COUNT`, `COALESCE`, `CAST`, and CASE; all 21 accepted M9 proposals retain
+guard admission `1.000`. No QueryPlan, M9 prompt, EXPLAIN policy, or M11 behavior changed.
 
 ## 6. Decision log
 
@@ -808,7 +820,9 @@ Decision: Treat raw SQL as data and expose only an internal immutable `GuardedQu
 execution capability. SQLGlot 30.x performs MySQL parsing and scope-aware physical-table
 resolution. The Harness alone constructs `EXPLAIN FORMAT=JSON` after all guard checks; model SQL
 cannot request EXPLAIN and `EXPLAIN ANALYZE` is never constructed. Initial bounds are 64,000 SQL
-characters and 100,000 estimated rows per table access.
+characters and 100,000 estimated rows per table access. Plain MySQL EXPLAIN is not assumed to be
+universally side-effect free: policy `sql-guard-v0.2` admits only a narrow recognized analytics
+function surface and rejects unknown/stored/loadable-function shapes before provider access.
 Evidence: SQLGlot scope sources distinguish physical `Table` values from CTE/derived `Scope`
 values. MySQL EXPLAIN JSON exposes per-access `rows_examined_per_scan`; the deterministic ten-table
 world is far below the initial obviously-unreasonable threshold.

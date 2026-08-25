@@ -45,7 +45,7 @@ def test_frozen_security_and_m9_proposal_corpora_pass() -> None:
     )
 
     assert report.passed is True
-    assert report.metrics.security_case_count == 38
+    assert report.metrics.security_case_count == 40
     assert report.metrics.security_guard_accuracy == 1.0
     assert report.metrics.security_explain_accuracy == 1.0
     assert report.metrics.proposal_case_count == 21

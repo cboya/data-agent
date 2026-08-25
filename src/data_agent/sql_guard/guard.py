@@ -19,7 +19,7 @@ from data_agent.sql_guard.capability import GuardedSQL, PhysicalTable, issue_gua
 # Guard outcomes carry only stable codes, so suppress that library warning to avoid SQL leakage.
 logging.getLogger("sqlglot").setLevel(logging.ERROR)
 
-SQL_GUARD_POLICY_VERSION = "sql-guard-v0.1"
+SQL_GUARD_POLICY_VERSION = "sql-guard-v0.2"
 
 
 class SQLViolation(StrEnum):
@@ -30,6 +30,7 @@ class SQLViolation(StrEnum):
     RECURSIVE_CTE = "RECURSIVE_CTE"
     PROHIBITED_CONSTRUCT = "PROHIBITED_CONSTRUCT"
     DANGEROUS_FUNCTION = "DANGEROUS_FUNCTION"
+    UNAPPROVED_FUNCTION = "UNAPPROVED_FUNCTION"
     LOCKING_SELECT = "LOCKING_SELECT"
     OPTIMIZER_HINT = "OPTIMIZER_HINT"
     SCOPE_RESOLUTION_FAILED = "SCOPE_RESOLUTION_FAILED"
@@ -58,6 +59,21 @@ _DANGEROUS_FUNCTIONS = frozenset(
         "RELEASE_ALL_LOCKS",
         "RELEASE_LOCK",
         "SLEEP",
+    }
+)
+_APPROVED_FUNCTION_TYPES: frozenset[type[exp.Func]] = frozenset(
+    {
+        exp.And,
+        exp.Case,
+        exp.Cast,
+        exp.Coalesce,
+        exp.Count,
+        exp.CurrentDate,
+        exp.DateSub,
+        exp.If,
+        exp.Or,
+        exp.Sum,
+        exp.TsOrDsToDate,
     }
 )
 _QUERY_MODIFIERS = frozenset(
@@ -107,11 +123,16 @@ def _rejected(
     )
 
 
-def _dangerous_function(expression: exp.Expr) -> str | None:
+def _function_policy_violation(
+    expression: exp.Expr,
+) -> tuple[SQLViolation, str] | None:
     for function in expression.find_all(exp.Func):
         name = function.name if isinstance(function, exp.Anonymous) else function.sql_name()
-        if name.upper() in _DANGEROUS_FUNCTIONS:
-            return name.upper()
+        normalized = name.upper()
+        if normalized in _DANGEROUS_FUNCTIONS:
+            return SQLViolation.DANGEROUS_FUNCTION, normalized
+        if isinstance(function, exp.Anonymous) or type(function) not in _APPROVED_FUNCTION_TYPES:
+            return SQLViolation.UNAPPROVED_FUNCTION, normalized
     return None
 
 
@@ -289,11 +310,12 @@ class SQLGuard:
                 parse_succeeded=True,
                 table_scope_compliant=True,
             )
-        dangerous = _dangerous_function(expression)
-        if dangerous is not None:
+        function_violation = _function_policy_violation(expression)
+        if function_violation is not None:
+            violation, function_name = function_violation
             return _rejected(
-                SQLViolation.DANGEROUS_FUNCTION,
-                detail=dangerous,
+                violation,
+                detail=function_name,
                 referenced_tables=referenced,
                 physical_tables=physical_tables,
                 parse_succeeded=True,

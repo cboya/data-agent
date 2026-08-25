@@ -1,4 +1,4 @@
-"""The MySQL provider owns exact non-executing EXPLAIN construction."""
+"""The provider accepts an EXPLAIN-safe capability and owns exact construction."""
 
 from typing import Any, cast
 

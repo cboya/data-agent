@@ -187,8 +187,8 @@ class SQLGuardEvalReport(_EvaluationModel):
     cases: tuple[SQLAdmissionCaseResult, ...]
     passed: bool
     epistemic_boundary: Literal[
-        "guard-and-explain-only; no query execution or result correctness claim"
-    ] = "guard-and-explain-only; no query execution or result correctness claim"
+        "guard-and-explain-only; no normal query execution or result correctness claim"
+    ] = "guard-and-explain-only; no normal query execution or result correctness claim"
 
 
 def load_sql_guard_eval_suite(path: Path = SQL_GUARD_EVAL_PATH) -> SQLGuardEvalSuite:
