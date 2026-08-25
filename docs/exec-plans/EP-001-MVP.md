@@ -203,7 +203,8 @@ Acceptance:
 
 - standalone retrieval eval runs;
 - meet initial retrieval targets or record exact failures before moving on;
-- index fingerprint includes embedding/catalog information.
+- index fingerprint includes embedding `ModelFingerprint`, model runtime version, catalog
+  semantic revision, generated schema fingerprint, and index format/version.
 
 ---
 
@@ -335,8 +336,8 @@ Codex must update this section as milestones complete.
 [x] M1 Deterministic MySQL test world
 [x] M2 Core contracts — complete and frozen via acceptance PR #2
 [x] M3 Persistence and run state — complete and frozen via PR #3
-[ ] M4 Ollama adapters — active
-[ ] M5 Catalog introspection
+[x] M4 Ollama adapters — complete and frozen via PR #4
+[ ] M5 Catalog introspection — active
 [ ] M6 Semantic catalog merge
 [ ] M7 Hybrid retrieval
 [ ] M8 RequirementState and clarification loop
@@ -359,16 +360,23 @@ squash-merged to `main` as `aca7868388a580f4a34758942dff441017cbd9b5`; focused M
 suite 54 passed; complete `task quality` 109 passed; remote `Delivery / Quality` passed;
 substantive review approved. M3 is complete/frozen and M4 is authorized.
 
-M4 progress note (2026-08-25): provider-neutral model ports, bounded Ollama HTTP adapters,
-fail-closed Pydantic structured output, embedding response invariants, startup capability checks,
-and digest-based model fingerprints are implemented. The substantive-review P1 remediation now
-requires adapters to consume those fingerprints and checks the live tag-to-digest mapping before
-every chat/embed execution; moved tags fail before the inference endpoint is called. Focused
-deterministic M4/API/config tests pass 31 tests; the explicit host Ollama smoke passes 3 tests
-against the bound configured chat/embedding identities; complete `task quality` passes 135 tests
-with those 3 host-only tests skipped. Remote `Delivery / Quality` passes for remediation head
-`eac0f18` in run `32852163215`. Substantive re-review is still required, so M4 remains active and
-M5 is not authorized.
+M4 closure evidence (2026-08-25): implementation and acceptance PR #4; accepted implementation
+head `eac0f18`; final evidence head `a7327f0`; squash-merged to `main` as
+`8f26c56c2ad5d2b67561a6e97bed9bf47b627f4b`; focused deterministic M4/API/config suite 31
+passed; explicit bound host Ollama smoke 3 passed; complete `task quality` 135 passed with 3
+host-only tests skipped; final remote `Delivery / Quality` passed in run `32852333026`;
+substantive re-review approved. M4 is complete/frozen and M5 is authorized.
+
+M5 implementation note (2026-08-25): analytics-reader `information_schema` introspection now
+normalizes ten fixture base tables, ordered columns, exact MySQL column types, nullability, PK
+flags, database comments, and ten internal FK groups into `catalog/generated/schema.json`. The
+artifact excludes control-plane metadata and curated semantics, revalidates its canonical
+SHA-256, writes atomically only below the generated root, and rebuilds byte-for-byte identically.
+Focused M5 tests pass 6 tests; integrated `task bootstrap` passes and produces fingerprint
+`7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64`; complete
+`task quality` passes 141 tests with 3 explicit host-only Ollama tests skipped. Remote
+`Delivery / Quality` passes on PR #5 in run `32854257631`. Substantive review remains pending, so
+M5 is not complete and M6 is not authorized.
 
 ## 6. Decision log
 
@@ -455,6 +463,21 @@ The adapter therefore cannot bind execution by sending a digest-qualified model 
 Consequences: A mutable tag cannot silently move after startup while traces or future indexes
 continue to claim the earlier fingerprint. The fallback adds one bounded `/api/tags` identity
 check immediately before each inference request; inability to prove the mapping fails closed.
+
+2026-08-25 — M5 deterministic catalog introspection
+Decision: Read MySQL metadata through the analytics read-only principal with every
+`information_schema` query explicitly scoped to the configured analytics schema. Normalize base
+tables, ordered columns, PK flags, internal FK groups, and database comments into a versioned JSON
+artifact. Compute its SHA-256 over canonical content without timestamps and write only beneath
+`catalog/generated/`; reject semantic-output paths and cross-schema foreign keys.
+Evidence: The deterministic M1 world exposes ten analytics base tables and ten internal FK groups
+through the analytics reader. Integrated `task bootstrap` produced a stable canonical artifact
+with fingerprint `7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64`;
+the M3 control schema is absent from the output.
+Consequences: Repeated introspection of unchanged schema produces identical bytes and fingerprint.
+M6 may merge this artifact with repository-curated semantics but must not hand-maintain generated
+content. M7 must compose its index fingerprint from the generated schema fingerprint, semantic
+revision, complete embedding fingerprint, Ollama runtime version, and index format/version.
 
 ## 7. Deviation rule
 

@@ -11,6 +11,7 @@ import pymysql
 from pymysql.connections import Connection
 from pymysql.cursors import Cursor
 
+from data_agent.catalog.introspection import generate_schema_catalog, reset_generated_catalog
 from data_agent.config import Settings
 from data_agent.persistence.migrations import apply_control_migrations
 from data_agent.persistence.mysql.common import control_connection
@@ -44,6 +45,7 @@ def reset_mysql() -> None:
         cwd=REPOSITORY_ROOT,
         check=True,
     )
+    reset_generated_catalog()
 
 
 def _connect(
@@ -272,4 +274,5 @@ def bootstrap_mysql(settings: Settings) -> FixtureSummary:
     ensure_control_principal(settings)
     verify_readonly_principal(settings)
     verify_control_principal(settings)
+    generate_schema_catalog(settings)
     return fixture_summary(settings)

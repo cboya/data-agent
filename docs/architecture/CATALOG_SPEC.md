@@ -36,6 +36,38 @@ Generated from MySQL and never manually maintained:
 - PK/FK metadata where available;
 - database comments.
 
+M5 writes `catalog/generated/schema.json` as a versioned, deterministic artifact with this
+provider-neutral shape:
+
+```text
+version
+schema
+tables[]
+  name
+  comment
+  columns[]
+    ordinal_position
+    name
+    data_type
+    nullable
+    primary_key
+    comment
+  foreign_keys[]
+    constraint_name
+    columns[]
+    referenced_table
+    referenced_columns[]
+fingerprint
+```
+
+Tables, columns, and foreign keys use stable database-defined ordering with deterministic
+tie-breakers. The SHA-256 fingerprint covers the canonical artifact payload excluding the
+`fingerprint` field itself. It contains no generation timestamp or curated semantics.
+
+Introspection uses the analytics read-only principal and explicitly scopes every
+`information_schema` query to the configured analytics schema. Cross-schema foreign keys fail
+closed rather than introducing another schema into the business catalog.
+
 ### Curated semantics
 
 Version-controlled:
@@ -96,7 +128,8 @@ Every generated retrieval index must have a fingerprint containing at least:
 
 - catalog semantic revision/hash;
 - generated schema fingerprint;
-- embedding model name;
+- complete embedding `ModelFingerprint`;
+- model runtime version;
 - index format/version.
 
 If the embedding model changes, rebuild embeddings before serving semantic queries.
