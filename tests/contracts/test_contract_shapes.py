@@ -1,16 +1,23 @@
 import pytest
-from pydantic import ValidationError
+from pydantic import BaseModel, ValidationError
 
 from data_agent.contracts import (
     Cardinality,
     CatalogColumn,
     CatalogDocument,
+    DialogueAction,
+    DialogueDecision,
+    ExecutionResult,
     ExpectedColumn,
     QueryPlan,
     Relationship,
+    RequirementPatch,
+    RequirementState,
+    RequirementStatus,
     RetrievalHit,
     RetrievalResult,
     SQLGuardResult,
+    VerificationResult,
 )
 
 
@@ -97,3 +104,59 @@ def test_unknown_fields_fail_at_contract_boundary() -> None:
             data_type="decimal(12,2)",
             unexpected="not part of the contract",  # type: ignore[call-arg]
         )
+
+
+@pytest.mark.parametrize(
+    ("model", "values"),
+    [
+        (
+            DialogueDecision,
+            {
+                "version": "v0.1",
+                "patch": RequirementPatch(),
+                "action": DialogueAction.READY,
+                "reason": "The requirement is executable",
+                "unexpected": "must fail closed",
+            },
+        ),
+        (
+            QueryPlan,
+            {
+                "version": "v0.1",
+                "intent": "Count orders",
+                "tables": ["fact_order"],
+                "sql": "SELECT COUNT(*) FROM fact_order",
+                "unexpected": "must fail closed",
+            },
+        ),
+    ],
+)
+def test_model_facing_contracts_reject_unknown_fields(
+    model: type[BaseModel], values: dict[str, object]
+) -> None:
+    assert model.model_config["extra"] == "forbid"
+    with pytest.raises(ValidationError, match="unexpected"):
+        model.model_validate(values)
+
+
+@pytest.mark.parametrize(
+    "model",
+    [
+        RequirementState,
+        DialogueDecision,
+        CatalogDocument,
+        Relationship,
+        RetrievalResult,
+        QueryPlan,
+        ExecutionResult,
+        VerificationResult,
+    ],
+)
+def test_versioned_contracts_publish_only_v01(model: type[BaseModel]) -> None:
+    version_schema = model.model_json_schema()["properties"]["version"]
+    assert version_schema["const"] == "v0.1"
+
+
+def test_unknown_contract_version_fails() -> None:
+    with pytest.raises(ValidationError, match=r"v0\.1"):
+        RequirementState.model_validate({"version": "v0.2", "status": RequirementStatus.INCOMPLETE})
