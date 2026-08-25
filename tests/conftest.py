@@ -13,4 +13,5 @@ def settings() -> Iterator[Settings]:
         ollama_embed_model="example-embedding-model",
         mysql_root_password=SecretStr("change-me-local-only"),
         mysql_readonly_password=SecretStr("change-me-local-only"),
+        mysql_control_password=SecretStr("change-me-local-only"),
     )
