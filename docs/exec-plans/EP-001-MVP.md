@@ -469,7 +469,8 @@ MySQL atomic success/stale-revision/rollback coverage. Integrated `task bootstra
 preserving the ten-table deterministic world and M7 index fingerprint
 `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
 `task quality` passes 198 tests with 5 explicit host-only tests skipped. M8 remains active until PR
-acceptance and merge; M9 remains unauthorized.
+acceptance and merge; M9 remains unauthorized. Remote `Delivery / Quality` passes on PR #8 at
+implementation head `03f2e44` in run `32882403836`.
 
 ## 6. Decision log
 
