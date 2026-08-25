@@ -359,8 +359,8 @@ Codex must update this section as milestones complete.
 [x] M4 Ollama adapters — complete and frozen via PR #4
 [x] M5 Catalog introspection — complete and frozen via PR #5
 [x] M6 Semantic catalog merge — complete and frozen via PR #6
-[ ] M7 Hybrid retrieval — active
-[ ] M8 RequirementState and clarification loop
+[x] M7 Hybrid retrieval — complete and frozen via PR #7
+[ ] M8 RequirementState and clarification loop — active
 [ ] M9 Query planner
 [ ] M10 SQL guard + EXPLAIN gate
 [ ] M11 Read-only runtime
@@ -436,8 +436,17 @@ focused one-seed regression reports seed Recall@5/Recall@10 `0.333` and final
 Recall@5/Recall@10 `1.000`. The corrected focused M7 suite passes 21 tests including real MySQL
 and bound Ollama smoke; `task bootstrap` passes; complete `task quality` passes 175 tests with 4
 explicit host-only Ollama tests skipped; corrected `task eval` passes all frozen final recall gates.
-Remote `Delivery / Quality` passes on PR #7 at remediation head `42287c0` in run `32865874232`.
-Substantive re-review remains pending, so M7 is not complete and M8 is not authorized.
+Remote `Delivery / Quality` passes on PR #7 at remediation head `42287c0` in run `32865874232`
+and final head `89cd20c` in run `32866051635`. Substantive re-review approved the corrected seed
+evaluation; PR #7 squash-merged to `main` as
+`2dce0428c22faf07f4646856096c37a4cba0ba00`. M7 is complete/frozen and M8 is authorized.
+
+M8 activation note (2026-08-25): `RequirementState` remains v0.1 while its mutation protocol
+evolves explicitly to `RequirementPatch` v0.2. Scalar mutations use typed
+`NO_CHANGE`/`SET`/`CLEAR`; metric and dimension correction uses explicit remove plus upsert rather
+than merge heuristics. Successful dialogue turns will persist the inbound user message, optimistic
+Session update, and optional assistant clarification through one short atomic control-schema
+transaction after model/policy validation. M9 remains unauthorized.
 
 ## 6. Decision log
 
@@ -588,6 +597,20 @@ generated/curated sources; identity comparison is therefore required in addition
 Consequences: Model, runtime, schema, semantics, projection, or index-format drift fails closed and
 requires rebuild. Generated index files remain beneath `catalog/generated/` and are never semantic
 authority.
+
+2026-08-25 — M8 explicit requirement mutation and dialogue-turn persistence
+Decision: Version `RequirementPatch` independently as v0.2 while preserving `RequirementState`
+v0.1. Scalars use explicit `NO_CHANGE`/`SET`/`CLEAR`; collection correction uses explicit keyed
+remove/upsert. Compose successful dialogue persistence behind one transaction that writes the user
+message, revision-checked Session state, and optional assistant clarification. Run local-model
+inference before opening that transaction and surface revision conflict without hidden retry.
+Evidence: The v0.1 scalar replacement fields cannot distinguish explicit clear from no change
+without depending on JSON field-presence metadata, and independent M3 Session/Message repository
+writes cannot prevent a partially durable successful turn.
+Consequences: JSON/trace/persistence round-trips retain scalar intent. The model proposes mutation
+and action, while deterministic merge/policy owns canonical state and status. Failed model/policy
+turns persist nothing; concurrency conflict rolls back the complete durable turn and requires the
+caller to rerun it.
 
 ## 7. Deviation rule
 

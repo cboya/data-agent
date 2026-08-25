@@ -191,3 +191,34 @@ outgoing transitions.
 
 **Reason:** Conversation continuity belongs to Session, while Run remains a finite, auditable
 execution record that never waits for or resumes on later user input.
+
+---
+
+## D-020 — RequirementPatch v0.2 uses explicit scalar mutation operations
+
+**Decision:** Keep persisted `RequirementState` at v0.1 and version its mutation protocol
+independently as `RequirementPatch` v0.2. Scalar fields use typed `NO_CHANGE`, `SET`, and `CLEAR`
+operations. Omitted scalar operations normalize to `NO_CHANGE`; a bare `null` is never the clear
+protocol.
+
+`SET` requires a contract-valid value. `CLEAR` and `NO_CHANGE` reject any non-null value.
+Collection replacement fields retain `None = NO_CHANGE`, empty collection = clear, and non-empty
+collection = replace. Metric and dimension corrections add explicit remove keys alongside upsert
+values; deterministic merge code never infers that one item semantically replaces another.
+
+**Reason:** Mutation intent must survive structured model output, trace/persistence boundaries, and
+JSON round-trips without depending on incidental field-presence metadata.
+
+---
+
+## D-021 — Successful dialogue turns commit through one persistence transaction
+
+**Decision:** M8 introduces a narrow dialogue-turn persistence boundary that atomically commits
+the inbound user `Message`, optimistic `Session`/`RequirementState` update, and optional assistant
+clarification `Message` in one short control-schema transaction.
+
+The model call occurs before the transaction. A stale expected Session revision rolls back the
+entire commit and is surfaced to the caller; M8 does not hide the conflict with an automatic retry.
+
+**Reason:** Independent message/session repository writes permit partial durable turns. Holding a
+database transaction open during local-model inference is also unsafe and unnecessary.

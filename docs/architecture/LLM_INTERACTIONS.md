@@ -37,7 +37,7 @@ Merge the latest user message into current requirements and decide whether the r
 ```text
 system behavior rules
 current RequirementState
-small relevant recent-message window if needed
+last assistant clarification only when relevant
 latest user message
 ```
 
@@ -59,6 +59,12 @@ latest user message
 - mutate persisted state directly.
 
 The harness validates and applies the patch.
+
+M8 uses `RequirementPatch` mutation protocol v0.2. Scalar changes are explicit
+`NO_CHANGE`/`SET`/`CLEAR` operations; metric and dimension correction uses explicit remove and
+upsert operations. The model never writes `RequirementState.status`. Successful turns atomically
+persist the inbound user message, harness-derived state, and optional assistant clarification
+after structured output and policy validation.
 
 ---
 
