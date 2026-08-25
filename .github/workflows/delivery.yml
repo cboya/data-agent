@@ -41,6 +41,19 @@ jobs:
       - name: Prepare local configuration
         run: cp .env.example .env
 
+      - name: Start deterministic Ollama bootstrap stub
+        run: |
+          mkdir -p .var
+          python3 tests/support/ollama_stub.py > .var/ollama-stub.log 2>&1 &
+          for attempt in {1..20}; do
+            if curl --fail --silent http://127.0.0.1:11434/api/version >/dev/null; then
+              exit 0
+            fi
+            sleep 0.25
+          done
+          cat .var/ollama-stub.log
+          exit 1
+
       - name: Bootstrap deterministic MySQL world
         run: task bootstrap
 

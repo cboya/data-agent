@@ -8,6 +8,10 @@ def test_settings_validate_runtime_limits(settings: Settings) -> None:
     assert settings.max_query_time_ms == 5000
     assert settings.ollama_request_timeout_seconds == 60
     assert settings.mysql_root_password.get_secret_value() == "change-me-local-only"
+    assert settings.max_retrieved_tables == 8
+    assert settings.max_relationship_hops == 1
+    assert settings.retrieval_seed_tables == 4
+    assert settings.retrieval_rrf_k == 60
 
 
 def test_empty_model_name_fails_validation() -> None:
@@ -54,4 +58,17 @@ def test_ollama_base_url_rejects_unsafe_or_ambiguous_values(base_url: str) -> No
             mysql_root_password=SecretStr("root-test-password"),
             mysql_readonly_password=SecretStr("reader-test-password"),
             mysql_control_password=SecretStr("control-test-password"),
+        )
+
+
+def test_retrieval_seed_bound_cannot_exceed_total_table_bound() -> None:
+    with pytest.raises(ValidationError, match="seed table bound"):
+        Settings(
+            ollama_chat_model="chat-model",
+            ollama_embed_model="embedding-model",
+            mysql_root_password=SecretStr("root-test-password"),
+            mysql_readonly_password=SecretStr("reader-test-password"),
+            mysql_control_password=SecretStr("control-test-password"),
+            retrieval_seed_tables=4,
+            max_retrieved_tables=3,
         )

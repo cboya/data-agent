@@ -51,6 +51,11 @@ explicit host integration smoke with:
 RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_ollama_adapter.py
 ```
 
+M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
+The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub for bootstrap
+identity and index plumbing; substantive embedding quality evidence comes from the explicitly
+reported host Ollama retrieval eval, not from stub vectors.
+
 ## 3. MySQL
 
 Use an official/pinned MySQL 8.4 image.

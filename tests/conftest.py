@@ -14,4 +14,7 @@ def settings() -> Iterator[Settings]:
         mysql_root_password=SecretStr("change-me-local-only"),
         mysql_readonly_password=SecretStr("change-me-local-only"),
         mysql_control_password=SecretStr("change-me-local-only"),
+        max_retrieved_tables=8,
+        max_relationship_hops=1,
+        retrieval_seed_tables=4,
     )
