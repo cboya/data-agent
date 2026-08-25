@@ -330,6 +330,17 @@ The vector index and lexical index are replaceable adapters.
 
 `QueryPlan` is the minimal intermediate representation for the MVP.
 
+The planner sees a bounded semantic data world, never the database. Its complete schema authority
+is the final accepted M7 `RetrievalResult`: exactly the corresponding `CatalogDocument` values and
+only the relationships already present in that result. It receives no full catalog,
+`information_schema`, raw generated foreign keys, database credentials, or execution capability.
+Only a READY `RequirementState` may enter planning.
+
+The system prompt defines provider-neutral planning discipline only. Concrete business meanings,
+physical table/column mappings, metric formulas, status rules, time semantics, and relationship
+facts come exclusively from the supplied M6 semantic catalog slice. The prompt must not duplicate
+those governed facts as a second, higher-priority semantic authority.
+
 It describes:
 
 - intent;
@@ -339,6 +350,9 @@ It describes:
 - expected result shape.
 
 It is **not** intended to become a SQL AST clone. Future versions may introduce a richer semantic `DataRequest IR` before query lowering.
+
+M9 treats generated SQL as an opaque, untrusted proposal. It deterministically enforces declared
+plan-table scope; M10 owns SQL parsing, referenced-table extraction, and read-only policy.
 
 ## 12. Execution invariants
 

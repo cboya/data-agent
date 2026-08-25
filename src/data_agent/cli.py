@@ -8,6 +8,8 @@ from data_agent.config import Settings
 from data_agent.dialogue.evaluation import format_dialogue_eval_summary
 from data_agent.dialogue.runtime import evaluate_current_dialogue
 from data_agent.infrastructure.mysql_world import bootstrap_mysql, reset_mysql
+from data_agent.planning.evaluation import format_planner_eval_summary
+from data_agent.planning.runtime import evaluate_current_planner
 from data_agent.retrieval.evaluation import format_retrieval_eval_summary
 from data_agent.retrieval.runtime import (
     evaluate_current_retrieval,
@@ -17,7 +19,7 @@ from data_agent.retrieval.runtime import (
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="data-agent")
-    parser.add_argument("command", choices=("bootstrap", "eval", "reset"))
+    parser.add_argument("command", choices=("bootstrap", "eval", "planner-eval", "reset"))
     return parser
 
 
@@ -39,9 +41,18 @@ def main(argv: Sequence[str] | None = None) -> int:
         settings = Settings()  # type: ignore[call-arg]
         retrieval_report = asyncio.run(evaluate_current_retrieval(settings))
         dialogue_report = asyncio.run(evaluate_current_dialogue(settings))
+        planner_report = asyncio.run(evaluate_current_planner(settings))
         print(format_retrieval_eval_summary(retrieval_report))
         print(format_dialogue_eval_summary(dialogue_report))
-        return 0 if retrieval_report.passed and dialogue_report.passed else 1
+        print(format_planner_eval_summary(planner_report))
+        return (
+            0 if retrieval_report.passed and dialogue_report.passed and planner_report.passed else 1
+        )
+    if args.command == "planner-eval":
+        settings = Settings()  # type: ignore[call-arg]
+        planner_report = asyncio.run(evaluate_current_planner(settings))
+        print(format_planner_eval_summary(planner_report))
+        return 0 if planner_report.passed else 1
     if args.command == "reset":
         reset_mysql()
         print("MySQL generated state removed; curated catalog files were preserved.")

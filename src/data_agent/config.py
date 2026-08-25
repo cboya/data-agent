@@ -22,6 +22,7 @@ class Settings(BaseSettings):
     ollama_chat_model: str = Field(min_length=1)
     ollama_embed_model: str = Field(min_length=1)
     ollama_request_timeout_seconds: float = Field(default=60.0, gt=0, le=300)
+    planner_eval_request_timeout_seconds: float = Field(default=180.0, gt=0, le=300)
     ollama_max_embedding_batch: int = Field(default=32, ge=1, le=256)
     ollama_max_response_bytes: int = Field(default=4_194_304, ge=1024, le=16_777_216)
 

@@ -7,6 +7,7 @@ from data_agent.config import Settings
 def test_settings_validate_runtime_limits(settings: Settings) -> None:
     assert settings.max_query_time_ms == 5000
     assert settings.ollama_request_timeout_seconds == 60
+    assert settings.planner_eval_request_timeout_seconds == 180
     assert settings.mysql_root_password.get_secret_value() == "change-me-local-only"
     assert settings.max_retrieved_tables == 8
     assert settings.max_relationship_hops == 1

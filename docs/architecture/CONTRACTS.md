@@ -346,7 +346,10 @@ class RetrievalResult(BaseModel):
     index_fingerprint: str
 ```
 
-The planner may only receive catalog documents represented by the accepted `RetrievalResult` schema slice.
+The planner may only receive catalog documents represented by the accepted `RetrievalResult`
+schema slice. M9 context construction requires an exact table match between final hits and supplied
+documents, accepts only the result's relationships, and fails closed on identity or endpoint
+inconsistency.
 
 ---
 
@@ -374,7 +377,8 @@ set(Tables(SQL)) ⊆ set(QueryPlan.tables)
 ```
 
 `QueryPlan.tables` must itself be a subset of authorized/retrieved tables.
-The declared table list is non-empty; SQL parsing and subset enforcement remain M9/M10 behavior.
+The declared table list is non-empty and unique under M9 policy. M9 does not parse `sql`; SQL
+referenced-table extraction and subset enforcement are M10 behavior.
 
 ---
 

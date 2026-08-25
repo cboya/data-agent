@@ -251,3 +251,40 @@ remain provider-neutral. Suppressing a self-contradictory blocking-field mutatio
 values from entering durable state without introducing natural-language heuristics. Provider-only
 subject identity prevents one ambiguous collection member from erasing resolved sibling facts
 that bounded future context can recover only from canonical `RequirementState`.
+
+---
+
+## D-023 — Planner sees only the accepted bounded semantic world
+
+**Decision:** M9 admits only a READY `RequirementState` and builds one deterministic planner
+context from exactly the final M7 retrieval-hit tables, their matching M6 `CatalogDocument`
+values, and only relationships already present in the accepted `RetrievalResult`. The model gets
+no full catalog, raw M5 foreign keys, `information_schema`, database credentials, database tools,
+or execution capability.
+
+The Harness validates that declared `QueryPlan.tables` is non-empty, unique, and a subset of the
+accepted retrieved tables. The SQL string remains opaque and untrusted in M9. M10 exclusively
+owns SQL parsing, referenced-table extraction, and enforcement of
+`Tables(SQL) ⊆ QueryPlan.tables` plus read-only policy.
+
+**Reason:** Retrieval is a context-authorization boundary. Adding schema outside its final result
+would silently bypass M7, while parsing SQL early would blur the separately reviewable M9 semantic
+proposal and M10 deterministic security authorities.
+
+---
+
+## D-024 — Planner prompt is domain-neutral
+
+**Decision:** The planner system prompt defines only reasoning discipline, structured-output
+requirements, bounded-schema behavior, SQL-dialect constraints, and generic aggregation/join
+safety. All concrete business semantics—including physical table/column mappings, metric formulas,
+status meanings, time columns, entity grain, and relationship facts—come solely from the supplied
+M6 `CatalogDocument` and `Relationship` values plus the READY requirement.
+
+An architecture regression checks every current assembled-catalog table identifier is absent from
+the system prompt. Eval cases may assert governed behavior, but passing examples must not be copied
+into the higher-priority prompt.
+
+**Reason:** Duplicating curated semantics in the system prompt creates a second authority that can
+drift from the fingerprinted catalog and contaminates attribution of planner-eval results. Prompt
+discipline and catalog business authority must remain mechanically separable.
