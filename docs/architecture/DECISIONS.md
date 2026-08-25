@@ -165,3 +165,29 @@ Golden Dataset evaluation is part of MVP completion.
 **Decision:** MCP/A2A are not part of the MVP core domain model.
 
 If added later, they adapt existing capabilities/contracts rather than redefine them.
+
+---
+
+## D-018 — Control persistence is isolated from analytics data
+
+**Decision:** Store sessions, messages, runs, and artifacts in a dedicated control schema with
+a dedicated runtime principal, even when control and analytics schemas share one MySQL server.
+
+The analytics reader has no control-schema privileges. The control runtime principal has no
+analytics-schema privileges. Version-controlled migrations own control-schema evolution.
+
+**Reason:** Future catalog introspection must not treat harness state as business data, and the
+two capabilities require materially different least-privilege policies.
+
+---
+
+## D-019 — A Run processes one inbound user message
+
+**Decision:** A Run is one bounded processing lifecycle for one inbound user message. `CLARIFYING`
+is terminal for that Run; a later user reply creates a new Run in the same active Session.
+
+All Run transitions are validated by deterministic application code. Terminal Runs have no
+outgoing transitions.
+
+**Reason:** Conversation continuity belongs to Session, while Run remains a finite, auditable
+execution record that never waits for or resumes on later user input.

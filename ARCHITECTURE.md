@@ -136,6 +136,11 @@ Owns:
 
 The LLM must not own these concerns.
 
+Durable control-plane state is stored separately from analytics data. The MVP may use the same
+MySQL server, but it must use a distinct schema and runtime principal for sessions, messages,
+runs, and artifacts. Semantic catalog discovery is scoped to the analytics schema and must not
+introspect control-plane tables as business data.
+
 ### 5.2 Intelligence plane
 
 Owns probabilistic tasks:
@@ -225,14 +230,14 @@ Curated catalog semantics. It is governed repository data and is never automatic
 ## 8. Requirement lifecycle
 
 ```text
-RECEIVED
+RECEIVED (new Run for one inbound user message)
    ↓
 UNDERSTANDING
    ↓
 MERGE_REQUIREMENT
    ↓
 CHECK_AMBIGUITY
-   ├── blocking → CLARIFYING → user reply → UNDERSTANDING
+   ├── blocking → CLARIFYING (terminal for this Run)
    └── ready    → RETRIEVING
                      ↓
                   PLANNING
@@ -250,8 +255,29 @@ CHECK_AMBIGUITY
                    ↓
                SYNTHESIZING
                    ↓
-                COMPLETED
+               COMPLETED
 ```
+
+`Session` owns conversation continuity. A `Run` owns one processing lifecycle for one inbound
+user message. When a Run ends in `CLARIFYING`, the Session remains active; a later user reply
+creates a new Run rather than resuming the terminal Run.
+
+The deterministic M3 Run transition graph is:
+
+```text
+RECEIVED       → UNDERSTANDING
+UNDERSTANDING  → CLARIFYING | RETRIEVING | FAILED
+RETRIEVING     → PLANNING | FAILED
+PLANNING       → VALIDATING | FAILED
+VALIDATING     → EXECUTING | POLICY_DENIED | QUERY_TOO_EXPENSIVE | FAILED
+EXECUTING      → VERIFYING | VALIDATING | REPAIR_EXHAUSTED | FAILED
+VERIFYING      → SYNTHESIZING | VALIDATING | REPAIR_EXHAUSTED | FAILED
+SYNTHESIZING   → COMPLETED | FAILED
+```
+
+`CLARIFYING`, `COMPLETED`, `POLICY_DENIED`, `QUERY_TOO_EXPENSIVE`, `REPAIR_EXHAUSTED`,
+and `FAILED` are terminal and have no outgoing edges. The repair edges are representational in
+M3; bounded repair behavior remains deferred to M13.
 
 Terminal/non-success states include:
 

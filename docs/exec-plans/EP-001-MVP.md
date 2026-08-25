@@ -120,13 +120,22 @@ Implement:
 - append-only message repository;
 - run repository;
 - artifact repository;
-- state transitions.
+- explicit run state machine;
+- optimistic session concurrency;
+- versioned control-schema migrations and least-privilege runtime access.
 
 Acceptance:
 
+- control storage is logically isolated from analytics data;
+- control and analytics runtime principals are separate;
 - session survives process restart against local DB;
-- message append-only behavior tested;
-- invalid run transition rejected.
+- stale session revision is rejected without lost updates;
+- message and artifact persistence are append-only with deterministic message ordering;
+- persisted contract JSON is revalidated on read and corruption fails closed;
+- one Run represents one inbound user-message lifecycle;
+- `CLARIFYING` and all other terminal Run states cannot be resumed;
+- legal transitions succeed and invalid transitions fail closed;
+- version-controlled migrations are the control-schema authority.
 
 ---
 
@@ -196,6 +205,8 @@ Implement dialogue interaction, typed patch merge, blocking ambiguity policy, se
 
 Acceptance cases:
 
+- before implementation, freeze scalar replacement semantics so omitted means `NO_CHANGE` and
+  explicit clear is represented unambiguously (explicit null or a typed operation);
 - “最近销售怎么样？” asks for material clarification;
 - resolved metric/time/grain survives multiple turns;
 - a fully specified question reaches READY without unnecessary clarification;
@@ -311,8 +322,8 @@ Codex must update this section as milestones complete.
 ```text
 [x] M0 Repository foundation
 [x] M1 Deterministic MySQL test world
-[ ] M2 Core contracts — implemented in 66c3d5a; Delivery acceptance pending
-[ ] M3 Persistence and run state
+[x] M2 Core contracts — complete and frozen via acceptance PR #2
+[ ] M3 Persistence and run state — active
 [ ] M4 Ollama adapters
 [ ] M5 Catalog introspection
 [ ] M6 Semantic catalog merge
@@ -327,10 +338,16 @@ Codex must update this section as milestones complete.
 [ ] M15 Trace + Golden Dataset eval
 ```
 
-Progress note (2026-08-25): M2 implementation and local tests originally landed in the bootstrap
-commit before the Repository Delivery Control Plane existed. The milestone remains unchecked
-until its acceptance-hardening PR passes clean CI, substantive review, and merge. A follow-up
-closure update must record that remote evidence before M3 begins.
+M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
+head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
+focused M2 suite 50 passed; complete `task quality` 57 passed; remote `Delivery / Quality` passed;
+substantive review approved. M2 is complete/frozen and M3 is authorized.
+
+M3 progress note (2026-08-25): the implementation candidate uses a dedicated control schema,
+checksummed SQL migrations, explicit PyMySQL repository adapters, optimistic Session revision,
+append-only Message/Artifact capabilities, and a deterministic atomic Run state machine. The
+focused M3/config suite passes 49 tests and complete `task quality` passes 104 tests. Remote
+`Delivery / Quality` and substantive review remain pending, so M3 is not complete.
 
 ## 6. Decision log
 
@@ -369,6 +386,26 @@ Evidence: These rules make the binding architecture invariants executable at the
 boundary and remove ambiguity before persistence, merge, and bounded execution are implemented.
 Consequences: M8 merge logic must consume patch operations rather than regenerated full state;
 M11 reports only the bounded returned-row count. Run transition behavior remains deferred to M3.
+
+2026-08-25 — OQ-007 / M3 persistence
+Decision: Keep the existing PyMySQL dependency and implement explicit repository ports backed by
+a dedicated MySQL control schema. Use ordered, checksummed SQL migration files rather than an ORM
+or application-startup `create_all`. Keep optimistic-concurrency revision and message sequence as
+persistence metadata so the frozen M2 domain contract shapes do not become database rows.
+Evidence: The current test world already uses PyMySQL and MySQL 8.4; raw migrations provide the
+smallest coherent addition while preserving explicit mapping and Pydantic revalidation on reads.
+Consequences: Repository adapters own UTC/database conversion, JSON validation, transaction
+boundaries, and conflict classification. A future ORM may replace the adapter without changing
+domain contracts or ports.
+
+2026-08-25 — M3 control and Run lifecycle
+Decision: Isolate harness state in a dedicated control schema/principal. Define one Run as one
+inbound user-message processing lifecycle; `CLARIFYING` is terminal, later replies create a new
+Run in the same Session, and all status transitions pass through a deterministic state machine.
+Evidence: This prevents future business catalog introspection from discovering control tables and
+keeps finite Run traces separate from long-lived conversation continuity.
+Consequences: Terminal Runs cannot be resumed. Message and Artifact have insert/read-only runtime
+capabilities; Session and Run add controlled updates; runtime DELETE is unavailable.
 
 ## 7. Deviation rule
 

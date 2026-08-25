@@ -40,6 +40,10 @@ MVP need not model user identity beyond an optional external identifier.
 
 `updated_at` must not precede `created_at`.
 
+Optimistic-concurrency revision is persistence metadata returned alongside `Session`; it is not
+part of the frozen domain `Session` shape. A successful update increments the stored revision,
+and a stale expected revision fails rather than overwriting newer requirement state.
+
 ---
 
 ## 3. Message
@@ -58,6 +62,9 @@ class Message(BaseModel):
 ```
 
 Persistence rule: append-only.
+
+Persistence assigns a unique, monotonically increasing per-session sequence for deterministic
+ordering. Sequence is persistence metadata and does not change the frozen `Message` shape.
 
 Internal tool/trace events are artifacts/run events, not user-visible `Message` records.
 
@@ -451,6 +458,10 @@ class Run(BaseModel):
 `Run` is a data contract only. Valid status transitions and terminal-state behavior belong to the
 M3 run state machine and must not be embedded in this model.
 If `completed_at` is present, it must not precede `started_at`.
+
+One Run represents processing one inbound user message. `CLARIFYING`, `COMPLETED`,
+`POLICY_DENIED`, `QUERY_TOO_EXPENSIVE`, `REPAIR_EXHAUSTED`, and `FAILED` are terminal outcomes;
+a later user reply creates a new Run in the same Session.
 
 ---
 

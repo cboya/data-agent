@@ -14,6 +14,14 @@ Host
     └── MySQL 8.4
 ```
 
+MySQL contains two logically isolated schemas:
+
+- the configured analytics schema with the deterministic ten-table business world;
+- the configured control schema with Session, Message, Run, and Artifact persistence.
+
+They use separate runtime principals. The analytics reader cannot access control state, and the
+control principal cannot access analytics tables.
+
 Run the Python API on the host during the first implementation stage. Containerizing the application itself is optional after the functional loop is stable.
 
 ## 2. Ollama
@@ -41,7 +49,7 @@ Use an official/pinned MySQL 8.4 image.
 - database health check;
 - persistent/dev volume or deterministic rebuild path;
 - bootstrap admin credentials only for migration/seed setup;
-- separate runtime read-only principal.
+- separate analytics read-only and control-plane runtime principals.
 
 ## 4. Environment variables
 
@@ -58,9 +66,9 @@ The application must validate configuration at startup and fail clearly when req
 3. verify configured models are available, or print an actionable error;
 4. start MySQL;
 5. wait for health;
-6. apply schema/migrations;
-7. seed deterministic data;
-8. create/verify read-only runtime principal;
+6. apply analytics schema and versioned control-schema migrations;
+7. seed deterministic business data;
+8. create/verify the separate analytics and control runtime principals;
 9. introspect database metadata;
 10. merge generated metadata with curated semantics;
 11. build lexical/embedding index;
