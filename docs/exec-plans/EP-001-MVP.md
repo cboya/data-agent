@@ -188,6 +188,8 @@ Acceptance:
 - invalid curated references to nonexistent tables/columns fail validation.
 - generated FKs provide connectivity evidence only; relationship cardinality comes exclusively
   from validated curated relationship semantics.
+- `Relationship v0.1` connectivity evidence comes only from true single-column generated FKs;
+  composite FKs remain generated metadata and are never decomposed into independent edges.
 - semantic revision and assembled output are deterministic; generated output does not become
   curated authority.
 
@@ -392,12 +394,13 @@ relationships into deterministic `catalog/generated/catalog.json`. The generated
 revision is `7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50`, and
 assembled catalog fingerprint is
 `b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f`. Focused M6
-tests pass 12 tests; integrated `task bootstrap` passes; complete `task quality` passes 153 tests
-with 3 explicit host-only Ollama tests skipped. Substantive review requested field-sensitive
-column overlay behavior: aliases-only enrichment must inherit a generated database comment rather
-than clear it. The remediation and its three-case regression matrix pass locally; remote
-`Delivery / Quality` passes at remediation head `304729c` in run `32858029766`. Substantive
-re-review remains pending, so M6 is not complete and M7 is not authorized.
+tests pass 13 tests; integrated `task bootstrap` passes; complete `task quality` passes 154 tests
+with 3 explicit host-only Ollama tests skipped. Commit `304729c` closed field-sensitive column
+overlay behavior, but substantive re-review clarified that composite generated FKs were still
+being decomposed into false single-column connectivity evidence. The current remediation accepts
+only true single-column generated FKs for `Relationship v0.1` and its partial-composite regression
+passes locally. Remote remediation quality and substantive re-review remain pending, so M6 is not
+complete and M7 is not authorized.
 
 ## 6. Decision log
 
@@ -508,6 +511,9 @@ canonical semantic revision over the normalized curated tables and relationships
 `Relationship.cardinality` exclusively from curated relationship YAML; generated FKs never infer
 cardinality. Apply column overlays field by field: a non-null curated description overrides the
 generated database comment, an omitted description inherits it, and aliases enrich independently.
+Because `Relationship v0.1` expresses one column pair, accept connectivity evidence only from a
+true single-column generated FK; preserve composite FKs as generated metadata without decomposing
+their component columns into independent relationships.
 Evidence: M5 proves join connectivity but intentionally omits unique-index metadata, so an FK
 alone cannot distinguish one-to-one from many-to-one. The completed curated sources cover ten
 tables and ten FK-backed relationships; integrated bootstrap produces stable semantic revision

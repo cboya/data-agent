@@ -88,6 +88,9 @@ uniqueness metadata to distinguish one-to-one from many-to-one. M6 therefore tak
 only from validated curated relationship semantics. Neither an LLM nor merge code may infer it
 from an FK alone.
 
+`Relationship v0.1` represents only single-column connectivity. Composite foreign keys remain
+generated metadata and must not be decomposed into independently valid relationship edges.
+
 ## 3. Suggested paths
 
 ```text

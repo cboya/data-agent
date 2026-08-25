@@ -73,6 +73,67 @@ def _generated() -> GeneratedSchemaMetadata:
     )
 
 
+def _generated_with_composite_fk() -> GeneratedSchemaMetadata:
+    return GeneratedSchemaMetadata.build(
+        schema="analytics",
+        tables=(
+            GeneratedTableMetadata(
+                name="dim_parent",
+                comment=None,
+                columns=(
+                    GeneratedColumnMetadata(
+                        ordinal_position=1,
+                        name="tenant_id",
+                        data_type="bigint unsigned",
+                        nullable=False,
+                        primary_key=True,
+                        comment=None,
+                    ),
+                    GeneratedColumnMetadata(
+                        ordinal_position=2,
+                        name="id",
+                        data_type="bigint unsigned",
+                        nullable=False,
+                        primary_key=True,
+                        comment=None,
+                    ),
+                ),
+                foreign_keys=(),
+            ),
+            GeneratedTableMetadata(
+                name="fact_child",
+                comment=None,
+                columns=(
+                    GeneratedColumnMetadata(
+                        ordinal_position=1,
+                        name="tenant_id",
+                        data_type="bigint unsigned",
+                        nullable=False,
+                        primary_key=False,
+                        comment=None,
+                    ),
+                    GeneratedColumnMetadata(
+                        ordinal_position=2,
+                        name="parent_id",
+                        data_type="bigint unsigned",
+                        nullable=False,
+                        primary_key=False,
+                        comment=None,
+                    ),
+                ),
+                foreign_keys=(
+                    GeneratedForeignKeyMetadata(
+                        constraint_name="fk_child_parent",
+                        columns=("tenant_id", "parent_id"),
+                        referenced_table="dim_parent",
+                        referenced_columns=("tenant_id", "id"),
+                    ),
+                ),
+            ),
+        ),
+    )
+
+
 def _write_semantics(
     root: Path,
     *,
@@ -279,6 +340,19 @@ def test_invalid_curated_references_fail_closed(
 
     with pytest.raises(SemanticCatalogError, match=message):
         assemble_semantic_catalog(_generated(), curated)
+
+
+def test_composite_fk_does_not_authorize_a_partial_curated_relationship(
+    tmp_path: Path,
+) -> None:
+    tables_path, relationships_path = _write_semantics(tmp_path / "catalog" / "semantic")
+    curated = load_curated_semantics(
+        tables_path=tables_path,
+        relationships_path=relationships_path,
+    )
+
+    with pytest.raises(SemanticCatalogError, match="connectivity"):
+        assemble_semantic_catalog(_generated_with_composite_fk(), curated)
 
 
 def test_duplicate_yaml_keys_fail_closed(tmp_path: Path) -> None:

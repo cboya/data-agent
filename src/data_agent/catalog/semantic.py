@@ -243,12 +243,14 @@ def _generated_connectivity(
     connectivity: set[tuple[str, str, str, str]] = set()
     for table in generated.tables:
         for foreign_key in table.foreign_keys:
-            connectivity.update(
-                (table.name, column, foreign_key.referenced_table, referenced_column)
-                for column, referenced_column in zip(
-                    foreign_key.columns,
-                    foreign_key.referenced_columns,
-                    strict=True,
+            if len(foreign_key.columns) != 1:
+                continue
+            connectivity.add(
+                (
+                    table.name,
+                    foreign_key.columns[0],
+                    foreign_key.referenced_table,
+                    foreign_key.referenced_columns[0],
                 )
             )
     return connectivity
