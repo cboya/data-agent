@@ -105,7 +105,10 @@ Acceptance:
 
 - contract validation tests;
 - invalid enum/shape cases fail clearly;
-- JSON serialization round-trips for persisted contracts.
+- model-facing contracts reject unknown fields;
+- v0.1 version constraints fail closed;
+- JSON serialization round-trips for persisted and model-facing contracts;
+- architecture test enforces contract-layer dependency purity.
 
 ---
 
@@ -308,7 +311,7 @@ Codex must update this section as milestones complete.
 ```text
 [x] M0 Repository foundation
 [x] M1 Deterministic MySQL test world
-[x] M2 Core contracts
+[ ] M2 Core contracts — implemented in 66c3d5a; Delivery acceptance pending
 [ ] M3 Persistence and run state
 [ ] M4 Ollama adapters
 [ ] M5 Catalog introspection
@@ -323,6 +326,11 @@ Codex must update this section as milestones complete.
 [ ] M14 Answer synthesis + API
 [ ] M15 Trace + Golden Dataset eval
 ```
+
+Progress note (2026-08-25): M2 implementation and local tests originally landed in the bootstrap
+commit before the Repository Delivery Control Plane existed. The milestone remains unchecked
+until its acceptance-hardening PR passes clean CI, substantive review, and merge. A follow-up
+closure update must record that remote evidence before M3 begins.
 
 ## 6. Decision log
 
