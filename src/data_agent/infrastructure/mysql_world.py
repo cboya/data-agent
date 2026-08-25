@@ -12,6 +12,7 @@ from pymysql.connections import Connection
 from pymysql.cursors import Cursor
 
 from data_agent.catalog.introspection import generate_schema_catalog, reset_generated_catalog
+from data_agent.catalog.semantic import build_semantic_catalog
 from data_agent.config import Settings
 from data_agent.persistence.migrations import apply_control_migrations
 from data_agent.persistence.mysql.common import control_connection
@@ -274,5 +275,6 @@ def bootstrap_mysql(settings: Settings) -> FixtureSummary:
     ensure_control_principal(settings)
     verify_readonly_principal(settings)
     verify_control_principal(settings)
-    generate_schema_catalog(settings)
+    generated_schema = generate_schema_catalog(settings)
+    build_semantic_catalog(generated_schema)
     return fixture_summary(settings)
