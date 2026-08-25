@@ -270,15 +270,23 @@ Implement deterministic MySQL SQL parsing and policy.
 
 Acceptance:
 
-All `SECURITY.md` guard tests pass, including:
-
-- SELECT/CTE accepted;
-- DML/DDL rejected;
-- multi-statement rejected;
-- forbidden constructs rejected;
-- out-of-scope table rejected.
-
-EXPLAIN is executed only after guard pass.
+- MySQL SQL parses as exactly one read-only `SELECT`/set query through SQLGlot;
+- scope-aware physical-table resolution covers CTEs, nested/derived queries, unions, and
+  shadowing without treating aliases as physical tables;
+- `Tables(SQL) ⊆ QueryPlan.tables`; unused declared tables remain visible evidence;
+- only unqualified or configured analytics-schema tables are authorized;
+- DML, DDL, unsupported statements, recursive CTEs, file access, delays, locks, and hints fail
+  closed;
+- every function is recognized as part of the versioned EXPLAIN-safe analytics surface; unknown,
+  stored-function, and loadable-function shapes fail closed before the provider;
+- exact SQL text/digest, plan identity, guard evidence, and EXPLAIN evidence bind an internal
+  immutable `GuardedQuery` capability;
+- only the Harness may construct `EXPLAIN FORMAT=JSON`, and only after guard pass;
+- malformed/unsupported EXPLAIN evidence or a per-access row estimate above the configured bound
+  fails closed;
+- the standalone M10 eval scores the frozen adversarial corpus and separately reports parse,
+  guard, table-scope, and EXPLAIN results for accepted M9 proposals;
+- no normal query is executed and no SQL result-correctness claim is made.
 
 ---
 
@@ -366,8 +374,8 @@ Codex must update this section as milestones complete.
 [x] M6 Semantic catalog merge — complete and frozen via PR #6
 [x] M7 Hybrid retrieval — complete and frozen via PR #7
 [x] M8 RequirementState and clarification loop — complete and frozen via PR #8
-[ ] M9 Query planner — active
-[ ] M10 SQL guard + EXPLAIN gate
+[x] M9 Query planner — complete and frozen via PR #9
+[ ] M10 SQL guard + EXPLAIN gate — active
 [ ] M11 Read-only runtime
 [ ] M12 Verification
 [ ] M13 Bounded repair
@@ -556,6 +564,47 @@ catalog context itself is sufficient. The focused M9/CLI suite passes 17 tests, 
 bound-Ollama smoke passes, and complete `task quality` passes 219 tests with 6 host-only tests
 skipped. Remediation head `e2eb860` passes remote `Delivery / Quality` in run `32894798892`.
 M9 remains active pending substantive re-review; M10 remains unauthorized.
+
+M9 closure evidence (2026-08-26): implementation and acceptance PR #9; semantic-authority
+remediation commit `e2eb860`; accepted final head `e14e728`; substantive re-review approved; final
+remote `Delivery / Quality` passed in run `32894953002`; squash-merged to `main` as
+`bf29dcffe3ff33c211bb4fd2a8cb4307e8d76fc8`. The domain-neutral 21-case real-model eval passed
+all frozen gates, focused M9/CLI tests passed 17 tests, the bound-Ollama smoke passed, and complete
+`task quality` passed 219 tests with 6 host-only tests skipped. M9 is complete/frozen and M10 is
+authorized/active; M11 remains unauthorized.
+
+M10 implementation note (2026-08-26): SQLGlot `30.17.0` now enforces the frozen size → MySQL
+parse → single statement → read-only root → prohibited AST → scope resolution → namespace → plan
+table subset → dangerous function/lock/hint order. Scope traversal admits physical tables only,
+keeps CTE/derived scopes non-physical, uses exact analytics namespace/table identifiers, and
+records unused `QueryPlan.tables` without changing subset into equality. MySQL executable comments,
+session variables, table-valued JSON sources, recursive CTEs, exports, intentional delays, locks,
+and optimizer/index hints fail closed. Only an issued `GuardedSQL` may enter the read-only
+Harness-owned `EXPLAIN FORMAT=JSON`; the `explain-policy-v0.1` bounds of 1,000,000 JSON characters,
+10,000 traversed nodes, and the configurable per-access row estimate must pass before the exact
+SQL/digest can become `GuardedQuery`. Eval identity binds both `sql-guard-v0.2` and
+`explain-policy-v0.1` plus every active bound.
+
+The standalone M10 eval binds accepted M9 head `e14e728`, merge
+`bf29dcffe3ff33c211bb4fd2a8cb4307e8d76fc8`, and frozen proposal snapshot fingerprint
+`cc80748eef14bf8fcd70681fa2d88d74ef7a844865b37b1d13736832db193db9`. Its 40-case
+adversarial guard and valid-EXPLAIN decisions both score `1.000`. Across the 21 real M9 proposals,
+SQL parse, guard admission, and physical-table compliance each score `1.000`; EXPLAIN admission is
+`0.905`, with `net-revenue` and `item-units-and-payment-attempts` correctly rejected by MySQL
+EXPLAIN and retained as future M13 repair evidence rather than prompting an M9 change. No normal
+query ran and no result-correctness claim is made. Focused M10/config tests pass 83 tests,
+`task bootstrap` passes, and complete `task quality` passes 294 tests with 6 host-only tests
+skipped. M10 remains active pending substantive review; M11 remains unauthorized.
+
+M10 EXPLAIN-function-safety remediation note (2026-08-26): substantive review identified that
+plain MySQL `EXPLAIN SELECT` may evaluate a stored function in a subquery when the outer query reads
+a table, so a dangerous-function denylist alone did not prove EXPLAIN safety. Policy
+`sql-guard-v0.2` now requires every SQLGlot `Func` node to match the narrow analytics surface used
+by the frozen M9 corpus; every `Anonymous` or otherwise unapproved function fails closed. The
+focused regression uses `unsafe_business_function(1)` under an authorized `fact_order` query and
+proves `RecordingProvider.candidates` remains empty. Positive regressions cover `DATE`, `DATE_SUB`,
+`CURRENT_DATE`, `SUM`, `COUNT`, `COALESCE`, `CAST`, and CASE; all 21 accepted M9 proposals retain
+guard admission `1.000`. No QueryPlan, M9 prompt, EXPLAIN policy, or M11 behavior changed.
 
 ## 6. Decision log
 
@@ -765,6 +814,21 @@ table precision `0.934`, and exact set `0.905`, without changing M6, M7, Golden 
 Consequences: Eval attribution is clean, catalog revisions cannot conflict with a stale
 higher-priority business mapping in the prompt, and case-specific performance improvements must be
 made in the true authority layer rather than accumulating an implicit semantic layer in prompts.
+
+2026-08-26 — OQ-009 / M10 raw-SQL capability and MVP EXPLAIN admission
+Decision: Treat raw SQL as data and expose only an internal immutable `GuardedQuery` as future
+execution capability. SQLGlot 30.x performs MySQL parsing and scope-aware physical-table
+resolution. The Harness alone constructs `EXPLAIN FORMAT=JSON` after all guard checks; model SQL
+cannot request EXPLAIN and `EXPLAIN ANALYZE` is never constructed. Initial bounds are 64,000 SQL
+characters and 100,000 estimated rows per table access. Plain MySQL EXPLAIN is not assumed to be
+universally side-effect free: policy `sql-guard-v0.2` admits only a narrow recognized analytics
+function surface and rejects unknown/stored/loadable-function shapes before provider access.
+Evidence: SQLGlot scope sources distinguish physical `Table` values from CTE/derived `Scope`
+values. MySQL EXPLAIN JSON exposes per-access `rows_examined_per_scan`; the deterministic ten-table
+world is far below the initial obviously-unreasonable threshold.
+Consequences: M11 can consume the exact validated SQL payload and digest rather than accept a new
+string. The row threshold is a configurable synthetic-world admission rule, not a general cost
+model; changes require recorded calibration evidence.
 
 ## 7. Deviation rule
 

@@ -91,6 +91,7 @@ Semantics:
 - `task dev`: run the API in local development mode.
 - `task quality`: formatter check + lint + type check + unit/integration/architecture/security tests.
 - `task eval`: run the deterministic Golden Dataset evaluation.
+- `task m10-eval`: run the standalone SQL guard and JSON EXPLAIN admission evaluation.
 - `task reset`: destroy local generated state and reconstruct a clean deterministic environment.
 
 The implementation details behind these commands are intentionally not frozen.

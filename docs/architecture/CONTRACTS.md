@@ -398,6 +398,11 @@ class SQLGuardResult(BaseModel):
 Only `PASSED` may reach EXPLAIN/execution.
 `PASSED` has no violations; `REJECTED` has at least one violation.
 
+M10 additionally owns an internal immutable `GuardedQuery` capability that binds the exact
+validated SQL payload and digest, QueryPlan identity/reference, passed guard evidence, and accepted
+EXPLAIN evidence. It is not a public domain contract or a replacement for `SQLGuardResult`.
+Future M11 code consumes this capability rather than accepting arbitrary raw SQL.
+
 ---
 
 ## 12. ExplainResult

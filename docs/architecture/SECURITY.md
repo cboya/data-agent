@@ -85,14 +85,25 @@ The LLM adapter and planner do not need database credentials.
 
 ## 5. SQL guard
 
+Architecture law:
+
+```text
+Raw SQL is data; GuardedQuery is capability.
+```
+
+Future normal-query execution consumes the exact immutable payload admitted by M10, not a new SQL
+string. The SQL guard runs before EXPLAIN; EXPLAIN success is never treated as statement safety.
+
 Every candidate SQL query must:
 
 1. parse successfully under the MySQL dialect;
 2. contain exactly one statement;
-3. be a read-only query;
-4. reference only allowed tables;
-5. contain no prohibited construct/function;
-6. pass configured resource rules.
+3. have a read-only `SELECT` or set-operation root;
+4. resolve physical tables through SQL scopes so CTE/derived aliases do not become authority;
+5. reference only unqualified/configured analytics-schema tables declared by `QueryPlan.tables`;
+6. contain no prohibited construct, recursive CTE, lock, or optimizer/index hint;
+7. use only the explicitly approved EXPLAIN-safe analytics function surface;
+8. pass configured resource rules.
 
 String/regex checks alone are not sufficient.
 
@@ -117,13 +128,40 @@ Reject at minimum:
 
 Reject any multi-statement input even if the first statement is `SELECT`.
 
-## 7. Dangerous functions/behaviors
+The declared-table rule is subset, not equality. Unused declarations remain visible evidence:
 
-The implementation must maintain an explicit deny policy for dangerous/non-analytic constructs, including file/system or intentional-delay behavior where applicable.
+```text
+Tables(SQL) ⊆ QueryPlan.tables
+```
+
+They do not authorize an undeclared physical table, and a CTE that shadows a table name cannot
+conceal a physical reference in another namespace.
+
+## 7. EXPLAIN-safe functions and dangerous behaviors
+
+Plain MySQL `EXPLAIN SELECT` is not universally side-effect free. MySQL documents cases where
+optimizer processing evaluates a stored function inside a subquery while an outer query reads a
+table, allowing the function to modify data. The Guard must therefore prove an EXPLAIN-safe
+function subset before the provider is called; reader privileges are defense in depth, not the AST
+authority.
+
+Every SQLGlot `Func` node must match the versioned approved MVP surface. Unknown functions,
+loadable/stored-function shapes represented by `Anonymous`, and recognized built-ins outside that
+surface fail closed as `UNAPPROVED_FUNCTION`. The initial approved surface is limited to boolean
+AND/OR and CASE/IF expression nodes plus `SUM`, `COUNT`, `DATE`, `DATE_SUB`, `CURRENT_DATE`,
+`COALESCE`, and `CAST`. Function arguments are traversed by the same policy, so nesting cannot hide
+an unapproved call.
+
+The implementation also maintains an explicit deny policy for known dangerous/non-analytic
+constructs, including file/system or intentional-delay behavior where applicable.
 
 At minimum evaluate/reject constructs involving concepts such as:
 
 - file access (`LOAD_FILE`);
+- MySQL executable comments and session-variable reads/writes;
+- advisory locks (`GET_LOCK`, `RELEASE_LOCK`, and related inspection functions);
+- row locks (`FOR UPDATE`, `LOCK IN SHARE MODE`);
+- optimizer and index hints;
 - sleep/delay (`SLEEP`);
 - benchmarking/intentional work amplification (`BENCHMARK`);
 - server-side export.
@@ -163,7 +201,14 @@ Before execution:
 SQL Guard → EXPLAIN → policy → execute
 ```
 
-EXPLAIN policy should reject obviously unreasonable plans in the synthetic environment.
+EXPLAIN policy rejects oversized/overly deep plan structures, invalid JSON/shape, missing access
+estimates for physical-table queries, provider failures, and table-access estimates above
+`MAX_EXPLAIN_ESTIMATED_ROWS` in the synthetic environment. The row threshold applies per reported
+access and is not a portable optimizer cost model.
+
+The Harness constructs exactly `EXPLAIN FORMAT=JSON` only after the SQL guard passes. Model-supplied
+EXPLAIN is rejected, and `EXPLAIN ANALYZE` is never used because it executes the statement. Plain
+EXPLAIN receives only the function-approved subset; it is not treated as inherently non-executing.
 
 Exact thresholds are calibration parameters, but inability to safely inspect a plan should not cause an unsafe fallback.
 

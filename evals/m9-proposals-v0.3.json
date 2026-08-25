@@ -1,0 +1,524 @@
+{
+  "version": "v0.1",
+  "source": {
+    "kind": "accepted_m9_planner_report",
+    "accepted_head": "e14e728",
+    "squash_merged_main": "bf29dcffe3ff33c211bb4fd2a8cb4307e8d76fc8",
+    "identity": {
+      "catalog_fingerprint": "b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f",
+      "generated_schema_fingerprint": "7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64",
+      "model": "gemma4:latest",
+      "model_digest": "c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb",
+      "model_fingerprint": "3abd0ade8368742786e7464c1ff3b7ffbdb048bbfb303820725ac724f01bdfe6",
+      "prompt_version": "query-planning-v0.3",
+      "provider": "ollama",
+      "retrieval_index_fingerprint": "e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336",
+      "runtime_version": "0.32.15",
+      "semantic_revision": "7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50",
+      "suite_version": "v0.1"
+    }
+  },
+  "cases": [
+    {
+      "id": "paid-amount-total",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "paid_amount",
+            "semantic_role": "actual paid amount"
+          }
+        ],
+        "explanation": "The query calculates the sum of the 'paid_amount' metric from the fact_order table. The time grain is implicitly set by filtering records where 'paid_at' is within the last 30 days. The join/fan-out handling is minimal, as only one table is used, and the aggregation is a simple sum.",
+        "intent": "Calculate the total actual paid amount for successful orders within the last 30 days.",
+        "sql": "SELECT SUM(T1.paid_amount) AS paid_amount FROM fact_order AS T1 WHERE T1.paid_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND T1.status = 'PAID' OR T1.status = 'COMPLETED'",
+        "tables": [
+          "fact_order"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "paid-amount-daily",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "period",
+            "semantic_role": "day"
+          },
+          {
+            "name": "paid_amount",
+            "semantic_role": "actual paid amount"
+          }
+        ],
+        "explanation": "The query calculates the sum of the actual paid amount (paid_amount) grouped by day (period) for the last 30 days. It uses the fact_order table, filtering records where paid_at is not null and falls within the last 30 days. The grain is day, and the metric is the sum of paid_amount.",
+        "intent": "Calculate the daily total actual paid amount for the last 30 days.",
+        "sql": "SELECT\n  DATE(t1.paid_at) AS period,\n  SUM(t1.paid_amount) AS paid_amount\nFROM fact_order AS t1\nWHERE\n  t1.paid_at IS NOT NULL\n  AND t1.paid_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\nGROUP BY\n  DATE(t1.paid_at) ORDER BY\n  period",
+        "tables": [
+          "fact_order"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "gmv-total",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "gmv",
+            "semantic_role": "下单总金额"
+          }
+        ],
+        "explanation": "The query calculates the sum of the total_amount (GMV) from the fact_order table. The time grain is implicitly set by filtering records where paid_at is within the last 30 days, as per the requirement's time range. No joins are necessary as all required data (total_amount and paid_at for filtering) resides in fact_order.",
+        "intent": "Calculate the total Gross Merchandise Volume (GMV) for orders placed in the last 30 days.",
+        "sql": "SELECT SUM(t1.total_amount) AS gmv FROM fact_order AS t1 WHERE t1.paid_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND t1.paid_at IS NOT NULL;",
+        "tables": [
+          "fact_order"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "business-order-count-yesterday",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "order_count",
+            "semantic_role": "业务订单数"
+          }
+        ],
+        "explanation": "The query counts the distinct order IDs from fact_order, filtering for records where the creation date (created_at) is yesterday. The grain is the day, and the metric is the count of distinct orders.",
+        "intent": "Count the number of business orders created yesterday.",
+        "sql": "SELECT\n  COUNT(DISTINCT t1.id) AS order_count\nFROM fact_order AS t1\nWHERE\n  DATE(t1.created_at) = DATE(DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY));",
+        "tables": [
+          "fact_order",
+          "dim_user",
+          "dim_channel"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "paid-by-order-channel",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "order_channel",
+            "semantic_role": "The channel ID associated with the order."
+          },
+          {
+            "name": "paid_amount",
+            "semantic_role": "The sum of the actual paid amount for the orders."
+          }
+        ],
+        "explanation": "The query calculates the sum of the paid_amount (metric) grouped by the order_channel (dimension). It joins fact_order (source of both metric and dimension) with dim_channel (though only the ID is used for grouping, the join is implicitly handled by using the foreign key from fact_order). The grain is the order channel, and the aggregation is the sum of paid_amount.",
+        "intent": "Calculate the total paid amount for each order channel.",
+        "sql": "SELECT\n  t1.channel_id AS order_channel, \n  SUM(t1.paid_amount) AS paid_amount\nFROM fact_order AS t1\nGROUP BY\n  t1.channel_id",
+        "tables": [
+          "fact_order",
+          "dim_channel"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "paid-by-customer-region",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "province",
+            "semantic_role": "客户省份"
+          },
+          {
+            "name": "city",
+            "semantic_role": "客户城市"
+          },
+          {
+            "name": "paid_amount",
+            "semantic_role": "实际支付金额"
+          }
+        ],
+        "explanation": "The query calculates the sum of paid_amount (metric) grouped by province and city (dimensions). It joins fact_order (T1) with dim_user (T3) on user_id, and then joins with dim_region (T2) on region_id to link orders to user regions. The time filter restricts the results to orders paid within the last 30 days, using the paid_at column from fact_order.",
+        "intent": "Calculate the total actual paid amount (paid_amount) for each customer province and city over the last 30 days.",
+        "sql": "SELECT\n  T2.province, T2.city, SUM(T1.paid_amount) AS paid_amount\nFROM fact_order AS T1\nINNER JOIN dim_user AS T3\n  ON T1.user_id = T3.id\nINNER JOIN dim_region AS T2\n  ON T3.region_id = T2.id\nWHERE\n  T1.paid_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY) AND T1.paid_at < CURRENT_DATE()\nGROUP BY\n  T2.province, T2.city",
+        "tables": [
+          "fact_order",
+          "dim_user",
+          "dim_region"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "new-users-by-acquisition-channel",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "acquisition_channel",
+            "semantic_role": "acquisition_channel"
+          },
+          {
+            "name": "new_user_count",
+            "semantic_role": "new_user_count"
+          }
+        ],
+        "explanation": "The query calculates the count of distinct users (new_user_count) grouped by their acquisition channel (acquisition_channel). It filters the dim_user table to include only records where the registration date (registered_at) is within the last 30 days. The join is implicit through the direct use of the channel_id from dim_user, which represents the acquisition channel.",
+        "intent": "Count the number of newly registered users for each acquisition channel over the last 30 days.",
+        "sql": "SELECT\n  t1.channel_id AS acquisition_channel, count(DISTINCT t1.id) AS new_user_count\nFROM dim_user AS t1\nWHERE\n  t1.registered_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 30 DAY)\nGROUP BY\n  t1.channel_id",
+        "tables": [
+          "dim_user",
+          "dim_channel"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "active-users-by-region",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "province",
+            "semantic_role": "客户省份"
+          },
+          {
+            "name": "city",
+            "semantic_role": "客户城市"
+          },
+          {
+            "name": "active_user_count",
+            "semantic_role": "活跃用户数"
+          }
+        ],
+        "explanation": "The query calculates the distinct count of users (active_user_count) from fact_user_event, filtered to the last 7 days. It joins fact_user_event to dim_user on user_id to get user details, and then joins to dim_region on region_id to get the province and city. The results are grouped by province and city.",
+        "intent": "Count the number of distinct active users per province and city over the last 7 days.",
+        "sql": "SELECT\n  T3.province, T3.city, COUNT(DISTINCT T1.user_id) AS active_user_count\nFROM fact_user_event AS T1\nINNER JOIN dim_user AS T2\n  ON T1.user_id = T2.id\nINNER JOIN dim_region AS T3\n  ON T2.region_id = T3.id\nWHERE\n  T1.occurred_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)\nGROUP BY\n  T3.province, T3.city",
+        "tables": [
+          "fact_user_event",
+          "dim_user",
+          "dim_region"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "failed-payment-attempts-daily",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "period",
+            "semantic_role": "day"
+          },
+          {
+            "name": "failed_payment_attempt_count",
+            "semantic_role": "failed payment attempt count"
+          }
+        ],
+        "explanation": "The query calculates the daily count of failed payment attempts. It uses the `fact_payment_transaction` table, filtering for records where the `status` is 'FAILED' and the `attempted_at` date falls within the last 7 days. The results are grouped by the date extracted from `attempted_at` to provide a daily count (period).",
+        "intent": "Count the number of failed payment attempts per day over the last 7 days.",
+        "sql": "SELECT\n  DATE(attempted_at) AS period,\n  COUNT(id) AS failed_payment_attempt_count\nFROM fact_payment_transaction\nWHERE\n  status = 'FAILED'\n  AND attempted_at >= DATE_SUB(CURRENT_DATE(), INTERVAL 7 DAY)\nGROUP BY\n  period\nORDER BY\n  period",
+        "tables": [
+          "fact_payment_transaction"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "payment-success-rate",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "payment_success_rate",
+            "semantic_role": "payment_success_rate"
+          },
+          {
+            "name": "payment_attempt_count",
+            "semantic_role": "payment_attempt_count"
+          }
+        ],
+        "explanation": "The query calculates the payment success rate and the total payment attempt count using the fact_payment_transaction table. The payment_attempt_count is the total count of records in fact_payment_transaction. The payment_success_rate is calculated as the count of transactions where status is 'SUCCESS' divided by the total count of transactions.",
+        "intent": "Calculate the payment success rate and the total number of payment attempts.",
+        "sql": "SELECT CAST(SUM(CASE WHEN T1.status = 'SUCCESS' THEN 1 ELSE 0 END) AS REAL) * 1.0 / COUNT(T1.id) AS payment_success_rate, COUNT(T1.id) AS payment_attempt_count FROM fact_payment_transaction AS T1;",
+        "tables": [
+          "fact_payment_transaction"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "order-payment-attempts",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "order_id",
+            "semantic_role": "业务订单"
+          },
+          {
+            "name": "payment_attempt_count",
+            "semantic_role": "支付尝试次数"
+          }
+        ],
+        "explanation": "The query calculates the count of payment attempts (payment_attempt_count) for each business order (order_id). It joins fact_order (t1) with fact_payment_transaction (t2) on order_id and uses COUNT(t2.id) grouped by t1.id.",
+        "intent": "Count the number of payment attempts for each business order.",
+        "sql": "SELECT\n  t1.id AS order_id,\n  COUNT(t2.id) AS payment_attempt_count\nFROM fact_order AS t1\nLEFT JOIN fact_payment_transaction AS t2\n  ON t1.id = t2.order_id\nGROUP BY\n  t1.id",
+        "tables": [
+          "fact_order",
+          "fact_payment_transaction"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "successful-refund-daily",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "period",
+            "semantic_role": "period"
+          },
+          {
+            "name": "refund_amount",
+            "semantic_role": "refund_amount"
+          }
+        ],
+        "explanation": "The query calculates the sum of 'refund_amount' from 'fact_refund' grouped by the date of 'refunded_at'. It filters for records where the status is 'SUCCESS' to calculate the daily successful refund amount. The grain is day, the metric is refund_amount, and no joins are necessary.",
+        "intent": "Calculate the total successful refund amount per day.",
+        "sql": "SELECT\n  DATE(refunded_at) AS period, CAST(SUM(CASE WHEN status = 'SUCCESS' THEN refund_amount ELSE 0 END) AS DECIMAL(18, 2)) AS refund_amount\nFROM fact_refund\nWHERE status = 'SUCCESS'\nGROUP BY 1",
+        "tables": [
+          "fact_refund"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "net-revenue",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "id",
+            "semantic_role": "order_id"
+          },
+          {
+            "name": "net_revenue",
+            "semantic_role": "net_revenue"
+          }
+        ],
+        "explanation": "The query calculates net revenue by joining fact_order with two CTEs: OrderPaidAmount and OrderRefundAmount. OrderPaidAmount aggregates the successful payment amounts from fact_payment_transaction for each order_id. OrderRefundAmount aggregates the successful refund amounts from fact_refund for each order_id. The final net_revenue is calculated as total_paid_amount - total_refund_amount, using COALESCE to handle orders with no payment or no refunds.",
+        "intent": "Calculate the net revenue (paid amount minus successful refunds) for orders.",
+        "sql": "WITH OrderPaidAmount AS (\n  SELECT\n    id AS order_id,\n    SUM(CASE WHEN T1.status = 'SUCCESS' THEN T1.amount ELSE 0 END) AS total_paid_amount\n  FROM fact_payment_transaction AS T1\n  WHERE T1.order_id IS NOT NULL\n  GROUP BY\n    T1.order_id\n),\nOrderRefundAmount AS (\n  SELECT\n    order_id,\n    SUM(CASE WHEN status = 'SUCCESS' THEN refund_amount ELSE 0 END) AS total_refund_amount\n  FROM fact_refund\n  WHERE order_id IS NOT NULL\n  GROUP BY\n    order_id\n)\nSELECT\n  T1.id, \n  COALESCE(OPA.total_paid_amount, 0.0) - COALESCE(ORA.total_refund_amount, 0.0) AS net_revenue\nFROM fact_order AS T1\nLEFT JOIN OrderPaidAmount AS OPA\n  ON T1.id = OPA.order_id\nLEFT JOIN OrderRefundAmount AS ORA\n  ON T1.id = ORA.order_id;",
+        "tables": [
+          "fact_order",
+          "fact_refund",
+          "fact_payment_transaction",
+          "fact_order_item",
+          "dim_user",
+          "dim_channel",
+          "dim_product"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "product-unit-sales",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "product",
+            "semantic_role": "product"
+          },
+          {
+            "name": "unit_sales",
+            "semantic_role": "unit_sales"
+          }
+        ],
+        "explanation": "The query calculates the total unit sales (SUM(quantity)) for each product. It joins fact_order_item (T1) with dim_product (T2) on product_id to link sales details to product names. The results are grouped by product name.",
+        "intent": "Calculate the total unit sales (quantity) for each product.",
+        "sql": "SELECT\n  T2.name AS product, \n  SUM(T1.quantity) AS unit_sales\nFROM fact_order_item AS T1\nINNER JOIN dim_product AS T2\n  ON T1.product_id = T2.id\nGROUP BY\n  T2.name",
+        "tables": [
+          "fact_order_item",
+          "dim_product"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "category-unit-sales",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "product_category",
+            "semantic_role": "product_category"
+          },
+          {
+            "name": "unit_sales",
+            "semantic_role": "unit_sales"
+          }
+        ],
+        "explanation": "The query calculates the total unit sales (SUM(quantity)) for each product category. It joins fact_order_item (T1) with dim_product (T3) on product_id, and then joins with dim_category (T2) on category_id. The grain is by product category name, and the metric is the sum of the quantity from fact_order_item.",
+        "intent": "Calculate the total unit sales (quantity sold) for each product category.",
+        "sql": "SELECT\n  T2.name AS product_category,\n  SUM(T1.quantity) AS unit_sales\nFROM fact_order_item AS T1\nINNER JOIN dim_product AS T3\n  ON T1.product_id = T3.id\nINNER JOIN dim_category AS T2\n  ON T3.category_id = T2.id\nGROUP BY\n  T2.name",
+        "tables": [
+          "fact_order_item",
+          "dim_product",
+          "dim_category"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "paid-orders-by-category",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "product_category",
+            "semantic_role": "商品品类"
+          },
+          {
+            "name": "order_count",
+            "semantic_role": "已支付业务订单数"
+          }
+        ],
+        "explanation": "The query joins fact_order_item, dim_product, and dim_category to determine the product category associated with each order item. It then joins this result with fact_order to filter for orders with a 'PAID' or 'COMPLETED' status, which represents paid orders. The final count aggregates the distinct order IDs (order_count) grouped by the product category (product_category). The grain is the product category, and the metric is the count of distinct paid orders.",
+        "intent": "Count the number of distinct paid orders for each product category.",
+        "sql": "WITH OrderProductCategory AS (SELECT DISTINCT\n  t1.id AS order_id,\n  t3.name AS product_category\nFROM fact_order_item AS t1\nINNER JOIN dim_product AS t2\n  ON t1.product_id = t2.id\nINNER JOIN dim_category AS t3\n  ON t2.category_id = t3.id\n) SELECT\n  opc.product_category,\n  COUNT(DISTINCT t1.id) AS order_count\nFROM OrderProductCategory AS opc\nINNER JOIN fact_order AS t1\n  ON opc.order_id = t1.id\nWHERE\n  t1.status = 'PAID' OR t1.status = 'COMPLETED'\nGROUP BY\n  opc.product_category",
+        "tables": [
+          "fact_order",
+          "fact_order_item",
+          "dim_product",
+          "dim_category"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "item-units-and-payment-attempts",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "order_id",
+            "semantic_role": "业务订单"
+          },
+          {
+            "name": "item_units",
+            "semantic_role": "商品件数"
+          },
+          {
+            "name": "payment_attempt_count",
+            "semantic_role": "支付尝试次数"
+          }
+        ],
+        "explanation": "The query calculates the item units and payment attempt count per order_id. It uses two CTEs (OrderItemAgg and PaymentAttemptAgg) to pre-aggregate the required metrics (SUM(quantity) from fact_order_item and COUNT(id) from fact_payment_transaction) based on order_id, thus avoiding fan-out multiplication. Finally, it joins these aggregated results back to fact_order on order_id to ensure all orders are listed, using LEFT JOINs and COALESCE to handle orders with no items or no payment attempts.",
+        "intent": "Calculate the total number of items (product units) and the total number of payment attempts for each order ID, ensuring that the calculation avoids multiplying the item details and payment transaction details.",
+        "sql": "WITH OrderItemAgg AS (SELECT order_id, SUM(quantity) AS item_units FROM fact_order_item GROUP BY order_id), PaymentAttemptAgg AS (SELECT order_id, COUNT(id) AS payment_attempt_count FROM fact_payment_transaction GROUP BY order_id) SELECT t1.order_id, COALESCE(t2.item_units, 0) AS item_units, COALESCE(t3.payment_attempt_count, 0) AS payment_attempt_count FROM fact_order t1 LEFT JOIN OrderItemAgg t2 ON t1.id = t2.order_id LEFT JOIN PaymentAttemptAgg t3 ON t1.id = t3.order_id",
+        "tables": [
+          "fact_order",
+          "fact_order_item",
+          "fact_payment_transaction"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "event-count-by-acquisition-channel",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "acquisition_channel",
+            "semantic_role": "acquisition_channel"
+          },
+          {
+            "name": "event_count",
+            "semantic_role": "event_count"
+          }
+        ],
+        "explanation": "The query calculates the total count of user events (event_count) grouped by the acquisition channel name (acquisition_channel). It joins fact_user_event (t1) with dim_user (t3) on user_id, and then joins dim_user (t3) with dim_channel (t2) on channel_id to link events to the user's acquisition channel. The grain is the acquisition channel name.",
+        "intent": "Count the number of user events for each acquisition channel.",
+        "sql": "SELECT\n  t2.name AS acquisition_channel,\n  COUNT(t1.id) AS event_count\nFROM fact_user_event AS t1\nINNER JOIN dim_user AS t3\n  ON t1.user_id = t3.id\nINNER JOIN dim_channel AS t2\n  ON t3.channel_id = t2.id\nGROUP BY\n  t2.name",
+        "tables": [
+          "fact_user_event",
+          "dim_user",
+          "dim_channel"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "irrelevant-context-narrowing",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "paid_amount",
+            "semantic_role": "actual paid amount"
+          }
+        ],
+        "explanation": "The query calculates the sum of the 'paid_amount' from the fact_order table, filtering for orders with status 'PAID' or 'COMPLETED' and ensuring 'paid_amount' is not null. The grain is the total, and the metric is the sum of paid_amount.",
+        "intent": "Calculate the total actual paid amount for all successfully paid business orders.",
+        "sql": "SELECT SUM(T1.paid_amount) AS paid_amount FROM fact_order AS T1 WHERE T1.status = 'PAID' OR T1.status = 'COMPLETED' AND T1.paid_amount IS NOT NULL;",
+        "tables": [
+          "fact_order"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "bounded-world-injection-resistance",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "order_count",
+            "semantic_role": "业务订单数"
+          }
+        ],
+        "explanation": "The query counts the distinct primary keys (id) from the fact_order table to determine the total number of business orders. The grain is the entire dataset, and no joins are necessary.",
+        "intent": "Count the total number of business orders.",
+        "sql": "SELECT count(DISTINCT t1.id) AS order_count FROM fact_order AS t1",
+        "tables": [
+          "fact_order"
+        ],
+        "version": "v0.1"
+      }
+    },
+    {
+      "id": "top-products-shape",
+      "plan": {
+        "assumptions": [],
+        "expected_columns": [
+          {
+            "name": "product",
+            "semantic_role": "product"
+          },
+          {
+            "name": "unit_sales",
+            "semantic_role": "unit_sales"
+          }
+        ],
+        "explanation": "The query calculates the total quantity sold (unit_sales) for each product by summing the 'quantity' from 'fact_order_item'. It joins 'fact_order_item' with 'dim_product' on 'product_id' to retrieve the product name. The results are grouped by product name, ordered by unit_sales in descending order, and limited to the top 5 records.",
+        "intent": "Identify the top 5 best-selling products based on the total quantity sold.",
+        "sql": "SELECT\n  T2.name AS product, \n  SUM(T1.quantity) AS unit_sales\nFROM fact_order_item AS T1\nINNER JOIN dim_product AS T2\n  ON T1.product_id = T2.id\nGROUP BY\n  T2.name\nORDER BY\n  unit_sales DESC\nLIMIT 5",
+        "tables": [
+          "fact_order_item",
+          "dim_product"
+        ],
+        "version": "v0.1"
+      }
+    }
+  ]
+}

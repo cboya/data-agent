@@ -288,3 +288,27 @@ into the higher-priority prompt.
 **Reason:** Duplicating curated semantics in the system prompt creates a second authority that can
 drift from the fingerprinted catalog and contaminates attribution of planner-eval results. Prompt
 discipline and catalog business authority must remain mechanically separable.
+
+---
+
+## D-025 — Raw SQL is data; GuardedQuery is capability
+
+**Decision:** `QueryPlan.sql` remains an untrusted string. M10 parses and classifies it, resolves
+physical tables with SQLGlot scopes, applies namespace/table/construct policy, then—and only
+then—proves every function belongs to a conservative approved analytics surface before allowing a
+Harness-owned `EXPLAIN FORMAT=JSON`. Unknown/`Anonymous` functions fail closed. An internal
+immutable `GuardedQuery` binds the exact SQL payload, its SHA-256 digest, QueryPlan identity,
+`SQLGuardResult`, and accepted `ExplainResult` for future M11 consumption.
+
+Neither the EXPLAIN adapter nor future execution code should accept arbitrary SQL when the internal
+guarded capability can express the required authority. M10 never constructs `EXPLAIN ANALYZE` and
+does not submit the candidate as a normal query. Plain MySQL `EXPLAIN SELECT` is not assumed to be
+universally non-executing: MySQL documents an optimizer path where a stored function in a subquery
+is evaluated and modifies data when the outer query reads a table. The pre-EXPLAIN function
+allowlist is therefore part of admission authority, independent of the current reader's routine
+privileges.
+
+**Reason:** Separating evidence from capability prevents both validation bypass and a TOCTOU path
+where one SQL string is checked and another is explained or executed. EXPLAIN is optimizer
+inspection after deterministic guard admission, not a substitute for statement or function
+safety. See the MySQL 8.4 [derived-table EXPLAIN side-effect example](https://dev.mysql.com/doc/refman/8.4/en/derived-tables.html).
