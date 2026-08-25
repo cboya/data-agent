@@ -42,8 +42,12 @@ class Settings(BaseSettings):
     max_query_time_ms: int = Field(default=5000, gt=0)
     max_result_rows: int = Field(default=1000, gt=0)
     max_sql_repair_attempts: int = Field(default=1, ge=0, le=3)
-    max_retrieved_tables: int = Field(default=10, gt=0)
-    max_relationship_hops: int = Field(default=2, ge=0, le=3)
+    max_retrieved_tables: int = Field(default=8, gt=0, le=100)
+    max_relationship_hops: int = Field(default=1, ge=0, le=3)
+    retrieval_lexical_top_k: int = Field(default=10, ge=1, le=100)
+    retrieval_semantic_top_k: int = Field(default=10, ge=1, le=100)
+    retrieval_seed_tables: int = Field(default=4, ge=1, le=20)
+    retrieval_rrf_k: float = Field(default=60.0, gt=0, le=1000)
 
     @field_validator("ollama_base_url")
     @classmethod
@@ -75,4 +79,6 @@ class Settings(BaseSettings):
             raise ValueError("control and analytics MySQL databases must be distinct")
         if self.mysql_control_user == self.mysql_readonly_user:
             raise ValueError("control and analytics runtime users must be distinct")
+        if self.retrieval_seed_tables > self.max_retrieved_tables:
+            raise ValueError("retrieval seed table bound cannot exceed total retrieved table bound")
         return self

@@ -281,11 +281,15 @@ MVP defaults:
 
 Do not expand the entire database graph.
 
-M7 takes the top three fused candidates as seed tables and performs deterministic multi-source
+M7 takes the top four fused candidates as seed tables and performs deterministic multi-source
 breadth-first expansion, ordered by seed rank and canonical relationship endpoint. It traverses
 only validated M6 `Relationship` values, never raw M5 foreign keys. Hop count and total returned
 tables are hard-bounded by application settings. Graph-added hits carry `GRAPH_EXPANSION`, no
 lexical/semantic rank, and an explicit path reason.
+
+Controlled-world calibration freezes the default expansion bound at one hop and eight total tables.
+The 24-case standalone eval recovered every required path under that tighter boundary, so two-hop
+expansion is available only by explicit configuration rather than enabled by default.
 
 ## 13. Synthetic test-world semantics
 
