@@ -32,8 +32,9 @@ def _settings() -> Settings:
 
 def test_real_ollama_structured_chat_smoke() -> None:
     settings = _settings()
+    diagnostics = asyncio.run(OllamaStartupDiagnostics(settings).diagnose())
     result = asyncio.run(
-        OllamaChatModel(settings).structured(
+        OllamaChatModel(settings, fingerprint=diagnostics.chat).structured(
             messages=[
                 {
                     "role": "system",
@@ -51,8 +52,9 @@ def test_real_ollama_structured_chat_smoke() -> None:
 
 def test_real_ollama_bilingual_embedding_batch() -> None:
     settings = _settings()
+    diagnostics = asyncio.run(OllamaStartupDiagnostics(settings).diagnose())
     embeddings = asyncio.run(
-        OllamaEmbeddingModel(settings).embed(
+        OllamaEmbeddingModel(settings, fingerprint=diagnostics.embedding).embed(
             ["最近30天实际支付金额", "paid amount for the last 30 days"]
         )
     )

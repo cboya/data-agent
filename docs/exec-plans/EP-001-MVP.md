@@ -156,6 +156,8 @@ Acceptance:
 - request timeout and transport failures surface as typed adapter errors;
 - startup diagnostics validate endpoint, configured model presence, declared capabilities, and
   stable model fingerprints;
+- runtime requests remain bound to the startup model fingerprints and fail closed if a configured
+  mutable tag resolves to a different digest;
 - bilingual embedding batch returns one finite vector per input with consistent dimensions;
 - empty/oversized batches and inconsistent embedding responses fail closed;
 - domain code does not depend on Ollama-specific DTOs.
@@ -359,10 +361,13 @@ substantive review approved. M3 is complete/frozen and M4 is authorized.
 
 M4 progress note (2026-08-25): provider-neutral model ports, bounded Ollama HTTP adapters,
 fail-closed Pydantic structured output, embedding response invariants, startup capability checks,
-and digest-based model fingerprints are implemented. Focused deterministic M4 tests pass 28
-tests; the explicit host Ollama smoke passes 3 tests against the configured chat/embedding
-models; complete `task quality` passes 132 tests with those 3 host-only tests skipped. Remote
-`Delivery / Quality` passes on PR #4. Substantive review remains pending, so M4 is not complete.
+and digest-based model fingerprints are implemented. The substantive-review P1 remediation now
+requires adapters to consume those fingerprints and checks the live tag-to-digest mapping before
+every chat/embed execution; moved tags fail before the inference endpoint is called. Focused
+deterministic M4/API/config tests pass 31 tests; the explicit host Ollama smoke passes 3 tests
+against the bound configured chat/embedding identities; complete `task quality` passes 135 tests
+with those 3 host-only tests skipped. The updated PR head still requires remote quality and
+substantive re-review, so M4 remains active and M5 is not authorized.
 
 ## 6. Decision log
 
@@ -436,6 +441,19 @@ Consequences: Application startup fails when endpoint, model, digest, or require
 cannot be proven. Model fingerprints include provider/name/digest/capabilities/metadata so later
 index and trace fingerprints can bind to an immutable model identity without importing Ollama
 DTOs into domain code.
+
+2026-08-25 — M4 immutable model identity binding
+Decision: Require each Ollama chat/embedding adapter to consume the corresponding startup
+`ModelFingerprint`. Revalidate the configured tag-to-digest mapping immediately before every
+execution and raise a typed identity-drift error before `/api/chat` or `/api/embed` when it no
+longer matches. Keep this enforcement provider-local; the provider-neutral model ports do not
+change.
+Evidence: Ollama 0.32.15 on the supported host rejects both `tag@digest` and
+`tag@sha256:digest` through `/api/show` with HTTP 400, while digest-only references do not resolve.
+The adapter therefore cannot bind execution by sending a digest-qualified model reference.
+Consequences: A mutable tag cannot silently move after startup while traces or future indexes
+continue to claim the earlier fingerprint. The fallback adds one bounded `/api/tags` identity
+check immediately before each inference request; inability to prove the mapping fails closed.
 
 ## 7. Deviation rule
 

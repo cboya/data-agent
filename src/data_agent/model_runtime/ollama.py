@@ -6,6 +6,7 @@ import asyncio
 import json
 import math
 from collections.abc import Mapping
+from dataclasses import dataclass
 from typing import Any, Protocol, cast
 from urllib.error import HTTPError, URLError
 from urllib.request import Request, urlopen
@@ -15,6 +16,7 @@ from pydantic import BaseModel, ValidationError
 from data_agent.config import Settings
 from data_agent.model_runtime.errors import (
     ModelContractError,
+    ModelIdentityDriftError,
     ModelResponseError,
     ModelTimeoutError,
     ModelTransportError,
@@ -108,14 +110,78 @@ def _validate_messages(messages: list[dict[str, str]]) -> None:
             raise ModelContractError("chat message content cannot be blank")
 
 
+@dataclass(frozen=True)
+class _OllamaModelBinding:
+    model: str
+    digest: str
+
+
+def _binding_from_fingerprint(
+    fingerprint: ModelFingerprint,
+    *,
+    configured_model: str,
+    required_capability: str,
+) -> _OllamaModelBinding:
+    if fingerprint.provider != "ollama":
+        raise ModelIdentityDriftError("Ollama adapter requires an Ollama model fingerprint")
+    if fingerprint.model != configured_model:
+        raise ModelIdentityDriftError(
+            f"Ollama fingerprint does not match configured model: {configured_model}"
+        )
+    if not fingerprint.digest.strip():
+        raise ModelIdentityDriftError(
+            f"Ollama fingerprint has no immutable digest: {configured_model}"
+        )
+    if required_capability not in fingerprint.capabilities:
+        raise ModelIdentityDriftError(
+            f"Ollama fingerprint lacks {required_capability} capability: {configured_model}"
+        )
+    return _OllamaModelBinding(model=configured_model, digest=fingerprint.digest)
+
+
+def _tag_digest(tags: JsonObject, model: str) -> str | None:
+    models = tags.get("models")
+    if not isinstance(models, list):
+        raise ModelResponseError("Ollama tags response is invalid")
+    tag = next(
+        (item for item in models if isinstance(item, Mapping) and item.get("name") == model),
+        None,
+    )
+    if tag is None:
+        return None
+    digest = tag.get("digest")
+    if not isinstance(digest, str) or not digest.strip():
+        raise ModelResponseError(f"Ollama model digest is missing: {model}")
+    return digest
+
+
+def _assert_model_identity(tags: JsonObject, binding: _OllamaModelBinding) -> None:
+    current_digest = _tag_digest(tags, binding.model)
+    if current_digest != binding.digest:
+        raise ModelIdentityDriftError(f"configured Ollama model identity drifted: {binding.model}")
+
+
+async def _guard_model_identity(
+    transport: OllamaJsonTransport,
+    binding: _OllamaModelBinding,
+) -> None:
+    tags = await transport.request("GET", "/api/tags")
+    _assert_model_identity(tags, binding)
+
+
 class OllamaChatModel:
     def __init__(
         self,
         settings: Settings,
         *,
+        fingerprint: ModelFingerprint,
         transport: OllamaJsonTransport | None = None,
     ) -> None:
-        self._model = settings.ollama_chat_model
+        self._binding = _binding_from_fingerprint(
+            fingerprint,
+            configured_model=settings.ollama_chat_model,
+            required_capability="completion",
+        )
         self._transport = _transport(settings, transport)
 
     async def structured(
@@ -131,11 +197,12 @@ class OllamaChatModel:
         if not issubclass(response_type, BaseModel):
             raise TypeError("response_type must be a Pydantic model")
 
+        await _guard_model_identity(self._transport, self._binding)
         response = await self._transport.request(
             "POST",
             "/api/chat",
             {
-                "model": self._model,
+                "model": self._binding.model,
                 "messages": messages,
                 "stream": False,
                 "think": False,
@@ -164,9 +231,14 @@ class OllamaEmbeddingModel:
         self,
         settings: Settings,
         *,
+        fingerprint: ModelFingerprint,
         transport: OllamaJsonTransport | None = None,
     ) -> None:
-        self._model = settings.ollama_embed_model
+        self._binding = _binding_from_fingerprint(
+            fingerprint,
+            configured_model=settings.ollama_embed_model,
+            required_capability="embedding",
+        )
         self._max_batch = settings.ollama_max_embedding_batch
         self._transport = _transport(settings, transport)
 
@@ -178,10 +250,11 @@ class OllamaEmbeddingModel:
         if any(not text.strip() for text in texts):
             raise ModelContractError("embedding input cannot be blank")
 
+        await _guard_model_identity(self._transport, self._binding)
         response = await self._transport.request(
             "POST",
             "/api/embed",
-            {"model": self._model, "input": texts, "truncate": False},
+            {"model": self._binding.model, "input": texts, "truncate": False},
         )
         embeddings = response.get("embeddings")
         if not isinstance(embeddings, list) or len(embeddings) != len(texts):
@@ -227,6 +300,15 @@ class OllamaStartupDiagnostics:
         tags = await self._transport.request("GET", "/api/tags")
         chat = await self._fingerprint(tags, self._chat_model, "completion")
         embedding = await self._fingerprint(tags, self._embedding_model, "embedding")
+        current_tags = await self._transport.request("GET", "/api/tags")
+        _assert_model_identity(
+            current_tags,
+            _OllamaModelBinding(model=chat.model, digest=chat.digest),
+        )
+        _assert_model_identity(
+            current_tags,
+            _OllamaModelBinding(model=embedding.model, digest=embedding.digest),
+        )
         return ModelRuntimeDiagnostics(
             provider="ollama",
             runtime_version=version,
@@ -240,18 +322,9 @@ class OllamaStartupDiagnostics:
         model: str,
         required_capability: str,
     ) -> ModelFingerprint:
-        models = tags.get("models")
-        if not isinstance(models, list):
-            raise ModelResponseError("Ollama tags response is invalid")
-        tag = next(
-            (item for item in models if isinstance(item, Mapping) and item.get("name") == model),
-            None,
-        )
-        if tag is None:
+        digest = _tag_digest(tags, model)
+        if digest is None:
             raise ModelUnavailableError(f"configured Ollama model is missing: {model}")
-        digest = tag.get("digest")
-        if not isinstance(digest, str) or not digest:
-            raise ModelResponseError(f"Ollama model digest is missing: {model}")
 
         shown = await self._transport.request("POST", "/api/show", {"model": model})
         raw_capabilities = shown.get("capabilities")

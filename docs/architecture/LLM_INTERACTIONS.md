@@ -21,7 +21,10 @@ The model is not a workflow engine. Every model interaction has a narrow purpose
 
 At application startup, diagnostics must verify the Ollama endpoint, configured model presence,
 required chat/embedding capabilities, and immutable model digests. Startup fails closed when any
-required capability cannot be proven.
+required capability cannot be proven. Chat and embedding adapters must consume those startup
+fingerprints. Because the supported local Ollama runtime does not accept digest-qualified model
+references, each adapter must revalidate its configured tag-to-digest mapping immediately before
+execution and fail closed on identity drift.
 
 ## 2. Interaction A — Dialogue understanding
 

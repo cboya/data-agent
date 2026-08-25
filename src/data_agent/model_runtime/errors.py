@@ -21,5 +21,9 @@ class ModelUnavailableError(ModelAdapterError):
     """A configured model is absent or lacks its required capability."""
 
 
+class ModelIdentityDriftError(ModelUnavailableError):
+    """A mutable provider model name no longer resolves to its bound fingerprint."""
+
+
 class ModelContractError(ModelAdapterError):
     """Model output failed the requested domain contract."""

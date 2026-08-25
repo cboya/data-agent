@@ -491,3 +491,9 @@ Startup diagnostics are exposed through a provider-neutral `ModelRuntimeProbe`. 
 contains runtime version plus chat/embedding `ModelFingerprint` values built from provider,
 configured model name, immutable model digest, declared capabilities, and bounded descriptive
 metadata. Ollama request/response DTOs remain inside the adapter.
+
+The composition root must bind each runtime adapter to the corresponding startup fingerprint;
+an adapter must not execute from an unbound mutable model tag. If a provider cannot execute a
+digest-qualified reference, the provider adapter must revalidate the configured tag-to-digest
+mapping immediately before every model request and fail closed with a typed identity-drift error
+when the mapping no longer matches.
