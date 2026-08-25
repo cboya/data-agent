@@ -390,8 +390,9 @@ revision is `7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50`, 
 assembled catalog fingerprint is
 `b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f`. Focused M6
 tests pass 9 tests; integrated `task bootstrap` passes; complete `task quality` passes 150 tests
-with 3 explicit host-only Ollama tests skipped. Remote quality and substantive review remain
-pending, so M6 is not complete and M7 is not authorized.
+with 3 explicit host-only Ollama tests skipped. Remote `Delivery / Quality` passes on PR #6 in
+run `32856590537`. Substantive review remains pending, so M6 is not complete and M7 is not
+authorized.
 
 ## 6. Decision log
 
