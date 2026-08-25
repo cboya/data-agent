@@ -67,7 +67,7 @@ def _passing_planner_report() -> PlannerEvalReport:
     return PlannerEvalReport(
         identity=PlannerEvalIdentity(
             suite_version="v0.1",
-            prompt_version="query-planning-v0.2",
+            prompt_version="query-planning-v0.3",
             provider="test",
             model="chat",
             model_digest="digest",

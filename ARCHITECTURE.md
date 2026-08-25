@@ -336,6 +336,11 @@ only the relationships already present in that result. It receives no full catal
 `information_schema`, raw generated foreign keys, database credentials, or execution capability.
 Only a READY `RequirementState` may enter planning.
 
+The system prompt defines provider-neutral planning discipline only. Concrete business meanings,
+physical table/column mappings, metric formulas, status rules, time semantics, and relationship
+facts come exclusively from the supplied M6 semantic catalog slice. The prompt must not duplicate
+those governed facts as a second, higher-priority semantic authority.
+
 It describes:
 
 - intent;

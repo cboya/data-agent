@@ -537,6 +537,26 @@ passes 218 tests with 6 explicit host-only tests skipped. PR #9 implementation h
 passes remote `Delivery / Quality` in run `32892383013`. M9 remains active pending substantive
 review; M10 remains unauthorized.
 
+M9 semantic-authority remediation note (2026-08-26): substantive review found that prompt v0.2
+duplicated concrete synthetic-world metric, table, column, status, and time mappings already owned
+by M6, creating a higher-priority semantic authority that could drift from the fingerprinted
+catalog. Prompt `query-planning-v0.3` is domain-neutral: it defines bounded planning discipline,
+structured output, MySQL dialect, and generic fan-out safety, while every concrete business fact
+comes only from the READY requirement and supplied M6/M7 semantic context. D-024 freezes this
+boundary, and an architecture regression enumerates the current assembled catalog and rejects any
+concrete table identifier in the system prompt.
+
+The unchanged 21-case bound-host suite passes after removing all answer hints: structured parse,
+allowed-table compliance, out-of-context probe rejection, required-table recall, and
+expected-column accuracy are each `1.000`; plan-table precision is `0.934`; exact required table set
+is `0.905`. Non-gating representative SQL string evidence is `0.667` and remains explicitly
+non-authoritative. These metrics meet the original frozen gates without changing M6, M7, the
+Golden cases, or the acceptance targets, so the de-leaked results demonstrate that governed
+catalog context itself is sufficient. The focused M9/CLI suite passes 17 tests, the real
+bound-Ollama smoke passes, and complete `task quality` passes 219 tests with 6 host-only tests
+skipped. M9 remains active pending remediation push, remote `Delivery / Quality`, and substantive
+re-review; M10 remains unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -733,6 +753,18 @@ Consequences: The planner has no catalog/database discovery capability. Out-of-c
 tables fail closed, while a SQL string that lies about its table set is intentionally deferred to
 M10 rather than receiving a false M9 safety claim. Planner provenance stays in internal trace/eval
 identity, not QueryPlan.
+
+2026-08-26 — M9 system-prompt semantic authority purity
+Decision: Keep the planner system prompt domain-neutral. It may define reasoning, output, dialect,
+and generic join/aggregation discipline, but all concrete business meanings and physical mappings
+come exclusively from the bounded M6 catalog slice and READY requirement. Mechanically reject
+current catalog table identifiers in the prompt.
+Evidence: Substantive review found v0.2 duplicated governed synthetic-world answers. After removing
+them, prompt v0.3 passes the same 21-case suite with parse/allowed/escape/recall/columns `1.000`,
+table precision `0.934`, and exact set `0.905`, without changing M6, M7, Golden cases, or gates.
+Consequences: Eval attribution is clean, catalog revisions cannot conflict with a stale
+higher-priority business mapping in the prompt, and case-specific performance improvements must be
+made in the true authority layer rather than accumulating an implicit semantic layer in prompts.
 
 ## 7. Deviation rule
 
