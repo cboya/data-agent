@@ -257,6 +257,8 @@ Acceptance:
 - timeout enforced;
 - result cap enforced;
 - `ExecutionResult` returned;
+- before persisting execution artifacts, define a metadata-only contract/reference so result rows
+  are not automatically written to control-plane storage;
 - no direct planner-to-database bypass.
 
 ---
@@ -311,6 +313,7 @@ Acceptance:
 
 - `task eval` produces machine-readable and human-readable report;
 - environment/model/index fingerprints captured;
+- trace persistence stores execution metadata/references, not raw result rows by default;
 - hard gates and behavioral targets in `EVAL_SPEC.md` pass.
 
 ---
@@ -346,7 +349,7 @@ substantive review approved. M2 is complete/frozen and M3 is authorized.
 M3 progress note (2026-08-25): the implementation candidate uses a dedicated control schema,
 checksummed SQL migrations, explicit PyMySQL repository adapters, optimistic Session revision,
 append-only Message/Artifact capabilities, and a deterministic atomic Run state machine. The
-focused M3/config suite passes 49 tests and complete `task quality` passes 104 tests. Remote
+focused M3/config suite passes 54 tests and complete `task quality` passes 109 tests. Remote
 `Delivery / Quality` passes on PR #3. Substantive review remains pending, so M3 is not complete.
 
 ## 6. Decision log
@@ -396,7 +399,9 @@ Evidence: The current test world already uses PyMySQL and MySQL 8.4; raw migrati
 smallest coherent addition while preserving explicit mapping and Pydantic revalidation on reads.
 Consequences: Repository adapters own UTC/database conversion, JSON validation, transaction
 boundaries, and conflict classification. A future ORM may replace the adapter without changing
-domain contracts or ports.
+domain contracts or ports. Before any pending SQL executes, the migration plan requires the
+applied ledger to be an exact checksum-matching prefix of repository history; only a new suffix
+may be applied.
 
 2026-08-25 — M3 control and Run lifecycle
 Decision: Isolate harness state in a dedicated control schema/principal. Define one Run as one

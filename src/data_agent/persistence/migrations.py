@@ -2,6 +2,7 @@
 
 import hashlib
 import re
+from collections.abc import Sequence
 from dataclasses import dataclass
 from pathlib import Path
 from typing import cast
@@ -29,6 +30,45 @@ CREATE TABLE IF NOT EXISTS schema_migration (
 class AppliedMigration:
     version: str
     checksum: str
+
+
+@dataclass(frozen=True)
+class RepositoryMigration:
+    version: str
+    checksum: str
+    sql: str
+
+
+def plan_control_migrations(
+    repository: Sequence[RepositoryMigration],
+    applied: Sequence[AppliedMigration],
+) -> list[RepositoryMigration]:
+    """Require applied history to be an exact checksum-matching repository prefix."""
+
+    repository_versions = [migration.version for migration in repository]
+    applied_versions = [migration.version for migration in applied]
+    if repository_versions != sorted(repository_versions) or len(set(repository_versions)) != len(
+        repository_versions
+    ):
+        raise MigrationDriftError("repository migration history is not strictly ordered")
+    if applied_versions != sorted(applied_versions) or len(set(applied_versions)) != len(
+        applied_versions
+    ):
+        raise MigrationDriftError("applied migration history is not strictly ordered")
+    if len(applied) > len(repository):
+        raise MigrationDriftError("applied migration history is not a prefix of repository history")
+
+    for index, applied_migration in enumerate(applied):
+        repository_migration = repository[index]
+        if repository_migration.version != applied_migration.version:
+            raise MigrationDriftError(
+                "applied migration history is not a prefix of repository history"
+            )
+        if repository_migration.checksum != applied_migration.checksum:
+            raise MigrationDriftError(
+                f"applied migration {applied_migration.version} differs from repository content"
+            )
+    return list(repository[len(applied) :])
 
 
 def _admin_connection(
@@ -60,6 +100,22 @@ def _migration_files() -> list[Path]:
 
 def _checksum(sql: str) -> str:
     return hashlib.sha256(sql.encode("utf-8")).hexdigest()
+
+
+def _repository_migrations() -> list[RepositoryMigration]:
+    migrations: list[RepositoryMigration] = []
+    for path in _migration_files():
+        sql = path.read_text(encoding="utf-8").strip()
+        if not sql:
+            raise RuntimeError(f"control migration is empty: {path.name}")
+        migrations.append(
+            RepositoryMigration(
+                version=path.name,
+                checksum=_checksum(sql),
+                sql=sql,
+            )
+        )
+    return migrations
 
 
 def _create_control_database(settings: Settings) -> None:
@@ -99,28 +155,18 @@ def apply_control_migrations(settings: Settings) -> list[AppliedMigration]:
             cursor.execute(_MIGRATION_LEDGER_SQL)
         connection.commit()
 
-        for path in _migration_files():
-            sql = path.read_text(encoding="utf-8").strip()
-            if not sql:
-                raise RuntimeError(f"control migration is empty: {path.name}")
-            checksum = _checksum(sql)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT version, checksum FROM schema_migration ORDER BY version")
+            rows = cast(tuple[tuple[object, ...], ...], cursor.fetchall())
+        applied = [AppliedMigration(version=str(row[0]), checksum=str(row[1])) for row in rows]
+        pending = plan_control_migrations(_repository_migrations(), applied)
+
+        for migration in pending:
             with connection.cursor() as cursor:
-                cursor.execute(
-                    "SELECT checksum FROM schema_migration WHERE version = %s",
-                    (path.name,),
-                )
-                row = cursor.fetchone()
-                if row is not None:
-                    applied_checksum = str(row[0])
-                    if applied_checksum != checksum:
-                        raise MigrationDriftError(
-                            f"applied migration {path.name} differs from repository content"
-                        )
-                    continue
-                cursor.execute(sql)
+                cursor.execute(migration.sql)
                 cursor.execute(
                     "INSERT INTO schema_migration (version, checksum) VALUES (%s, %s)",
-                    (path.name, checksum),
+                    (migration.version, migration.checksum),
                 )
             connection.commit()
     except BaseException:
