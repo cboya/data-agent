@@ -431,8 +431,8 @@ Ollama `0.32.15`, index format `retrieval-index-v0.1`, and builder
 `1.000`, and mean final table count `6.79`; no LLM reranker is justified. Focused M7 tests pass
 30 tests including real MySQL and bound Ollama smoke; `task bootstrap` passes; complete
 `task quality` passes 175 tests with 4 explicit host-only Ollama tests skipped. Remote
-`Delivery / Quality` and substantive review remain pending, so M7 is not complete and M8 is not
-authorized.
+`Delivery / Quality` passes on PR #7 at implementation head `e278c93` in run `32864256899`.
+Substantive review remains pending, so M7 is not complete and M8 is not authorized.
 
 ## 6. Decision log
 
