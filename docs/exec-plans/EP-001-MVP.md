@@ -533,8 +533,9 @@ stable output aliases, and MySQL `DATE_SUB` syntax. The serial eval uses a separ
 180-second per-case timeout while normal model calls retain the existing 60-second default.
 `task bootstrap` passes with the unchanged
 retrieval fingerprint; focused deterministic M9/CLI tests pass 16 tests; complete `task quality`
-passes 218 tests with 6 explicit host-only tests skipped. M9 remains active pending focused PR,
-remote `Delivery / Quality`, and substantive review; M10 remains unauthorized.
+passes 218 tests with 6 explicit host-only tests skipped. PR #9 implementation head `54c6d4b`
+passes remote `Delivery / Quality` in run `32892383013`. M9 remains active pending substantive
+review; M10 remains unauthorized.
 
 ## 6. Decision log
 
