@@ -399,8 +399,9 @@ with 3 explicit host-only Ollama tests skipped. Commit `304729c` closed field-se
 overlay behavior, but substantive re-review clarified that composite generated FKs were still
 being decomposed into false single-column connectivity evidence. The current remediation accepts
 only true single-column generated FKs for `Relationship v0.1` and its partial-composite regression
-passes locally. Remote remediation quality and substantive re-review remain pending, so M6 is not
-complete and M7 is not authorized.
+passes locally. Remote `Delivery / Quality` passes at remediation head `2f9d202` in run
+`32859369209`. Substantive re-review remains pending, so M6 is not complete and M7 is not
+authorized.
 
 ## 6. Decision log
 
