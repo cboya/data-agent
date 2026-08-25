@@ -112,14 +112,20 @@ def _relationship() -> Relationship:
         ),
         _requirement(),
         RequirementPatch(
+            version="v0.2",
             metrics_upsert=_requirement().metrics,
             unresolved_replace=[],
         ),
-        DialogueDecision(
-            version="v0.1",
-            patch=RequirementPatch(),
-            action=DialogueAction.READY,
-            reason="All blocking requirements are resolved",
+        DialogueDecision.model_validate(
+            {
+                "version": "v0.1",
+                "patch": RequirementPatch(version="v0.2", unresolved_replace=[]).model_dump(
+                    mode="json"
+                ),
+                "action": DialogueAction.READY,
+                "question": None,
+                "reason": "All blocking requirements are resolved",
+            }
         ),
         CatalogDocument(
             version="v0.1",

@@ -19,13 +19,18 @@ from data_agent.contracts.message import Message, MessageRole
 from data_agent.contracts.query import ExpectedColumn, QueryPlan
 from data_agent.contracts.requirement import (
     Ambiguity,
+    ClearScalarPatch,
     DimensionRequirement,
     FilterRequirement,
     MetricRequirement,
+    NoChangeScalarPatch,
+    PatchOp,
     RequirementPatch,
     RequirementState,
     RequirementStatus,
     ResolutionStatus,
+    ScalarPatch,
+    SetScalarPatch,
     TimeRange,
 )
 from data_agent.contracts.retrieval import RetrievalHit, RetrievalResult
@@ -41,6 +46,7 @@ __all__ = [
     "CatalogColumn",
     "CatalogDocument",
     "CheckResult",
+    "ClearScalarPatch",
     "DialogueAction",
     "DialogueDecision",
     "DimensionRequirement",
@@ -53,6 +59,8 @@ __all__ = [
     "Message",
     "MessageRole",
     "MetricRequirement",
+    "NoChangeScalarPatch",
+    "PatchOp",
     "QueryPlan",
     "Relationship",
     "RequirementPatch",
@@ -64,8 +72,10 @@ __all__ = [
     "Run",
     "RunStatus",
     "SQLGuardResult",
+    "ScalarPatch",
     "Session",
     "SessionStatus",
+    "SetScalarPatch",
     "TimeRange",
     "VerificationResult",
 ]

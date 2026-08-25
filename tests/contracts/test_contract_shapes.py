@@ -113,8 +113,9 @@ def test_unknown_fields_fail_at_contract_boundary() -> None:
             DialogueDecision,
             {
                 "version": "v0.1",
-                "patch": RequirementPatch(),
+                "patch": RequirementPatch(version="v0.2", unresolved_replace=[]),
                 "action": DialogueAction.READY,
+                "question": None,
                 "reason": "The requirement is executable",
                 "unexpected": "must fail closed",
             },
@@ -160,3 +161,11 @@ def test_versioned_contracts_publish_only_v01(model: type[BaseModel]) -> None:
 def test_unknown_contract_version_fails() -> None:
     with pytest.raises(ValidationError, match=r"v0\.1"):
         RequirementState.model_validate({"version": "v0.2", "status": RequirementStatus.INCOMPLETE})
+
+
+def test_requirement_patch_publishes_only_mutation_protocol_v02() -> None:
+    version_schema = RequirementPatch.model_json_schema()["properties"]["version"]
+    assert version_schema["const"] == "v0.2"
+
+    with pytest.raises(ValidationError, match=r"v0\.2"):
+        RequirementPatch.model_validate({"version": "v0.1"})

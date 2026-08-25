@@ -6,7 +6,19 @@ from typing import Annotated, Literal
 from pydantic import AfterValidator, BaseModel, ConfigDict, StringConstraints
 
 ContractVersion = Literal["v0.1"]
-NonEmptyString = Annotated[str, StringConstraints(pattern=r"\S")]
+
+
+def _require_non_whitespace(value: str) -> str:
+    if not value.strip():
+        raise ValueError("string must contain a non-whitespace character")
+    return value
+
+
+NonEmptyString = Annotated[
+    str,
+    StringConstraints(min_length=1),
+    AfterValidator(_require_non_whitespace),
+]
 
 
 def _require_timezone_aware(value: datetime) -> datetime:

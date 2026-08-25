@@ -1,0 +1,331 @@
+version: v0.1
+cases:
+  - id: complete-paid-daily-zh
+    category: complete
+    turns:
+      - user: 最近30天每天的实际支付金额
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: complete-orders-yesterday-en
+    category: complete
+    turns:
+      - user: Count orders yesterday, no grouping.
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          time_range_value: {op: EQUALS, value: yesterday}
+          grain: {op: CLEAR}
+
+  - id: complete-gmv-channel-mixed
+    category: mixed_language
+    turns:
+      - user: 最近7天 by channel 看 GMV
+        expected_action: READY
+        expected_state:
+          metrics: [gmv]
+          dimensions: [channel]
+          time_range_value: {op: EQUALS, value: last_7_days}
+
+  - id: complete-net-revenue-month
+    category: complete
+    turns:
+      - user: Show monthly net revenue for the last 12 months.
+        expected_action: READY
+        expected_state:
+          metrics: [net_revenue]
+          time_range_value: {op: EQUALS, value: last_12_months}
+          grain: {op: EQUALS, value: month}
+
+  - id: metric-ambiguity-zh
+    category: metric_ambiguity
+    turns:
+      - user: 最近销售怎么样
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          required_blocking_fields: [metric]
+
+  - id: metric-ambiguity-en
+    category: metric_ambiguity
+    turns:
+      - user: How were sales last month?
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          required_blocking_fields: [metric]
+
+  - id: time-ambiguity-zh
+    category: time_ambiguity
+    turns:
+      - user: 看最近的实际支付金额
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: CLEAR}
+          required_blocking_fields: [time_range]
+
+  - id: time-ambiguity-en
+    category: time_ambiguity
+    turns:
+      - user: Show order count recently.
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [order_count]
+          time_range_value: {op: CLEAR}
+          required_blocking_fields: [time_range]
+
+  - id: grain-ambiguity-zh
+    category: grain_ambiguity
+    turns:
+      - user: 最近30天实际支付金额趋势，时间粒度还没决定
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          required_blocking_fields: [grain]
+
+  - id: grain-ambiguity-en
+    category: grain_ambiguity
+    turns:
+      - user: Trend paid amount over the last 30 days; the time grain is undecided.
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          required_blocking_fields: [grain]
+
+  - id: nonblocking-sort-zh
+    category: non_blocking
+    turns:
+      - user: 最近30天每天订单量，不用管排序
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: nonblocking-presentation-en
+    category: non_blocking
+    turns:
+      - user: Last 30 days daily paid amount; a table or chart is fine.
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: clear-grain
+    category: explicit_clear
+    initial_state:
+      version: v0.1
+      metrics:
+        - term: 实际支付金额
+          resolved_name: paid_amount
+          status: CONFIRMED
+      time_range: {kind: RELATIVE, value: last_30_days}
+      grain: day
+      status: READY
+    turns:
+      - user: 不用按天了，只看整个期间的总额
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: CLEAR}
+
+  - id: clear-comparison
+    category: explicit_clear
+    initial_state:
+      version: v0.1
+      metrics:
+        - term: 订单量
+          resolved_name: order_count
+          status: CONFIRMED
+      time_range: {kind: RELATIVE, value: last_30_days}
+      grain: day
+      comparison: year_over_year
+      status: READY
+    turns:
+      - user: 不要同比，只看当前值
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          comparison: {op: CLEAR}
+
+  - id: clear-limit
+    category: explicit_clear
+    initial_state:
+      version: v0.1
+      metrics:
+        - term: 订单量
+          resolved_name: order_count
+          status: CONFIRMED
+      time_range: {kind: RELATIVE, value: last_30_days}
+      grain: day
+      limit: 10
+      status: READY
+    turns:
+      - user: 不要只看前10项，取消这个限制
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          limit: {op: CLEAR}
+
+  - id: correct-metric-zh
+    category: correction
+    initial_state:
+      version: v0.1
+      metrics:
+        - term: 实际支付金额
+          resolved_name: paid_amount
+          status: CONFIRMED
+      time_range: {kind: RELATIVE, value: last_30_days}
+      grain: day
+      status: READY
+    turns:
+      - user: 不是销售额，我要订单量
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: correct-dimension-zh
+    category: correction
+    initial_state:
+      version: v0.1
+      metrics:
+        - term: 实际支付金额
+          resolved_name: paid_amount
+          status: CONFIRMED
+      dimensions:
+        - term: 地区
+          resolved_name: region
+          status: CONFIRMED
+      time_range: {kind: RELATIVE, value: last_30_days}
+      status: READY
+    turns:
+      - user: 不按地区了，改成按渠道
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+          dimensions: [channel]
+
+  - id: correct-metric-mixed
+    category: correction
+    initial_state:
+      version: v0.1
+      metrics:
+        - term: GMV
+          resolved_name: gmv
+          status: CONFIRMED
+      time_range: {kind: RELATIVE, value: last_7_days}
+      status: READY
+    turns:
+      - user: not GMV，use 实际支付金额 paid_amount
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+
+  - id: multi-turn-sales-zh
+    category: multi_turn
+    turns:
+      - user: 最近销售怎么样
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          time_range_value: {op: CLEAR}
+          required_blocking_fields: [metric]
+      - user: 实际支付金额
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: CLEAR}
+          required_blocking_fields: [time_range]
+      - user: 最近30天，按天
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: multi-turn-time-en
+    category: multi_turn
+    turns:
+      - user: Show order count recently.
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [order_count]
+          time_range_value: {op: CLEAR}
+          required_blocking_fields: [time_range]
+      - user: Last 30 days, daily.
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: multi-turn-grain-zh
+    category: multi_turn
+    turns:
+      - user: 最近30天实际支付金额趋势，粒度还没确定
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [paid_amount]
+          required_blocking_fields: [grain]
+      - user: 按周
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: week}
+
+  - id: multi-turn-resolved-sibling-metric
+    category: multi_turn
+    turns:
+      - user: 最近30天看实际支付金额和销售情况
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          required_blocking_fields: [metric]
+      - user: 销售指 GMV
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount, gmv]
+          time_range_value: {op: EQUALS, value: last_30_days}
+
+  - id: mixed-full-request
+    category: mixed_language
+    turns:
+      - user: 最近30天按 region 看 daily paid amount
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount]
+          dimensions: [region]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: complete-no-dimension
+    category: complete
+    turns:
+      - user: 最近7天每天订单量，总计所有用户
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          dimensions: []
+          time_range_value: {op: EQUALS, value: last_7_days}
+          grain: {op: EQUALS, value: day}
+
+  - id: nonblocking-no-limit
+    category: non_blocking
+    turns:
+      - user: Last 30 days, weekly order count by channel. No special row limit needed.
+        expected_action: READY
+        expected_state:
+          metrics: [order_count]
+          dimensions: [channel]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          grain: {op: EQUALS, value: week}
+          limit: {op: CLEAR}

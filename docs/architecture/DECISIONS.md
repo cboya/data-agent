@@ -191,3 +191,63 @@ outgoing transitions.
 
 **Reason:** Conversation continuity belongs to Session, while Run remains a finite, auditable
 execution record that never waits for or resumes on later user input.
+
+---
+
+## D-020 — RequirementPatch v0.2 uses explicit scalar mutation operations
+
+**Decision:** Keep persisted `RequirementState` at v0.1 and version its mutation protocol
+independently as `RequirementPatch` v0.2. Scalar fields use typed `NO_CHANGE`, `SET`, and `CLEAR`
+operations. Omitted scalar operations normalize to `NO_CHANGE`; a bare `null` is never the clear
+protocol.
+
+`SET` requires a contract-valid value. `CLEAR` and `NO_CHANGE` reject any non-null value.
+Collection replacement fields retain `None = NO_CHANGE`, empty collection = clear, and non-empty
+collection = replace. Metric and dimension corrections add explicit remove keys alongside upsert
+values; deterministic merge code never infers that one item semantically replaces another.
+
+**Reason:** Mutation intent must survive structured model output, trace/persistence boundaries, and
+JSON round-trips without depending on incidental field-presence metadata.
+
+---
+
+## D-021 — Successful dialogue turns commit through one persistence transaction
+
+**Decision:** M8 introduces a narrow dialogue-turn persistence boundary that atomically commits
+the inbound user `Message`, optimistic `Session`/`RequirementState` update, and optional assistant
+clarification `Message` in one short control-schema transaction.
+
+The model call occurs before the transaction. A stale expected Session revision rolls back the
+entire commit and is surfaced to the caller; M8 does not hide the conflict with an automatic retry.
+
+**Reason:** Independent message/session repository writes permit partial durable turns. Holding a
+database transaction open during local-model inference is also unsafe and unnecessary.
+
+---
+
+## D-022 — Provider dialogue grammar is normalized before domain merge
+
+**Decision:** The public M8 result remains `DialogueDecision v0.1` carrying
+`RequirementPatch v0.2`. The Ollama structured-output boundary uses a narrower
+`DialogueProposal v0.1` adapter grammar: scalar/collection mutations are separated from an
+action-discriminated `resolution`, ASK requires at least one normalized blocking ambiguity, and
+READY permits only non-blocking ambiguity entries. Core time/grain/comparison and
+metric/dimension operations are explicit in the provider response. Provider grain/comparison enum
+values are deterministically normalized into the public `NO_CHANGE`/`SET`/`CLEAR` scalar union.
+
+Every provider blocking item carries a provider-only `subject_term`; normalization removes it
+before constructing the public ambiguity contract. If a proposal marks a scalar field blocking,
+the Harness conservatively suppresses that scalar mutation to `NO_CHANGE`. For metric and
+dimension collections, only an upsert whose user-facing `term` exactly matches the normalized
+blocking `subject_term` is suppressed; unrelated explicit members of the same collection are
+retained. A collection remove that cannot be attributed safely while the collection is blocked,
+and a whole-list filter replacement proposed with a filter blocker, fail closed rather than
+silently losing facts.
+
+**Reason:** Ollama `0.32.15` did not reliably enforce a root discriminated union or choose nested
+generic scalar branches for the frozen `gemma4:latest` model. A provider adapter is allowed to be
+narrower than the domain contract, while the normalized public contract and deterministic merge
+remain provider-neutral. Suppressing a self-contradictory blocking-field mutation prevents guessed
+values from entering durable state without introducing natural-language heuristics. Provider-only
+subject identity prevents one ambiguous collection member from erasing resolved sibling facts
+that bounded future context can recover only from canonical `RequirementState`.

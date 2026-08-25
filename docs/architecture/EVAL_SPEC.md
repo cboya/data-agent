@@ -97,6 +97,14 @@ expected:
 - unnecessary clarification rate;
 - turns-to-ready.
 
+M8 also reports standalone dialogue action accuracy, canonical state accuracy, explicit-clear
+accuracy, correction accuracy, and multi-turn convergence. The frozen controlled-world M8 suite
+contains at least 25 cases across complete, metric/time/grain ambiguity, non-blocking uncertainty,
+explicit clear, correction, multi-turn, and mixed-language categories. It includes a mixed
+resolved-plus-ambiguous member case within one collection and proves the resolved sibling survives
+a bounded clarification turn without replaying the original user message. It runs without
+retrieval, planning, or SQL.
+
 ### 5.3 Retrieval
 
 - required table Recall@5;
@@ -151,6 +159,23 @@ On the frozen Golden Dataset:
 - SQL execution rate after bounded repair ≥ 0.95
 - final expected-result assertion pass rate ≥ 0.90
 - unnecessary clarification rate ≤ 0.10
+
+The standalone M8 dialogue gate additionally requires:
+
+- action accuracy ≥ 0.90;
+- canonical state accuracy ≥ 0.90;
+- required clarification recall ≥ 0.90;
+- unnecessary clarification rate ≤ 0.10;
+- explicit-clear accuracy = 1.00;
+- correction accuracy = 1.00;
+- multi-turn convergence = 1.00.
+
+Time-ambiguity cases must also prove that a guessed concrete time range does not survive into
+canonical state merely because the model correctly chose ASK.
+
+Collection-ambiguity cases must prove that blocking one metric/dimension subject does not erase a
+different resolved member from the same collection. Any subsequent clarification turn must
+recover that member from canonical `RequirementState`, not replayed raw history.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 

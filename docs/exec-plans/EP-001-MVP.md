@@ -359,8 +359,8 @@ Codex must update this section as milestones complete.
 [x] M4 Ollama adapters — complete and frozen via PR #4
 [x] M5 Catalog introspection — complete and frozen via PR #5
 [x] M6 Semantic catalog merge — complete and frozen via PR #6
-[ ] M7 Hybrid retrieval — active
-[ ] M8 RequirementState and clarification loop
+[x] M7 Hybrid retrieval — complete and frozen via PR #7
+[ ] M8 RequirementState and clarification loop — active
 [ ] M9 Query planner
 [ ] M10 SQL guard + EXPLAIN gate
 [ ] M11 Read-only runtime
@@ -436,8 +436,60 @@ focused one-seed regression reports seed Recall@5/Recall@10 `0.333` and final
 Recall@5/Recall@10 `1.000`. The corrected focused M7 suite passes 21 tests including real MySQL
 and bound Ollama smoke; `task bootstrap` passes; complete `task quality` passes 175 tests with 4
 explicit host-only Ollama tests skipped; corrected `task eval` passes all frozen final recall gates.
-Remote `Delivery / Quality` passes on PR #7 at remediation head `42287c0` in run `32865874232`.
-Substantive re-review remains pending, so M7 is not complete and M8 is not authorized.
+Remote `Delivery / Quality` passes on PR #7 at remediation head `42287c0` in run `32865874232`
+and final head `89cd20c` in run `32866051635`. Substantive re-review approved the corrected seed
+evaluation; PR #7 squash-merged to `main` as
+`2dce0428c22faf07f4646856096c37a4cba0ba00`. M7 is complete/frozen and M8 is authorized.
+
+M8 activation note (2026-08-25): `RequirementState` remains v0.1 while its mutation protocol
+evolves explicitly to `RequirementPatch` v0.2. Scalar mutations use typed
+`NO_CHANGE`/`SET`/`CLEAR`; metric and dimension correction uses explicit remove plus upsert rather
+than merge heuristics. Successful dialogue turns will persist the inbound user message, optimistic
+Session update, and optional assistant clarification through one short atomic control-schema
+transaction after model/policy validation. M9 remains unauthorized.
+
+M8 implementation note (2026-08-26): one bounded structured call consumes canonical
+`RequirementState`, the latest user message, and only the last relevant assistant clarification.
+Ollama returns provider-facing `DialogueProposal v0.1`; the Harness normalizes it into public
+`DialogueDecision v0.1` / `RequirementPatch v0.2`, performs deterministic merge, and owns final
+`CLARIFYING`/`READY`/`FAILED` status. ASK grammar requires blocking evidence. Scalar blocker
+conflicts become `NO_CHANGE`; collection blockers use provider-only subject identity so only
+attributable upserts are suppressed while resolved siblings survive. Unattributable collection
+removes and filter-blocker/whole-list replacement combinations fail closed. Successful turns
+atomically commit the inbound user message, revision-checked Session state, and optional assistant
+clarification after inference/policy.
+
+The initial pre-review standalone dialogue suite contained 24 cases / 28 turns across nine
+categories. Bound host evaluation with `gemma4:latest` digest
+`c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb`, model
+fingerprint `3abd0ade8368742786e7464c1ff3b7ffbdb048bbfb303820725ac724f01bdfe6`, Ollama
+`0.32.15`, and prompt `dialogue-understanding-v0.19` passes: action accuracy `1.000`, canonical
+state accuracy `1.000`, required clarification recall `1.000`, unnecessary clarification `0.000`,
+explicit clear `1.000`, correction `1.000`, multi-turn convergence `1.000`, and mean turns-to-ready
+`1.22`. The focused M8 suite passes 71 tests including bound Ollama structured output and real
+MySQL atomic success/stale-revision/rollback coverage. Integrated `task bootstrap` passes while
+preserving the ten-table deterministic world and M7 index fingerprint
+`e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
+`task quality` passes 198 tests with 5 explicit host-only tests skipped. M8 remains active until PR
+acceptance and merge; M9 remains unauthorized. Remote `Delivery / Quality` passes on PR #8 at
+implementation head `03f2e44` in run `32882403836`.
+
+M8 substantive-remediation note (2026-08-26): initial review found that field-wide suppression for
+metric/dimension/filter collections could erase an explicit sibling fact, which bounded next-turn
+context could not recover from raw history. `DialogueProposal` blocking items now carry a
+provider-only exact `subject_term`; normalization strips this metadata from public `Ambiguity`,
+suppresses only matching metric/dimension upserts, and fails closed for collection operations that
+cannot be safely attributed. The frozen suite adds the two-turn “实际支付金额 + 销售情况” case and
+requires `paid_amount` to remain canonical while “销售指 GMV” produces `[paid_amount, gmv]`
+without replaying the first user message. Prompt `dialogue-understanding-v0.20` passes the expanded
+25-case / 30-turn bound-host eval with action accuracy `1.000`, canonical state accuracy `1.000`,
+required clarification recall `1.000`, unnecessary clarification `0.000`, explicit clear `1.000`,
+correction `1.000`, multi-turn convergence `1.000`, and mean turns-to-ready `1.26`. The focused M8
+suite passes 76 tests including real Ollama and MySQL atomic-turn coverage; `task bootstrap`
+passes with the unchanged M7 index fingerprint; complete `task quality` passes 203 tests with 5
+explicit host-only tests skipped. Remediation head `906f365` passes remote `Delivery / Quality` in
+run `32885561101`. M8 remains active pending substantive re-review and merge; M9 remains
+unauthorized.
 
 ## 6. Decision log
 
@@ -588,6 +640,38 @@ generated/curated sources; identity comparison is therefore required in addition
 Consequences: Model, runtime, schema, semantics, projection, or index-format drift fails closed and
 requires rebuild. Generated index files remain beneath `catalog/generated/` and are never semantic
 authority.
+
+2026-08-25 — M8 explicit requirement mutation and dialogue-turn persistence
+Decision: Version `RequirementPatch` independently as v0.2 while preserving `RequirementState`
+v0.1. Scalars use explicit `NO_CHANGE`/`SET`/`CLEAR`; collection correction uses explicit keyed
+remove/upsert. Compose successful dialogue persistence behind one transaction that writes the user
+message, revision-checked Session state, and optional assistant clarification. Run local-model
+inference before opening that transaction and surface revision conflict without hidden retry.
+Evidence: The v0.1 scalar replacement fields cannot distinguish explicit clear from no change
+without depending on JSON field-presence metadata, and independent M3 Session/Message repository
+writes cannot prevent a partially durable successful turn.
+Consequences: JSON/trace/persistence round-trips retain scalar intent. The model proposes mutation
+and action, while deterministic merge/policy owns canonical state and status. Failed model/policy
+turns persist nothing; concurrency conflict rolls back the complete durable turn and requires the
+caller to rerun it.
+
+2026-08-26 — M8 provider dialogue grammar and blocker/mutation conflict handling
+Decision: Use a provider-facing `DialogueProposal v0.1` with an action-discriminated resolution
+and explicit core mutation choices, then normalize and revalidate public `DialogueDecision v0.1`
+and `RequirementPatch v0.2`. ASK requires at least one normalized blocking item carrying a
+provider-only exact `subject_term`, which is removed at the public contract boundary. Scalar
+blockers suppress their scalar mutation. Metric/dimension blockers suppress only an upsert whose
+user-facing `term` matches that subject; unrelated same-collection members survive. Unattributable
+collection removes and filter blocker plus whole-list replacement fail closed.
+Evidence: Ollama `0.32.15` with frozen `gemma4:latest` did not reliably enforce a root union and
+could emit a guessed time mutation together with a time blocker. Provider enum normalization plus
+scalar blocker suppression closes those contradictions. Substantive review identified that the
+original field-wide collection rule erased explicit siblings; a pure normalization regression and
+the 25-case bounded two-turn eval now require those facts to remain canonical.
+Consequences: Provider grammar may be narrower than the domain contract, but it is not semantic
+authority. The public patch remains provider-neutral, mutation intent is traceable, contradictory
+blocking-subject values fail conservatively, unrelated explicit collection facts survive, and no
+natural-language parsing moves into the Harness.
 
 ## 7. Deviation rule
 

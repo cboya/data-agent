@@ -165,30 +165,70 @@ status == READY  ⇒  unresolved contains no blocking ambiguity
 Model turns should patch, not regenerate, the full canonical state.
 
 ```python
+class PatchOp(str, Enum):
+    NO_CHANGE = "NO_CHANGE"
+    SET = "SET"
+    CLEAR = "CLEAR"
+
+class NoChangeScalarPatch(BaseModel):
+    op: Literal[PatchOp.NO_CHANGE]
+    value: None = None
+
+class ClearScalarPatch(BaseModel):
+    op: Literal[PatchOp.CLEAR]
+    value: None = None
+
+class SetScalarPatch[T](BaseModel):
+    op: Literal[PatchOp.SET]
+    value: T
+
+ScalarPatch[T] = Annotated[
+    NoChangeScalarPatch | ClearScalarPatch | SetScalarPatch[T],
+    Field(discriminator="op"),
+]
+
 class RequirementPatch(BaseModel):
-    goal_replace: str | None = None
+    version: Literal["v0.2"] = "v0.2"
+    goal: ScalarPatch[str] = ScalarPatch()
+    time_range: ScalarPatch[TimeRange] = ScalarPatch()
+    grain: ScalarPatch[str] = ScalarPatch()
+    comparison: ScalarPatch[str] = ScalarPatch()
+    sort: ScalarPatch[str] = ScalarPatch()
+    limit: ScalarPatch[int] = ScalarPatch()
     metrics_upsert: list[MetricRequirement] = []
+    metrics_remove: list[str] = []
     dimensions_upsert: list[DimensionRequirement] = []
+    dimensions_remove: list[str] = []
     filters_replace: list[FilterRequirement] | None = None
-    time_range_replace: TimeRange | None = None
-    grain_replace: str | None = None
-    comparison_replace: str | None = None
-    sort_replace: str | None = None
-    limit_replace: int | None = None
     confirmed_terms_upsert: dict[str, str] = {}
     assumptions_add: list[str] = []
     unresolved_replace: list[Ambiguity] | None = None
 ```
 
-Field suffixes are operational semantics, not naming decoration:
+Scalar invariants:
+
+```text
+NO_CHANGE ⇒ value is null and the current value is preserved
+SET       ⇒ value is present, contract-valid, and replaces the current value
+CLEAR     ⇒ value is null and the current value is removed
+```
+
+An omitted scalar operation normalizes to `NO_CHANGE`. Explicit clear is never encoded as an
+ambiguous bare `null`. `RequirementPatch` is v0.2 because the mutation wire protocol evolved;
+the persisted `RequirementState` representation remains v0.1.
+
+Collection suffixes are operational semantics, not naming decoration:
 
 - `*_upsert` merges keyed domain values;
+- `*_remove` explicitly removes keyed domain values;
 - `*_replace` replaces the canonical value when supplied;
 - `*_add` appends values without regenerating canonical state.
 
-An omitted optional replacement means "no change". Empty replacement collections explicitly
-clear the corresponding collection. The merge algorithm is M8 application code and must be
-unit-tested there; it is not part of this data contract.
+Metric/dimension identity is `resolved_name` when present, otherwise `term`. Remove entries name
+that identity exactly. A remove and upsert of the same identity in one patch is invalid. An omitted
+optional collection replacement means "no change"; an empty replacement collection explicitly
+clears it. The deterministic merge algorithm is M8 application code and never guesses correction
+intent from natural-language similarity.
 
 ---
 
@@ -216,6 +256,21 @@ READY ⇒ question is None
 ```
 
 The LLM proposes the decision. The harness validates and applies it.
+The model cannot write `RequirementState.status`; deterministic dialogue policy derives it after
+merge. `ASK_CLARIFICATION` is accepted only when the merged state contains a blocking ambiguity,
+and `READY` only when it contains none.
+
+The Ollama boundary does not deserialize directly into the public decision. It first validates a
+provider-facing `DialogueProposal v0.1` containing a mutation patch and an action-discriminated
+`resolution`. ASK grammar requires at least one normalized blocking ambiguity; provider
+grain/comparison enum values are then deterministically normalized into `ScalarPatch` operations.
+Provider blocking ambiguity adds a required `subject_term` copied from the ambiguous surface
+phrase; this attribution metadata is removed before the public `Ambiguity` is constructed. The
+normalized `DialogueDecision` is revalidated before merge. A blocked scalar mutation becomes
+`NO_CHANGE`. A metric/dimension blocker suppresses only an upsert with the same normalized
+user-facing `term`, preserving unrelated explicit members of that collection. Collection removes
+that cannot be safely attributed and a filter replacement paired with a filter blocker fail
+closed instead of silently dropping facts.
 
 ---
 
