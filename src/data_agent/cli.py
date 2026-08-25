@@ -15,11 +15,16 @@ from data_agent.retrieval.runtime import (
     evaluate_current_retrieval,
     rebuild_current_retrieval_index,
 )
+from data_agent.sql_guard.evaluation import format_sql_guard_eval_summary
+from data_agent.sql_guard.runtime import evaluate_current_sql_guard
 
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="data-agent")
-    parser.add_argument("command", choices=("bootstrap", "eval", "planner-eval", "reset"))
+    parser.add_argument(
+        "command",
+        choices=("bootstrap", "eval", "planner-eval", "reset", "sql-guard-eval"),
+    )
     return parser
 
 
@@ -42,17 +47,29 @@ def main(argv: Sequence[str] | None = None) -> int:
         retrieval_report = asyncio.run(evaluate_current_retrieval(settings))
         dialogue_report = asyncio.run(evaluate_current_dialogue(settings))
         planner_report = asyncio.run(evaluate_current_planner(settings))
+        sql_guard_report = evaluate_current_sql_guard(settings)
         print(format_retrieval_eval_summary(retrieval_report))
         print(format_dialogue_eval_summary(dialogue_report))
         print(format_planner_eval_summary(planner_report))
+        print(format_sql_guard_eval_summary(sql_guard_report))
         return (
-            0 if retrieval_report.passed and dialogue_report.passed and planner_report.passed else 1
+            0
+            if retrieval_report.passed
+            and dialogue_report.passed
+            and planner_report.passed
+            and sql_guard_report.passed
+            else 1
         )
     if args.command == "planner-eval":
         settings = Settings()  # type: ignore[call-arg]
         planner_report = asyncio.run(evaluate_current_planner(settings))
         print(format_planner_eval_summary(planner_report))
         return 0 if planner_report.passed else 1
+    if args.command == "sql-guard-eval":
+        settings = Settings()  # type: ignore[call-arg]
+        sql_guard_report = evaluate_current_sql_guard(settings)
+        print(format_sql_guard_eval_summary(sql_guard_report))
+        return 0 if sql_guard_report.passed else 1
     if args.command == "reset":
         reset_mysql()
         print("MySQL generated state removed; curated catalog files were preserved.")

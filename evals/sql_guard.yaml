@@ -1,0 +1,238 @@
+version: v0.1
+
+cases:
+  - id: valid-single-table
+    category: valid
+    sql: SELECT id FROM fact_order
+    tables: [fact_order]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: valid-qualified-analytics
+    category: valid
+    sql: SELECT id FROM data_agent.fact_order
+    tables: [fact_order]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: valid-cte-alias
+    category: scope
+    sql: WITH paid AS (SELECT user_id FROM fact_order) SELECT user_id FROM paid
+    tables: [fact_order]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: valid-derived-and-subquery
+    category: scope
+    sql: SELECT x.user_id FROM (SELECT user_id FROM fact_order WHERE user_id IN (SELECT id FROM dim_user)) AS x
+    tables: [fact_order, dim_user]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: valid-union
+    category: scope
+    sql: SELECT order_id AS id FROM fact_refund UNION ALL SELECT id FROM fact_order
+    tables: [fact_refund, fact_order]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: valid-cte-shadowing
+    category: scope
+    sql: WITH fact_order AS (SELECT id FROM dim_user) SELECT id FROM fact_order
+    tables: [dim_user]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: valid-subset-authority
+    category: authority
+    sql: SELECT id FROM fact_order
+    tables: [fact_order, dim_user]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: valid-constant-select
+    category: valid
+    sql: SELECT 1 AS one
+    tables: [fact_order]
+    expected_guard: PASSED
+    expected_explain: ACCEPTED
+
+  - id: reject-multiple-statements
+    category: statement
+    sql: SELECT 1; SELECT 2
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-parse-error
+    category: statement
+    sql: SELEC FROM
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-insert
+    category: write
+    sql: INSERT INTO fact_order(id) VALUES (1)
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-update
+    category: write
+    sql: UPDATE fact_order SET status = 'PAID'
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-delete
+    category: write
+    sql: DELETE FROM fact_order
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-ddl
+    category: write
+    sql: DROP TABLE fact_order
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-grant
+    category: write
+    sql: GRANT SELECT ON data_agent.fact_order TO 'unsafe'@'%'
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-revoke
+    category: write
+    sql: REVOKE SELECT ON data_agent.fact_order FROM 'unsafe'@'%'
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-load-data
+    category: write
+    sql: LOAD DATA INFILE '/tmp/unsafe' INTO TABLE fact_order
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-call
+    category: statement
+    sql: CALL unsafe()
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-show
+    category: statement
+    sql: SHOW TABLES
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-user-explain
+    category: statement
+    sql: EXPLAIN SELECT * FROM fact_order
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-recursive-cte
+    category: scope
+    sql: WITH RECURSIVE r AS (SELECT 1 UNION ALL SELECT * FROM r) SELECT * FROM r
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-undeclared-table
+    category: authority
+    sql: SELECT * FROM fact_order JOIN dim_user ON dim_user.id = fact_order.user_id
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-other-schema
+    category: namespace
+    sql: SELECT * FROM other.fact_order
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-information-schema
+    category: namespace
+    sql: SELECT * FROM information_schema.tables
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-control-plane
+    category: namespace
+    sql: SELECT * FROM data_agent_control.agent_session
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-cte-namespace-spoof
+    category: namespace
+    sql: WITH fact_order AS (SELECT * FROM mysql.user) SELECT * FROM fact_order
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-load-file
+    category: function
+    sql: SELECT LOAD_FILE('/etc/passwd')
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-sleep
+    category: function
+    sql: SELECT SLEEP(1)
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-benchmark
+    category: function
+    sql: SELECT BENCHMARK(1, MD5('x'))
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-advisory-lock
+    category: function
+    sql: SELECT GET_LOCK('unsafe', 1)
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-row-lock
+    category: lock
+    sql: SELECT * FROM fact_order FOR UPDATE
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-optimizer-hint
+    category: hint
+    sql: SELECT /*+ MAX_EXECUTION_TIME(1000) */ * FROM fact_order
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-index-hint
+    category: hint
+    sql: SELECT * FROM fact_order FORCE INDEX (idx)
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-mysql-executable-comment
+    category: function
+    sql: SELECT /*!50000 SLEEP(1) */ 1
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-session-variable-assignment
+    category: function
+    sql: SELECT @unsafe := 1
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-json-table-source
+    category: scope
+    sql: SELECT * FROM JSON_TABLE('[]', '$[*]' COLUMNS(value INT PATH '$')) AS jt
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-outfile
+    category: exfiltration
+    sql: SELECT * FROM fact_order INTO OUTFILE '/tmp/unsafe'
+    tables: [fact_order]
+    expected_guard: REJECTED
+
+  - id: reject-dumpfile
+    category: exfiltration
+    sql: SELECT * FROM fact_order INTO DUMPFILE '/tmp/unsafe'
+    tables: [fact_order]
+    expected_guard: REJECTED

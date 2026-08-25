@@ -98,10 +98,11 @@ Every candidate SQL query must:
 
 1. parse successfully under the MySQL dialect;
 2. contain exactly one statement;
-3. be a read-only query;
-4. reference only allowed tables;
-5. contain no prohibited construct/function;
-6. pass configured resource rules.
+3. have a read-only `SELECT` or set-operation root;
+4. resolve physical tables through SQL scopes so CTE/derived aliases do not become authority;
+5. reference only unqualified/configured analytics-schema tables declared by `QueryPlan.tables`;
+6. contain no prohibited construct/function, recursive CTE, lock, or optimizer/index hint;
+7. pass configured resource rules.
 
 String/regex checks alone are not sufficient.
 
@@ -126,6 +127,15 @@ Reject at minimum:
 
 Reject any multi-statement input even if the first statement is `SELECT`.
 
+The declared-table rule is subset, not equality. Unused declarations remain visible evidence:
+
+```text
+Tables(SQL) ⊆ QueryPlan.tables
+```
+
+They do not authorize an undeclared physical table, and a CTE that shadows a table name cannot
+conceal a physical reference in another namespace.
+
 ## 7. Dangerous functions/behaviors
 
 The implementation must maintain an explicit deny policy for dangerous/non-analytic constructs, including file/system or intentional-delay behavior where applicable.
@@ -133,6 +143,10 @@ The implementation must maintain an explicit deny policy for dangerous/non-analy
 At minimum evaluate/reject constructs involving concepts such as:
 
 - file access (`LOAD_FILE`);
+- MySQL executable comments and session-variable reads/writes;
+- advisory locks (`GET_LOCK`, `RELEASE_LOCK`, and related inspection functions);
+- row locks (`FOR UPDATE`, `LOCK IN SHARE MODE`);
+- optimizer and index hints;
 - sleep/delay (`SLEEP`);
 - benchmarking/intentional work amplification (`BENCHMARK`);
 - server-side export.
@@ -172,7 +186,10 @@ Before execution:
 SQL Guard → EXPLAIN → policy → execute
 ```
 
-EXPLAIN policy should reject obviously unreasonable plans in the synthetic environment.
+EXPLAIN policy rejects oversized/overly deep plan structures, invalid JSON/shape, missing access
+estimates for physical-table queries, provider failures, and table-access estimates above
+`MAX_EXPLAIN_ESTIMATED_ROWS` in the synthetic environment. The row threshold applies per reported
+access and is not a portable optimizer cost model.
 
 The Harness constructs exactly `EXPLAIN FORMAT=JSON` only after the SQL guard passes. Model-supplied
 EXPLAIN is rejected, and `EXPLAIN ANALYZE` is never used because it executes the statement.

@@ -67,6 +67,17 @@ RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_planning_ollama.py
 uv run data-agent planner-eval
 ```
 
+M10 adds a deterministic standalone SQL guard and MySQL JSON EXPLAIN evaluation. It uses the
+accepted M9 proposal snapshot, does not call Ollama, and never executes the proposed query:
+
+```bash
+task m10-eval
+```
+
+`MAX_SQL_CHARACTERS` bounds the pre-parse candidate size (default 64,000 characters).
+`MAX_EXPLAIN_ESTIMATED_ROWS` bounds each MySQL JSON EXPLAIN table-access estimate (default
+100,000 rows).
+
 M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
 The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub for bootstrap
 identity and index plumbing; substantive embedding quality evidence comes from the explicitly
@@ -154,8 +165,9 @@ task quality
 task eval
 ```
 
-`task eval` runs both the standalone retrieval eval and the standalone dialogue eval. The dialogue
-report is written under `evals/reports/`, binds the chat model digest/fingerprint, Ollama runtime,
-prompt version, and suite version, and does not invoke retrieval, planning, or SQL.
+`task eval` runs the standalone retrieval, dialogue, planner, and SQL-guard evaluations. M10 writes
+its machine-readable report under `evals/reports/`, binds SQLGlot/policy configuration and the
+accepted M9 snapshot fingerprint, runs only Harness-owned JSON EXPLAIN, and does not execute normal
+SQL.
 
 apart from installing Ollama and the configured local models.

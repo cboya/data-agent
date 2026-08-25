@@ -36,6 +36,12 @@ tasks:
     cmds:
       - uv run data-agent eval
 
+  m10-eval:
+    desc: Run the standalone M10 SQL guard and EXPLAIN evaluation
+    deps: [sync]
+    cmds:
+      - uv run data-agent sql-guard-eval
+
   reset:
     desc: Reset generated local state
     deps: [sync]
