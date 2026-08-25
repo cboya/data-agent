@@ -1,9 +1,9 @@
 """Validated application configuration."""
 
 import re
-from typing import Literal
+from typing import Literal, Self
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -31,6 +31,9 @@ class Settings(BaseSettings):
     mysql_root_password: SecretStr
     mysql_readonly_user: str = Field(default="data_agent_reader", min_length=1)
     mysql_readonly_password: SecretStr
+    mysql_control_database: str = Field(default="data_agent_control", min_length=1)
+    mysql_control_user: str = Field(default="data_agent_control", min_length=1)
+    mysql_control_password: SecretStr
 
     max_query_time_ms: int = Field(default=5000, gt=0)
     max_result_rows: int = Field(default=1000, gt=0)
@@ -38,9 +41,22 @@ class Settings(BaseSettings):
     max_retrieved_tables: int = Field(default=10, gt=0)
     max_relationship_hops: int = Field(default=2, ge=0, le=3)
 
-    @field_validator("mysql_database", "mysql_readonly_user")
+    @field_validator(
+        "mysql_database",
+        "mysql_readonly_user",
+        "mysql_control_database",
+        "mysql_control_user",
+    )
     @classmethod
     def validate_mysql_identifier(cls, value: str) -> str:
         if re.fullmatch(r"[A-Za-z0-9_]+", value) is None:
             raise ValueError("must contain only letters, digits, or underscores")
         return value
+
+    @model_validator(mode="after")
+    def control_plane_is_separate(self) -> Self:
+        if self.mysql_control_database == self.mysql_database:
+            raise ValueError("control and analytics MySQL databases must be distinct")
+        if self.mysql_control_user == self.mysql_readonly_user:
+            raise ValueError("control and analytics runtime users must be distinct")
+        return self

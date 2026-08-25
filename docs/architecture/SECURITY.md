@@ -55,6 +55,22 @@ Do not give:
 
 Test the privilege boundary as part of bootstrap/integration tests.
 
+### 3.1 Control-plane principal
+
+Agent control-plane persistence uses a separate schema and runtime principal from the analytics
+reader. The runtime privilege matrix is:
+
+| Control table | SELECT | INSERT | UPDATE | DELETE |
+| --- | ---: | ---: | ---: | ---: |
+| `agent_session` | yes | yes | yes | no |
+| `agent_message` | yes | yes | no | no |
+| `agent_run` | yes | yes | yes | no |
+| `agent_artifact` | yes | yes | no | no |
+
+Migration/bootstrap administration remains separate from runtime credentials. The control
+principal receives no analytics-schema privilege, and the analytics reader receives no
+control-schema privilege.
+
 ## 4. Credential boundary
 
 Credentials live in application configuration/environment, never in:
