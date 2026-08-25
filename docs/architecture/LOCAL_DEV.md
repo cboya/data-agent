@@ -40,6 +40,17 @@ Required capabilities:
 
 Do not hard-code model names.
 
+Application startup runs fail-closed diagnostics against the configured endpoint and models.
+Model requests use `OLLAMA_REQUEST_TIMEOUT_SECONDS`; embedding batches and response bodies are
+bounded by `OLLAMA_MAX_EMBEDDING_BATCH` and `OLLAMA_MAX_RESPONSE_BYTES`.
+
+The deterministic quality suite uses transport doubles and does not require Ollama in CI. Run the
+explicit host integration smoke with:
+
+```bash
+RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_ollama_adapter.py
+```
+
 ## 3. MySQL
 
 Use an official/pinned MySQL 8.4 image.

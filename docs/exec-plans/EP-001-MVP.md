@@ -150,8 +150,14 @@ Startup diagnostics must validate endpoint/model availability.
 
 Acceptance:
 
-- integration smoke test can obtain a structured model result;
-- embedding batch returns consistent dimensions;
+- internal `ChatModel` and `EmbeddingModel` ports remain provider-neutral;
+- integration smoke test can obtain and revalidate a JSON Schema structured model result;
+- malformed envelopes and contract-invalid model output fail closed;
+- request timeout and transport failures surface as typed adapter errors;
+- startup diagnostics validate endpoint, configured model presence, declared capabilities, and
+  stable model fingerprints;
+- bilingual embedding batch returns one finite vector per input with consistent dimensions;
+- empty/oversized batches and inconsistent embedding responses fail closed;
 - domain code does not depend on Ollama-specific DTOs.
 
 ---
@@ -326,8 +332,8 @@ Codex must update this section as milestones complete.
 [x] M0 Repository foundation
 [x] M1 Deterministic MySQL test world
 [x] M2 Core contracts — complete and frozen via acceptance PR #2
-[ ] M3 Persistence and run state — active
-[ ] M4 Ollama adapters
+[x] M3 Persistence and run state — complete and frozen via PR #3
+[ ] M4 Ollama adapters — active
 [ ] M5 Catalog introspection
 [ ] M6 Semantic catalog merge
 [ ] M7 Hybrid retrieval
@@ -346,11 +352,17 @@ head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ce
 focused M2 suite 50 passed; complete `task quality` 57 passed; remote `Delivery / Quality` passed;
 substantive review approved. M2 is complete/frozen and M3 is authorized.
 
-M3 progress note (2026-08-25): the implementation candidate uses a dedicated control schema,
-checksummed SQL migrations, explicit PyMySQL repository adapters, optimistic Session revision,
-append-only Message/Artifact capabilities, and a deterministic atomic Run state machine. The
-focused M3/config suite passes 54 tests and complete `task quality` passes 109 tests. Remote
-`Delivery / Quality` passes on PR #3. Substantive review remains pending, so M3 is not complete.
+M3 closure evidence (2026-08-25): implementation and acceptance PR #3; accepted head `f44f6c3`;
+squash-merged to `main` as `aca7868388a580f4a34758942dff441017cbd9b5`; focused M3/config
+suite 54 passed; complete `task quality` 109 passed; remote `Delivery / Quality` passed;
+substantive review approved. M3 is complete/frozen and M4 is authorized.
+
+M4 progress note (2026-08-25): provider-neutral model ports, bounded Ollama HTTP adapters,
+fail-closed Pydantic structured output, embedding response invariants, startup capability checks,
+and digest-based model fingerprints are implemented. Focused deterministic M4 tests pass 28
+tests; the explicit host Ollama smoke passes 3 tests against the configured chat/embedding
+models; complete `task quality` passes 132 tests with those 3 host-only tests skipped. Remote
+`Delivery / Quality` and substantive review remain pending, so M4 is not complete.
 
 ## 6. Decision log
 
@@ -411,6 +423,19 @@ Evidence: This prevents future business catalog introspection from discovering c
 keeps finite Run traces separate from long-lived conversation continuity.
 Consequences: Terminal Runs cannot be resumed. Message and Artifact have insert/read-only runtime
 capabilities; Session and Run add controlled updates; runtime DELETE is unavailable.
+
+2026-08-25 — OQ-003 / M4 Ollama adapter
+Decision: Use a small asynchronous adapter over the Python standard-library HTTP client, keeping
+Ollama request/response objects private. Expose only provider-neutral `ChatModel`,
+`EmbeddingModel`, and `ModelRuntimeProbe` ports. Bound time, response bytes, and embedding batch
+size in configuration; send Pydantic JSON Schema for structured chat and revalidate the returned
+JSON through the requested contract.
+Evidence: Host probes against Ollama 0.32.15 produced a strict `gemma4:latest` structured result
+and a two-item Chinese/English `qwen3-embedding:0.6b` batch with consistent 1024 dimensions.
+Consequences: Application startup fails when endpoint, model, digest, or required capability
+cannot be proven. Model fingerprints include provider/name/digest/capabilities/metadata so later
+index and trace fingerprints can bind to an immutable model identity without importing Ollama
+DTOs into domain code.
 
 ## 7. Deviation rule
 

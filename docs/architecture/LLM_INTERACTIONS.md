@@ -15,6 +15,13 @@ The model is not a workflow engine. Every model interaction has a narrow purpose
 - Do not require hidden chain-of-thought. Ask for concise `reason`/`explanation` fields only when useful for audit/debug.
 - Record model name, latency, token counts when available, purpose, and success/failure metadata in trace.
 - Keep prompts repository-local and versionable.
+- Bound request time, response bytes, and embedding batch size in deterministic adapter code.
+- Treat malformed provider envelopes, invalid JSON, contract-invalid structured output, embedding
+  count/dimension mismatch, and non-finite vector values as typed failures.
+
+At application startup, diagnostics must verify the Ollama endpoint, configured model presence,
+required chat/embedding capabilities, and immutable model digests. Startup fails closed when any
+required capability cannot be proven.
 
 ## 2. Interaction A — Dialogue understanding
 
@@ -215,6 +222,13 @@ If the configured Ollama model cannot reliably satisfy structured contracts:
 - fail clearly;
 - surface diagnostic metadata;
 - do not silently parse arbitrary prose as control data.
+
+Structured chat sends the exact Pydantic JSON Schema to Ollama and then validates returned JSON
+through the requested Pydantic type. Provider acceptance of a schema is not treated as proof that
+the response satisfies the contract.
+
+Embedding requests disable silent truncation. The adapter requires exactly one finite,
+non-empty, consistently sized vector per input text.
 
 ## 10. Prompt tests
 
