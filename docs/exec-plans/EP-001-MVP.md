@@ -554,8 +554,8 @@ non-authoritative. These metrics meet the original frozen gates without changing
 Golden cases, or the acceptance targets, so the de-leaked results demonstrate that governed
 catalog context itself is sufficient. The focused M9/CLI suite passes 17 tests, the real
 bound-Ollama smoke passes, and complete `task quality` passes 219 tests with 6 host-only tests
-skipped. M9 remains active pending remediation push, remote `Delivery / Quality`, and substantive
-re-review; M10 remains unauthorized.
+skipped. Remediation head `e2eb860` passes remote `Delivery / Quality` in run `32894798892`.
+M9 remains active pending substantive re-review; M10 remains unauthorized.
 
 ## 6. Decision log
 
