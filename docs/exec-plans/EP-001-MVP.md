@@ -487,8 +487,9 @@ required clarification recall `1.000`, unnecessary clarification `0.000`, explic
 correction `1.000`, multi-turn convergence `1.000`, and mean turns-to-ready `1.26`. The focused M8
 suite passes 76 tests including real Ollama and MySQL atomic-turn coverage; `task bootstrap`
 passes with the unchanged M7 index fingerprint; complete `task quality` passes 203 tests with 5
-explicit host-only tests skipped. M8 remains active pending refreshed remote evidence and
-substantive re-review; M9 remains unauthorized.
+explicit host-only tests skipped. Remediation head `906f365` passes remote `Delivery / Quality` in
+run `32885561101`. M8 remains active pending substantive re-review and merge; M9 remains
+unauthorized.
 
 ## 6. Decision log
 
