@@ -253,9 +253,14 @@ Implement the typed query-planning interaction using only:
 
 Acceptance:
 
-- plan parses as `QueryPlan`;
-- planner cannot reference schema outside provided context without later guard rejection;
-- representative single/multi-table cases generated.
+- only READY `RequirementState` is admitted;
+- deterministic bounded context contains exactly final M7 hit documents and result relationships;
+- context identity/endpoint mismatch fails closed;
+- plan parses directly as public `QueryPlan v0.1` through provider-neutral M4 `ChatModel`;
+- declared plan tables are non-empty, unique, and a subset of retrieved tables;
+- SQL remains opaque/untrusted; AST parsing and `Tables(SQL) ⊆ QueryPlan.tables` stay in M10;
+- standalone no-execution eval measures parse, table recall/precision/exactness, and expected
+  columns across representative business traps.
 
 ---
 
@@ -680,6 +685,19 @@ Consequences: Provider grammar may be narrower than the domain contract, but it 
 authority. The public patch remains provider-neutral, mutation intent is traceable, contradictory
 blocking-subject values fail conservatively, unrelated explicit collection facts survive, and no
 natural-language parsing moves into the Harness.
+
+2026-08-26 — M9 bounded planner authority and SQL trust boundary
+Decision: Admit only READY canonical requirements. Build planner context deterministically from
+exactly M7 final-hit `CatalogDocument` values and `RetrievalResult.relationships`, validated
+against current M6 catalog and retrieval-index identity. Use direct structured `QueryPlan v0.1`
+output, and enforce only declared plan-table scope in M9.
+Evidence: M7 already exposes an accepted final schema slice and M10 is the dedicated SQL AST/security
+milestone. The existing QueryPlan shape is provider-simple and separates declared semantic scope
+from still-untrusted SQL text.
+Consequences: The planner has no catalog/database discovery capability. Out-of-context declared
+tables fail closed, while a SQL string that lies about its table set is intentionally deferred to
+M10 rather than receiving a false M9 safety claim. Planner provenance stays in internal trace/eval
+identity, not QueryPlan.
 
 ## 7. Deviation rule
 

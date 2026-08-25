@@ -114,6 +114,12 @@ retrieval, planning, or SQL.
 
 ### 5.4 Query
 
+- standalone M9 structured-plan parse rate;
+- allowed declared-table compliance;
+- required-table recall;
+- plan-table precision;
+- exact required-table-set accuracy;
+- expected-column accuracy where annotated;
 - structured-plan parse rate;
 - SQL parse rate;
 - SQL guard pass rate for valid cases;
@@ -176,6 +182,18 @@ canonical state merely because the model correctly chose ASK.
 Collection-ambiguity cases must prove that blocking one metric/dimension subject does not erase a
 different resolved member from the same collection. Any subsequent clarification turn must
 recover that member from canonical `RequirementState`, not replayed raw history.
+
+The standalone controlled-world M9 planner gate additionally requires:
+
+- structured `QueryPlan` parse rate = 1.00;
+- out-of-context declared-table acceptance = 0;
+- required-table recall ≥ 0.95;
+- plan-table precision ≥ 0.90;
+- exact required-table-set accuracy ≥ 0.90;
+- expected-column accuracy ≥ 0.90 where annotated.
+
+M9 evaluation never executes generated SQL and does not claim SQL syntax, safety, executable, or
+result correctness. Those claims begin only after the M10–M12 deterministic boundaries exist.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 

@@ -251,3 +251,22 @@ remain provider-neutral. Suppressing a self-contradictory blocking-field mutatio
 values from entering durable state without introducing natural-language heuristics. Provider-only
 subject identity prevents one ambiguous collection member from erasing resolved sibling facts
 that bounded future context can recover only from canonical `RequirementState`.
+
+---
+
+## D-023 — Planner sees only the accepted bounded semantic world
+
+**Decision:** M9 admits only a READY `RequirementState` and builds one deterministic planner
+context from exactly the final M7 retrieval-hit tables, their matching M6 `CatalogDocument`
+values, and only relationships already present in the accepted `RetrievalResult`. The model gets
+no full catalog, raw M5 foreign keys, `information_schema`, database credentials, database tools,
+or execution capability.
+
+The Harness validates that declared `QueryPlan.tables` is non-empty, unique, and a subset of the
+accepted retrieved tables. The SQL string remains opaque and untrusted in M9. M10 exclusively
+owns SQL parsing, referenced-table extraction, and enforcement of
+`Tables(SQL) ⊆ QueryPlan.tables` plus read-only policy.
+
+**Reason:** Retrieval is a context-authorization boundary. Adding schema outside its final result
+would silently bypass M7, while parsing SQL early would blur the separately reviewable M9 semantic
+proposal and M10 deterministic security authorities.
