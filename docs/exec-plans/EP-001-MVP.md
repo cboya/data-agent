@@ -360,8 +360,8 @@ Codex must update this section as milestones complete.
 [x] M5 Catalog introspection — complete and frozen via PR #5
 [x] M6 Semantic catalog merge — complete and frozen via PR #6
 [x] M7 Hybrid retrieval — complete and frozen via PR #7
-[ ] M8 RequirementState and clarification loop — active
-[ ] M9 Query planner
+[x] M8 RequirementState and clarification loop — complete and frozen via PR #8
+[ ] M9 Query planner — active
 [ ] M10 SQL guard + EXPLAIN gate
 [ ] M11 Read-only runtime
 [ ] M12 Verification
@@ -490,6 +490,14 @@ passes with the unchanged M7 index fingerprint; complete `task quality` passes 2
 explicit host-only tests skipped. Remediation head `906f365` passes remote `Delivery / Quality` in
 run `32885561101`. M8 remains active pending substantive re-review and merge; M9 remains
 unauthorized.
+
+M8 closure evidence (2026-08-26): implementation and acceptance PR #8; collection-continuity
+remediation commit `906f365`; accepted final head `7dc73fe`; substantive re-review approved; final
+remote `Delivery / Quality` passed in run `32885719303`; squash-merged to `main` as
+`a71c1037d46e5aaa73586d3ba6a40c8871dffccc`. Focused M8 suite passed 76 tests, complete
+`task quality` passed 203 tests with 5 explicit host-only tests skipped, and the frozen 25-case /
+30-turn dialogue eval passed all gates. M8 is complete/frozen and M9 is authorized/active; M10
+remains unauthorized.
 
 ## 6. Decision log
 
