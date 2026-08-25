@@ -436,9 +436,8 @@ focused one-seed regression reports seed Recall@5/Recall@10 `0.333` and final
 Recall@5/Recall@10 `1.000`. The corrected focused M7 suite passes 21 tests including real MySQL
 and bound Ollama smoke; `task bootstrap` passes; complete `task quality` passes 175 tests with 4
 explicit host-only Ollama tests skipped; corrected `task eval` passes all frozen final recall gates.
-Remote `Delivery / Quality` passed before remediation on PR #7 at implementation head `e278c93`
-in run `32864256899`; remediation-head remote evidence is pending. Substantive re-review remains
-pending, so M7 is not complete and M8 is not authorized.
+Remote `Delivery / Quality` passes on PR #7 at remediation head `42287c0` in run `32865874232`.
+Substantive re-review remains pending, so M7 is not complete and M8 is not authorized.
 
 ## 6. Decision log
 
