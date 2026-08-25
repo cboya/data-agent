@@ -347,7 +347,7 @@ M3 progress note (2026-08-25): the implementation candidate uses a dedicated con
 checksummed SQL migrations, explicit PyMySQL repository adapters, optimistic Session revision,
 append-only Message/Artifact capabilities, and a deterministic atomic Run state machine. The
 focused M3/config suite passes 49 tests and complete `task quality` passes 104 tests. Remote
-`Delivery / Quality` and substantive review remain pending, so M3 is not complete.
+`Delivery / Quality` passes on PR #3. Substantive review remains pending, so M3 is not complete.
 
 ## 6. Decision log
 
