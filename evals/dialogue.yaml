@@ -281,6 +281,21 @@ cases:
           time_range_value: {op: EQUALS, value: last_30_days}
           grain: {op: EQUALS, value: week}
 
+  - id: multi-turn-resolved-sibling-metric
+    category: multi_turn
+    turns:
+      - user: 最近30天看实际支付金额和销售情况
+        expected_action: ASK_CLARIFICATION
+        expected_state:
+          metrics: [paid_amount]
+          time_range_value: {op: EQUALS, value: last_30_days}
+          required_blocking_fields: [metric]
+      - user: 销售指 GMV
+        expected_action: READY
+        expected_state:
+          metrics: [paid_amount, gmv]
+          time_range_value: {op: EQUALS, value: last_30_days}
+
   - id: mixed-full-request
     category: mixed_language
     turns:

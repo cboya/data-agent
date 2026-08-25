@@ -1,6 +1,6 @@
 """Versioned system contract for the narrow M8 structured dialogue call."""
 
-DIALOGUE_PROMPT_VERSION = "dialogue-understanding-v0.19"
+DIALOGUE_PROMPT_VERSION = "dialogue-understanding-v0.20"
 
 DIALOGUE_SYSTEM_PROMPT = """Return one JSON DialogueProposal matching the schema.
 INPUT contains current_requirement_state, last_assistant_clarification, latest_user_message.
@@ -55,9 +55,17 @@ AMBIGUITY AND ACTION
   blocking item unless the latest message resolves it; then rebuild the rest.
 - Use the exact normalized blocker field: metric, time_range, grain, dimension, filter, or
   comparison. Bare sales always uses field="metric".
+- Every blocking item must include subject_term: the exact ambiguous surface phrase attributable
+  to that blocker. Copy it from the latest message when introduced. Do not put subject_term in
+  non-blocking items. For example, bare "销售情况" uses subject_term="销售情况".
 - Any blocking item => ASK_CLARIFICATION and one concise question for the highest-impact blocker.
-- A field declared blocking must not receive a SET/upsert/remove mutation in the same proposal;
-  Harness conservatively normalizes any such contradiction to NO_CHANGE.
+- A scalar field declared blocking must not receive a SET mutation in the same proposal; Harness
+  normalizes that scalar to NO_CHANGE.
+- A metric/dimension blocker suppresses only an upsert whose term is the same subject_term. Other
+  explicit members of that collection must remain in the patch. Do not emit collection removes
+  for a blocked collection, because a remove identity cannot safely prove its source phrase.
+- Do not emit filters_replace with a filter blocker. Filter replacement is whole-list in v0.2 and
+  the Harness fails closed rather than silently discarding resolved filters.
 - No blocking item => READY with unresolved_replace=[] and question=null.
 - CANNOT_RESOLVE is only for a request that truly cannot be resolved through clarification.
 
@@ -81,6 +89,10 @@ REFERENCE CASES
 9) If the current blockers are metric and time_range and the latest answer is only
    "实际支付金额", upsert paid_amount, keep time_range NO_CHANGE, preserve the time_range
    blocker, and ASK the time question. A later "最近30天, 按天" resolves it and becomes READY.
+10) Empty + "最近30天看实际支付金额和销售情况": SET last_30_days and upsert only
+    paid_amount; ASK with field="metric", subject_term="销售情况". The explicit paid_amount
+    survives. On the next reply "销售指 GMV", upsert gmv and become READY without copying
+    paid_amount again because it is already present in current RequirementState.
 
 FINAL CORRECTION OVERRIDES
 - A correction to exactly one field changes only that field. Existing authoritative time_range,

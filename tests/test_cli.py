@@ -34,7 +34,7 @@ def _passing_dialogue_report() -> DialogueEvalReport:
     return DialogueEvalReport(
         identity=DialogueEvalIdentity(
             suite_version="v0.1",
-            prompt_version="dialogue-understanding-v0.19",
+            prompt_version="dialogue-understanding-v0.20",
             provider="test",
             model="chat",
             model_digest="digest",

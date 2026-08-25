@@ -39,8 +39,8 @@ def _fingerprint() -> ModelFingerprint:
 def test_frozen_dialogue_suite_covers_required_categories_and_multi_turns() -> None:
     suite = load_dialogue_eval_suite()
 
-    assert len(suite.cases) == 24
-    assert sum(len(case.turns) for case in suite.cases) == 28
+    assert len(suite.cases) == 25
+    assert sum(len(case.turns) for case in suite.cases) == 30
     assert {case.category for case in suite.cases} == {
         "complete",
         "correction",

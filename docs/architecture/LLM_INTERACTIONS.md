@@ -69,9 +69,12 @@ after structured output and policy validation.
 The provider-facing structured result is `DialogueProposal v0.1`, not a second domain authority.
 It separates mutation fields from an action-discriminated `resolution`, whose ASK branch requires
 blocking ambiguity evidence and whose READY branch cannot carry blocking items. The Harness
-normalizes the provider grain/comparison enums into the public patch, suppresses any mutation to a
-field the same proposal marks blocking, and revalidates `DialogueDecision` before deterministic
-merge and action policy.
+normalizes the provider grain/comparison enums into the public patch and revalidates
+`DialogueDecision` before deterministic merge and action policy. Provider blocking items carry an
+exact ambiguous `subject_term`, which is stripped before the public ambiguity boundary. Scalar
+blockers suppress the whole scalar mutation. Metric/dimension blockers suppress only upserts
+attributable to that subject and retain resolved siblings in the same collection. Unattributable
+collection removes and filter-blocker/whole-list-replacement combinations fail closed.
 
 ---
 

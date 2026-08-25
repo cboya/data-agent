@@ -235,13 +235,19 @@ READY permits only non-blocking ambiguity entries. Core time/grain/comparison an
 metric/dimension operations are explicit in the provider response. Provider grain/comparison enum
 values are deterministically normalized into the public `NO_CHANGE`/`SET`/`CLEAR` scalar union.
 
-If a proposal marks a field blocking while also proposing a mutation for that same field, the
-Harness conservatively suppresses that mutation to `NO_CHANGE` (or empty collection operations)
-before constructing and revalidating the public patch. Mutations for other unambiguous fields are
-retained.
+Every provider blocking item carries a provider-only `subject_term`; normalization removes it
+before constructing the public ambiguity contract. If a proposal marks a scalar field blocking,
+the Harness conservatively suppresses that scalar mutation to `NO_CHANGE`. For metric and
+dimension collections, only an upsert whose user-facing `term` exactly matches the normalized
+blocking `subject_term` is suppressed; unrelated explicit members of the same collection are
+retained. A collection remove that cannot be attributed safely while the collection is blocked,
+and a whole-list filter replacement proposed with a filter blocker, fail closed rather than
+silently losing facts.
 
 **Reason:** Ollama `0.32.15` did not reliably enforce a root discriminated union or choose nested
 generic scalar branches for the frozen `gemma4:latest` model. A provider adapter is allowed to be
 narrower than the domain contract, while the normalized public contract and deterministic merge
 remain provider-neutral. Suppressing a self-contradictory blocking-field mutation prevents guessed
-values from entering durable state without introducing natural-language heuristics.
+values from entering durable state without introducing natural-language heuristics. Provider-only
+subject identity prevents one ambiguous collection member from erasing resolved sibling facts
+that bounded future context can recover only from canonical `RequirementState`.

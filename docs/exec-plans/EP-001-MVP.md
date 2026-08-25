@@ -452,13 +452,15 @@ M8 implementation note (2026-08-26): one bounded structured call consumes canoni
 `RequirementState`, the latest user message, and only the last relevant assistant clarification.
 Ollama returns provider-facing `DialogueProposal v0.1`; the Harness normalizes it into public
 `DialogueDecision v0.1` / `RequirementPatch v0.2`, performs deterministic merge, and owns final
-`CLARIFYING`/`READY`/`FAILED` status. ASK grammar requires blocking evidence. A mutation to a field
-the same proposal marks blocking is conservatively suppressed, so a correctly detected ambiguity
-cannot also persist a guessed value. Successful turns atomically commit the inbound user message,
-revision-checked Session state, and optional assistant clarification after inference/policy.
+`CLARIFYING`/`READY`/`FAILED` status. ASK grammar requires blocking evidence. Scalar blocker
+conflicts become `NO_CHANGE`; collection blockers use provider-only subject identity so only
+attributable upserts are suppressed while resolved siblings survive. Unattributable collection
+removes and filter-blocker/whole-list replacement combinations fail closed. Successful turns
+atomically commit the inbound user message, revision-checked Session state, and optional assistant
+clarification after inference/policy.
 
-The frozen standalone dialogue suite contains 24 cases / 28 turns across nine categories. Bound
-host evaluation with `gemma4:latest` digest
+The initial pre-review standalone dialogue suite contained 24 cases / 28 turns across nine
+categories. Bound host evaluation with `gemma4:latest` digest
 `c6eb396dbd5992bbe3f5cdb947e8bbc0ee413d7c17e2beaae69f5d569cf982eb`, model
 fingerprint `3abd0ade8368742786e7464c1ff3b7ffbdb048bbfb303820725ac724f01bdfe6`, Ollama
 `0.32.15`, and prompt `dialogue-understanding-v0.19` passes: action accuracy `1.000`, canonical
@@ -471,6 +473,22 @@ preserving the ten-table deterministic world and M7 index fingerprint
 `task quality` passes 198 tests with 5 explicit host-only tests skipped. M8 remains active until PR
 acceptance and merge; M9 remains unauthorized. Remote `Delivery / Quality` passes on PR #8 at
 implementation head `03f2e44` in run `32882403836`.
+
+M8 substantive-remediation note (2026-08-26): initial review found that field-wide suppression for
+metric/dimension/filter collections could erase an explicit sibling fact, which bounded next-turn
+context could not recover from raw history. `DialogueProposal` blocking items now carry a
+provider-only exact `subject_term`; normalization strips this metadata from public `Ambiguity`,
+suppresses only matching metric/dimension upserts, and fails closed for collection operations that
+cannot be safely attributed. The frozen suite adds the two-turn “实际支付金额 + 销售情况” case and
+requires `paid_amount` to remain canonical while “销售指 GMV” produces `[paid_amount, gmv]`
+without replaying the first user message. Prompt `dialogue-understanding-v0.20` passes the expanded
+25-case / 30-turn bound-host eval with action accuracy `1.000`, canonical state accuracy `1.000`,
+required clarification recall `1.000`, unnecessary clarification `0.000`, explicit clear `1.000`,
+correction `1.000`, multi-turn convergence `1.000`, and mean turns-to-ready `1.26`. The focused M8
+suite passes 76 tests including real Ollama and MySQL atomic-turn coverage; `task bootstrap`
+passes with the unchanged M7 index fingerprint; complete `task quality` passes 203 tests with 5
+explicit host-only tests skipped. M8 remains active pending refreshed remote evidence and
+substantive re-review; M9 remains unauthorized.
 
 ## 6. Decision log
 
@@ -639,16 +657,20 @@ caller to rerun it.
 2026-08-26 — M8 provider dialogue grammar and blocker/mutation conflict handling
 Decision: Use a provider-facing `DialogueProposal v0.1` with an action-discriminated resolution
 and explicit core mutation choices, then normalize and revalidate public `DialogueDecision v0.1`
-and `RequirementPatch v0.2`. ASK requires at least one normalized blocking item. If a field is
-blocking, suppress mutation of that same field to `NO_CHANGE`/empty operations while retaining
-other unambiguous changes.
+and `RequirementPatch v0.2`. ASK requires at least one normalized blocking item carrying a
+provider-only exact `subject_term`, which is removed at the public contract boundary. Scalar
+blockers suppress their scalar mutation. Metric/dimension blockers suppress only an upsert whose
+user-facing `term` matches that subject; unrelated same-collection members survive. Unattributable
+collection removes and filter blocker plus whole-list replacement fail closed.
 Evidence: Ollama `0.32.15` with frozen `gemma4:latest` did not reliably enforce a root union and
 could emit a guessed time mutation together with a time blocker. Provider enum normalization plus
-blocker-field suppression closes those contradictions, and the strengthened 24-case eval proves
-that recent-time ambiguity does not leave a guessed time in canonical state.
+scalar blocker suppression closes those contradictions. Substantive review identified that the
+original field-wide collection rule erased explicit siblings; a pure normalization regression and
+the 25-case bounded two-turn eval now require those facts to remain canonical.
 Consequences: Provider grammar may be narrower than the domain contract, but it is not semantic
 authority. The public patch remains provider-neutral, mutation intent is traceable, contradictory
-blocking-field values fail conservatively, and no natural-language parsing moves into the Harness.
+blocking-subject values fail conservatively, unrelated explicit collection facts survive, and no
+natural-language parsing moves into the Harness.
 
 ## 7. Deviation rule
 

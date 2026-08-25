@@ -8,6 +8,8 @@ from data_agent.contracts import (
     ClearScalarPatch,
     DialogueAction,
     DialogueDecision,
+    DimensionRequirement,
+    FilterRequirement,
     MetricRequirement,
     NoChangeScalarPatch,
     PatchOp,
@@ -148,7 +150,7 @@ def test_metric_correction_operations_reject_conflicting_identity() -> None:
         )
 
 
-def test_model_proposal_suppresses_mutations_for_blocking_fields() -> None:
+def test_model_proposal_suppresses_only_matching_metric_subject() -> None:
     payload = RequirementPatch(
         version="v0.2",
         time_range=SetScalarPatch(
@@ -157,10 +159,15 @@ def test_model_proposal_suppresses_mutations_for_blocking_fields() -> None:
         ),
         metrics_upsert=[
             MetricRequirement(
+                term="paid amount",
+                resolved_name="paid_amount",
+                status=ResolutionStatus.CONFIRMED,
+            ),
+            MetricRequirement(
                 term="sales",
                 resolved_name="gmv",
                 status=ResolutionStatus.CONFIRMED,
-            )
+            ),
         ],
     ).model_dump(mode="json")
     payload.update(
@@ -177,11 +184,13 @@ def test_model_proposal_suppresses_mutations_for_blocking_fields() -> None:
                 "unresolved_replace": [
                     {
                         "field": "metric",
+                        "subject_term": "sales",
                         "reason": "sales is ambiguous",
                         "blocking": True,
                     },
                     {
                         "field": "time_range",
+                        "subject_term": "recent",
                         "reason": "recent is ambiguous",
                         "blocking": True,
                     },
@@ -194,12 +203,117 @@ def test_model_proposal_suppresses_mutations_for_blocking_fields() -> None:
 
     decision = proposal.to_decision()
 
-    assert decision.patch.metrics_upsert == []
+    assert [str(item.resolved_name) for item in decision.patch.metrics_upsert] == ["paid_amount"]
     assert decision.patch.time_range.op is PatchOp.NO_CHANGE
     assert {str(item.field) for item in decision.patch.unresolved_replace} == {
         "metric",
         "time_range",
     }
+    assert all(not hasattr(item, "subject_term") for item in decision.patch.unresolved_replace)
+
+
+def test_model_proposal_preserves_unrelated_dimension_subject() -> None:
+    payload = RequirementPatch(
+        version="v0.2",
+        dimensions_upsert=[
+            DimensionRequirement(
+                term="Region",
+                resolved_name="region",
+                status=ResolutionStatus.CONFIRMED,
+            ),
+            DimensionRequirement(
+                term="Location",
+                resolved_name="channel",
+                status=ResolutionStatus.CONFIRMED,
+            ),
+        ],
+    ).model_dump(mode="json")
+    payload.update(grain="NO_CHANGE", comparison="NO_CHANGE", unresolved_replace=None)
+    proposal = DialogueProposal.model_validate(
+        {
+            "version": "v0.1",
+            "patch": payload,
+            "resolution": {
+                "action": "ASK_CLARIFICATION",
+                "unresolved_replace": [
+                    {
+                        "field": "dimension",
+                        "subject_term": "  location  ",
+                        "reason": "location is ambiguous",
+                        "blocking": True,
+                    }
+                ],
+                "question": "Which location dimension?",
+                "reason": "one dimension subject is blocking",
+            },
+        }
+    )
+
+    decision = proposal.to_decision()
+
+    assert [str(item.resolved_name) for item in decision.patch.dimensions_upsert] == ["region"]
+
+
+@pytest.mark.parametrize("blocked_field", ["metric", "dimension"])
+def test_collection_blocker_rejects_unattributed_remove(blocked_field: str) -> None:
+    payload = RequirementPatch(
+        version="v0.2",
+        metrics_remove=["paid_amount"] if blocked_field == "metric" else [],
+        dimensions_remove=["region"] if blocked_field == "dimension" else [],
+    ).model_dump(mode="json")
+    payload.update(grain="NO_CHANGE", comparison="NO_CHANGE", unresolved_replace=None)
+    proposal = DialogueProposal.model_validate(
+        {
+            "version": "v0.1",
+            "patch": payload,
+            "resolution": {
+                "action": "ASK_CLARIFICATION",
+                "unresolved_replace": [
+                    {
+                        "field": blocked_field,
+                        "subject_term": "sales" if blocked_field == "metric" else "location",
+                        "reason": "collection subject is ambiguous",
+                        "blocking": True,
+                    }
+                ],
+                "question": "Which one?",
+                "reason": "collection subject is blocking",
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="cannot safely attribute remove"):
+        proposal.to_decision()
+
+
+def test_filter_blocker_rejects_whole_list_replacement() -> None:
+    payload = RequirementPatch(
+        version="v0.2",
+        filters_replace=[FilterRequirement(field_term="region", operator="=", value="East")],
+    ).model_dump(mode="json")
+    payload.update(grain="NO_CHANGE", comparison="NO_CHANGE", unresolved_replace=None)
+    proposal = DialogueProposal.model_validate(
+        {
+            "version": "v0.1",
+            "patch": payload,
+            "resolution": {
+                "action": "ASK_CLARIFICATION",
+                "unresolved_replace": [
+                    {
+                        "field": "filter",
+                        "subject_term": "region",
+                        "reason": "filter value is ambiguous",
+                        "blocking": True,
+                    }
+                ],
+                "question": "Which region?",
+                "reason": "filter is blocking",
+            },
+        }
+    )
+
+    with pytest.raises(ValueError, match="whole-list filter replacement"):
+        proposal.to_decision()
 
 
 def test_mutable_defaults_are_not_shared() -> None:

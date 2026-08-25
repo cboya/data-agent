@@ -99,9 +99,11 @@ expected:
 
 M8 also reports standalone dialogue action accuracy, canonical state accuracy, explicit-clear
 accuracy, correction accuracy, and multi-turn convergence. The frozen controlled-world M8 suite
-contains at least 24 cases across complete, metric/time/grain ambiguity, non-blocking uncertainty,
-explicit clear, correction, multi-turn, and mixed-language categories. It runs without retrieval,
-planning, or SQL.
+contains at least 25 cases across complete, metric/time/grain ambiguity, non-blocking uncertainty,
+explicit clear, correction, multi-turn, and mixed-language categories. It includes a mixed
+resolved-plus-ambiguous member case within one collection and proves the resolved sibling survives
+a bounded clarification turn without replaying the original user message. It runs without
+retrieval, planning, or SQL.
 
 ### 5.3 Retrieval
 
@@ -170,6 +172,10 @@ The standalone M8 dialogue gate additionally requires:
 
 Time-ambiguity cases must also prove that a guessed concrete time range does not survive into
 canonical state merely because the model correctly chose ASK.
+
+Collection-ambiguity cases must prove that blocking one metric/dimension subject does not erase a
+different resolved member from the same collection. Any subsequent clarification turn must
+recover that member from canonical `RequirementState`, not replayed raw history.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 

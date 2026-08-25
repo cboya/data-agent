@@ -264,9 +264,13 @@ The Ollama boundary does not deserialize directly into the public decision. It f
 provider-facing `DialogueProposal v0.1` containing a mutation patch and an action-discriminated
 `resolution`. ASK grammar requires at least one normalized blocking ambiguity; provider
 grain/comparison enum values are then deterministically normalized into `ScalarPatch` operations.
-The normalized `DialogueDecision` is revalidated before merge. A field marked blocking cannot
-also mutate in the same turn: the Harness suppresses that field's mutation to `NO_CHANGE` (or
-empty collection operations) while preserving mutations for other explicit facts.
+Provider blocking ambiguity adds a required `subject_term` copied from the ambiguous surface
+phrase; this attribution metadata is removed before the public `Ambiguity` is constructed. The
+normalized `DialogueDecision` is revalidated before merge. A blocked scalar mutation becomes
+`NO_CHANGE`. A metric/dimension blocker suppresses only an upsert with the same normalized
+user-facing `term`, preserving unrelated explicit members of that collection. Collection removes
+that cannot be safely attributed and a filter replacement paired with a filter blocker fail
+closed instead of silently dropping facts.
 
 ---
 

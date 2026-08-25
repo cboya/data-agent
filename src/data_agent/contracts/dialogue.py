@@ -100,6 +100,7 @@ def _proposal_comparison(patch: RequirementPatch) -> DialogueComparisonMutation:
 
 class BlockingAmbiguity(Ambiguity):
     field: Literal["metric", "time_range", "grain", "dimension", "filter", "comparison"]
+    subject_term: NonEmptyString
     blocking: Literal[True] = True
 
 
@@ -142,6 +143,63 @@ class DialogueProposal(ContractModel):
     patch: DialoguePatchProposal
     resolution: DialogueResolution
 
+    @staticmethod
+    def _subject_key(value: str) -> str:
+        return " ".join(value.casefold().split())
+
+    def _normalize_collection_blockers(
+        self,
+        patch_payload: dict[str, object],
+    ) -> None:
+        blocking = [item for item in self.resolution.unresolved_replace if item.blocking]
+        metric_subjects = {
+            self._subject_key(str(item.subject_term)) for item in blocking if item.field == "metric"
+        }
+        dimension_subjects = {
+            self._subject_key(str(item.subject_term))
+            for item in blocking
+            if item.field == "dimension"
+        }
+        if metric_subjects:
+            patch_payload["metrics_upsert"] = [
+                item.model_dump(mode="json")
+                for item in self.patch.metrics_upsert
+                if self._subject_key(str(item.term)) not in metric_subjects
+            ]
+            unattributed_removes = [
+                str(value)
+                for value in self.patch.metrics_remove
+                if self._subject_key(str(value)) not in metric_subjects
+            ]
+            if unattributed_removes:
+                raise ValueError(
+                    "metric blocker cannot safely attribute remove identities: "
+                    f"{unattributed_removes}"
+                )
+            patch_payload["metrics_remove"] = []
+        if dimension_subjects:
+            patch_payload["dimensions_upsert"] = [
+                item.model_dump(mode="json")
+                for item in self.patch.dimensions_upsert
+                if self._subject_key(str(item.term)) not in dimension_subjects
+            ]
+            unattributed_removes = [
+                str(value)
+                for value in self.patch.dimensions_remove
+                if self._subject_key(str(value)) not in dimension_subjects
+            ]
+            if unattributed_removes:
+                raise ValueError(
+                    "dimension blocker cannot safely attribute remove identities: "
+                    f"{unattributed_removes}"
+                )
+            patch_payload["dimensions_remove"] = []
+        if (
+            any(item.field == "filter" for item in blocking)
+            and self.patch.filters_replace is not None
+        ):
+            raise ValueError("filter blocker cannot safely normalize whole-list filter replacement")
+
     def to_decision(self) -> "DialogueDecision":
         patch_payload = self.patch.model_dump(mode="json")
         blocking_fields = {
@@ -153,14 +211,11 @@ class DialogueProposal(ContractModel):
             patch_payload["grain"] = DialogueGrainMutation.NO_CHANGE
         if "comparison" in blocking_fields:
             patch_payload["comparison"] = DialogueComparisonMutation.NO_CHANGE
-        if "metric" in blocking_fields:
-            patch_payload["metrics_upsert"] = []
-            patch_payload["metrics_remove"] = []
-        if "dimension" in blocking_fields:
-            patch_payload["dimensions_upsert"] = []
-            patch_payload["dimensions_remove"] = []
-        if "filter" in blocking_fields:
-            patch_payload["filters_replace"] = None
+        self._normalize_collection_blockers(patch_payload)
+        public_ambiguities = [
+            Ambiguity.model_validate(item.model_dump(mode="json", exclude={"subject_term"}))
+            for item in self.resolution.unresolved_replace
+        ]
         patch = RequirementPatch.model_validate(
             {
                 **patch_payload,
@@ -168,7 +223,7 @@ class DialogueProposal(ContractModel):
                 "comparison": _normalized_comparison_patch(
                     DialogueComparisonMutation(patch_payload["comparison"])
                 ),
-                "unresolved_replace": self.resolution.unresolved_replace,
+                "unresolved_replace": public_ambiguities,
             }
         )
         return DialogueDecision.model_validate(
@@ -189,9 +244,13 @@ class DialogueProposal(ContractModel):
             "comparison": _proposal_comparison(decision.patch),
             "unresolved_replace": None,
         }
+        unresolved_payload = decision.patch.model_dump(mode="json")["unresolved_replace"]
+        for item in unresolved_payload:
+            if item["blocking"]:
+                item["subject_term"] = item["field"]
         resolution_payload = {
             "action": decision.action,
-            "unresolved_replace": decision.patch.model_dump(mode="json")["unresolved_replace"],
+            "unresolved_replace": unresolved_payload,
             "question": decision.question,
             "reason": decision.reason,
         }
