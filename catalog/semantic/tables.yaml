@@ -1,0 +1,181 @@
+version: v0.1
+
+tables:
+  dim_category:
+    aliases: [品类, 商品品类, category]
+    description: 商品品类维度，一条记录代表一个商品品类。
+    business_rules: []
+    column_semantics:
+      id:
+        description: 品类唯一标识
+      name:
+        description: 品类名称
+    typical_use_cases: [品类分组, 品类销售分析]
+
+  dim_channel:
+    aliases: [渠道, 获客渠道, channel]
+    description: 渠道维度，用于描述用户来源和订单渠道。
+    business_rules:
+      - 用户注册渠道与订单渠道是两个不同分析口径，必须选择对应外键。
+    column_semantics:
+      id:
+        description: 渠道唯一标识
+      code:
+        description: 稳定渠道代码
+      name:
+        description: 渠道显示名称
+    typical_use_cases: [渠道销售分析, 渠道获客分析]
+
+  dim_product:
+    aliases: [商品, 产品, SKU, product]
+    description: 商品维度，一条记录代表一个可销售 SKU。
+    business_rules:
+      - category_id 关联 dim_category.id。
+    column_semantics:
+      id:
+        description: 商品唯一标识
+      category_id:
+        description: 商品所属品类
+      sku:
+        description: 商品 SKU 编码
+      name:
+        description: 商品名称
+    typical_use_cases: [商品销售分析, SKU 分组, 品类下钻]
+
+  dim_region:
+    aliases: [地区, 省份, 城市, region]
+    description: 用户地区维度，一条记录代表一个省市组合。
+    business_rules: []
+    column_semantics:
+      id:
+        description: 地区唯一标识
+      province:
+        description: 省份名称
+      city:
+        description: 城市名称
+    typical_use_cases: [省份分组, 城市分组, 地区用户分析]
+
+  dim_user:
+    aliases: [用户, 用户维表, customer, user]
+    description: 用户维度，一条记录代表一个注册用户。
+    business_rules:
+      - region_id 关联 dim_region.id。
+      - channel_id 表示用户注册或获客渠道，不是订单渠道。
+    column_semantics:
+      id:
+        description: 用户唯一标识
+      region_id:
+        description: 用户所属地区
+      channel_id:
+        description: 用户注册或获客渠道
+      registered_at:
+        description: 用户注册时间
+    typical_use_cases: [新增用户, 地区用户分析, 渠道获客分析]
+
+  fact_order:
+    aliases: [订单, 交易订单, 支付订单, order]
+    description: 订单事实表，一条记录代表一个业务订单。
+    business_rules:
+      - total_amount 表示下单总金额，不等同于实际支付金额。
+      - paid_amount 表示订单成功支付的实际金额。
+      - status = 'PAID' 或 'COMPLETED' 表示订单已经成功支付。
+      - 支付时间分析应使用 paid_at，而不是 created_at。
+      - 计算退款后净收入时需要结合 fact_refund 中的成功退款。
+    column_semantics:
+      id:
+        description: 订单唯一标识
+      user_id:
+        description: 下单用户
+      channel_id:
+        description: 订单所属渠道
+      status:
+        description: 订单状态
+      total_amount:
+        description: 下单总金额
+        aliases: [GMV候选金额, 下单金额]
+      paid_amount:
+        description: 实际成功支付金额
+        aliases: [支付金额, 实付金额]
+      created_at:
+        description: 订单创建时间
+      paid_at:
+        description: 支付成功时间
+      completed_at:
+        description: 订单业务完成时间
+    typical_use_cases: [订单量, GMV, 实际支付金额, 用户购买分析, 渠道销售分析]
+
+  fact_order_item:
+    aliases: [订单明细, 订单商品, order item]
+    description: 订单商品明细事实表，一条记录代表一个订单中的一个商品明细行。
+    business_rules:
+      - 同一订单可以包含多条商品明细。
+      - 与支付流水同时明细连接会产生 fan-out，聚合前必须明确粒度。
+      - 明细金额通常按 quantity * unit_price 计算。
+    column_semantics:
+      id:
+        description: 订单明细唯一标识
+      order_id:
+        description: 所属业务订单
+      product_id:
+        description: 明细商品
+      quantity:
+        description: 商品数量
+      unit_price:
+        description: 商品单价
+    typical_use_cases: [商品销量, 商品销售额, 订单商品构成]
+
+  fact_payment_transaction:
+    aliases: [支付流水, 支付尝试, payment transaction]
+    description: 支付交易尝试事实表，一条记录代表一次支付尝试。
+    business_rules:
+      - 一个 order_id 可以有多条交易尝试。
+      - 只有 status = 'SUCCESS' 的交易表示成功支付尝试。
+      - 统计订单数时不能用本表行数代替业务订单数。
+    column_semantics:
+      id:
+        description: 支付尝试唯一标识
+      order_id:
+        description: 关联业务订单
+      status:
+        description: 支付尝试状态
+      amount:
+        description: 本次支付尝试金额
+      attempted_at:
+        description: 支付尝试时间
+    typical_use_cases: [支付成功率, 支付失败分析, 支付尝试次数]
+
+  fact_refund:
+    aliases: [退款, 退款流水, refund]
+    description: 退款事实表，一条记录代表一次退款记录。
+    business_rules:
+      - 一张订单可以发生零次或多次退款。
+      - 净收入类指标只扣除 status = 'SUCCESS' 的有效退款。
+    column_semantics:
+      id:
+        description: 退款记录唯一标识
+      order_id:
+        description: 被退款订单
+      status:
+        description: 退款状态
+      refund_amount:
+        description: 退款金额
+      refunded_at:
+        description: 退款发生时间
+    typical_use_cases: [退款金额, 退款率, 净收入]
+
+  fact_user_event:
+    aliases: [用户事件, 行为事件, 埋点事件, user event]
+    description: 用户行为事件事实表，一条记录代表一次用户事件。
+    business_rules:
+      - 同一用户可以产生多条事件，事件行数不能直接视为用户数。
+      - 用户数统计应使用去重 user_id。
+    column_semantics:
+      id:
+        description: 事件唯一标识
+      user_id:
+        description: 产生事件的用户
+      event_name:
+        description: 事件名称
+      occurred_at:
+        description: 事件发生时间
+    typical_use_cases: [事件次数, 活跃用户, 用户行为分析]

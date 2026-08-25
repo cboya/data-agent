@@ -1,19 +1,19 @@
 version: v0.1
 
 relationships:
-  - from_table: fact_order
-    from_column: user_id
-    to_table: dim_user
+  - from_table: dim_product
+    from_column: category_id
+    to_table: dim_category
     to_column: id
     cardinality: MANY_TO_ONE
-    description: 订单所属用户
+    description: 商品所属品类
 
-  - from_table: fact_order
+  - from_table: dim_user
     from_column: channel_id
     to_table: dim_channel
     to_column: id
     cardinality: MANY_TO_ONE
-    description: 订单所属渠道
+    description: 用户注册渠道
 
   - from_table: dim_user
     from_column: region_id
@@ -22,12 +22,19 @@ relationships:
     cardinality: MANY_TO_ONE
     description: 用户所属地区
 
-  - from_table: dim_user
+  - from_table: fact_order
     from_column: channel_id
     to_table: dim_channel
     to_column: id
     cardinality: MANY_TO_ONE
-    description: 用户注册渠道
+    description: 订单所属渠道
+
+  - from_table: fact_order
+    from_column: user_id
+    to_table: dim_user
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 订单所属用户
 
   - from_table: fact_order_item
     from_column: order_id
@@ -56,3 +63,10 @@ relationships:
     to_column: id
     cardinality: MANY_TO_ONE
     description: 退款所属订单
+
+  - from_table: fact_user_event
+    from_column: user_id
+    to_table: dim_user
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 用户事件所属用户
