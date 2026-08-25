@@ -148,17 +148,26 @@ Typical use cases:
 
 Do not blindly embed raw full DDL if it reduces signal quality.
 
+M7 projection version `retrieval-document-v0.1` renders table name/aliases/description, business
+rules, sorted column names/types/aliases/descriptions, and typical use cases into one deterministic
+text value. Retrieval documents are derived values and never mutate their `CatalogDocument` source.
+
 ## 5. Index fingerprint
 
 Every generated retrieval index must have a fingerprint containing at least:
 
+- assembled catalog fingerprint;
 - catalog semantic revision/hash;
 - generated schema fingerprint;
 - complete embedding `ModelFingerprint`;
 - model runtime version;
-- index format/version.
+- index format/version;
+- retrieval-document builder version.
 
 If the embedding model changes, rebuild embeddings before serving semantic queries.
+The artifact fingerprint also covers projected documents and vectors. Loading compares its complete
+identity to the current generated schema, curated semantics, assembled catalog, and runtime model
+identity; an internally valid but stale artifact fails closed.
 
 ## 6. Retrieval pipeline
 
@@ -199,6 +208,10 @@ Lexical retrieval handles:
 
 The implementation should be deterministic.
 
+M7 uses repository-local BM25 (`k1=1.2`, `b=0.75`) over NFKC/casefold-normalized ASCII
+identifier/word terms plus CJK character/bigram terms. This keeps the ten-document controlled-world
+corpus dependency-free and makes Chinese/English behavior mechanically reproducible.
+
 ## 8. Embedding retrieval
 
 Use local Ollama embeddings.
@@ -211,6 +224,8 @@ MVP constraints:
 - no external vector database.
 
 Similarity metric should match the chosen embedding behavior and be documented in implementation.
+M7 uses cosine similarity and revalidates query/index dimensions and finite numeric values before
+ranking.
 
 ## 9. Rank fusion
 
@@ -223,6 +238,9 @@ RRF(d) = Σ 1 / (k + rank_i(d))
 ```
 
 Exact `k` and top-K values are implementation parameters calibrated by eval.
+
+M7 uses RRF `k=60`. Lexical and semantic rank provenance is retained on seed hits; score-scale
+normalization or hidden weighted blending is not used.
 
 Do not overfit score weights to a tiny sample without recording evidence.
 
@@ -262,6 +280,12 @@ MVP defaults:
 - impose a hard max candidate-table count.
 
 Do not expand the entire database graph.
+
+M7 takes the top three fused candidates as seed tables and performs deterministic multi-source
+breadth-first expansion, ordered by seed rank and canonical relationship endpoint. It traverses
+only validated M6 `Relationship` values, never raw M5 foreign keys. Hop count and total returned
+tables are hard-bounded by application settings. Graph-added hits carry `GRAPH_EXPANSION`, no
+lexical/semantic rank, and an explicit path reason.
 
 ## 13. Synthetic test-world semantics
 
@@ -308,8 +332,8 @@ Why: a planner cannot recover a table that retrieval never exposes.
 
 Track at minimum:
 
-- Recall@5;
-- Recall@10;
+- seed Recall@5 and Recall@10 before graph expansion;
+- final Recall@5 and Recall@10 after graph expansion;
 - Precision@5;
 - mean candidate count;
 - relationship-path recovery rate.

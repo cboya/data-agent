@@ -207,13 +207,24 @@ Implement:
 
 Acceptance:
 
-- standalone retrieval eval runs;
-- meet initial retrieval targets or record exact failures before moving on;
+- deterministic `RetrievalDocument` projection preserves governed table/column semantics without
+  mutating M6 authority;
+- provider-neutral M4 embeddings are searched in-process with the same bound immutable model
+  identity used for indexing and querying;
+- lexical and semantic ranks remain visible through deterministic RRF provenance; graph-added
+  tables are explicitly marked `GRAPH_EXPANSION` rather than receiving fabricated ranks;
+- relationship expansion traverses only validated M6 `Relationship` values with deterministic
+  ordering and explicit hop/total-table bounds;
+- standalone retrieval eval reports seed and post-expansion Required Table Recall@5/Recall@10 plus
+  relationship-path recovery and meets the frozen 0.90/0.95 recall gates;
 - before embedding, validate that the assembled catalog's generated metadata fingerprint and
   semantic revision match the current generated schema and curated semantics, or build the index
   directly from a freshly assembled object; an internally valid but stale catalog must fail closed;
-- index fingerprint includes embedding `ModelFingerprint`, model runtime version, catalog
-  semantic revision, generated schema fingerprint, and index format/version.
+- index identity/fingerprint includes catalog fingerprint, generated schema fingerprint, semantic
+  revision, complete embedding `ModelFingerprint`, model runtime version, index format version,
+  and retrieval-document builder version; mismatched identities fail closed;
+- LLM reranking remains absent unless deterministic retrieval misses the frozen target and measured
+  evidence demonstrates that reranking is necessary.
 
 ---
 
@@ -347,8 +358,8 @@ Codex must update this section as milestones complete.
 [x] M3 Persistence and run state — complete and frozen via PR #3
 [x] M4 Ollama adapters — complete and frozen via PR #4
 [x] M5 Catalog introspection — complete and frozen via PR #5
-[ ] M6 Semantic catalog merge — active
-[ ] M7 Hybrid retrieval
+[x] M6 Semantic catalog merge — complete and frozen via PR #6
+[ ] M7 Hybrid retrieval — active
 [ ] M8 RequirementState and clarification loop
 [ ] M9 Query planner
 [ ] M10 SQL guard + EXPLAIN gate
@@ -400,8 +411,9 @@ overlay behavior, but substantive re-review clarified that composite generated F
 being decomposed into false single-column connectivity evidence. The current remediation accepts
 only true single-column generated FKs for `Relationship v0.1` and its partial-composite regression
 passes locally. Remote `Delivery / Quality` passes at remediation head `2f9d202` in run
-`32859369209`. Substantive re-review remains pending, so M6 is not complete and M7 is not
-authorized.
+`32859369209`. Accepted final head `73ece4d`; final remote `Delivery / Quality` passed in run
+`32859573749`; substantive re-review approved; squash-merged to `main` as
+`6ad9325d1c21cd82f789a0826d248b2e5eba1e4d`. M6 is complete/frozen and M7 is authorized.
 
 ## 6. Decision log
 
@@ -523,6 +535,31 @@ Consequences: Curated semantic mistakes fail bootstrap rather than leaking into 
 `catalog/generated/catalog.json` is rebuildable assembled output; only `catalog/semantic/*.yaml`
 is semantic authority. M7 consumes the generated fingerprint and semantic revision without
 recomputing business meaning.
+
+2026-08-25 — OQ-002/OQ-004/OQ-005/OQ-006 / M7 deterministic hybrid retrieval
+Decision: Project each M6 `CatalogDocument` into versioned deterministic retrieval text. Implement
+repository-local BM25 with Unicode NFKC/casefold tokenization, ASCII identifier splitting, and CJK
+character/bigram terms; use cosine similarity over M4 `EmbeddingModel` vectors; fuse lexical and
+semantic ranks with RRF (`k=60`); and use the top three fused candidates as graph-expansion seeds.
+Do not add an LLM reranker while deterministic retrieval meets the frozen eval gate. Traverse only
+M6 `Relationship` objects with deterministic bounded breadth-first expansion.
+Evidence: The controlled catalog contains ten bilingual documents, so an external lexical/search
+dependency or vector database adds no acceptance value. RRF is score-scale independent, and the
+existing M4 port already binds `qwen3-embedding:0.6b` requests to an immutable startup fingerprint.
+Consequences: Lexical/semantic provenance remains visible, graph-added tables have no fabricated
+ranks, and retrieval behavior is independently evaluable without dialogue, planning, or SQL.
+
+2026-08-25 — M7 retrieval index identity and stale protection
+Decision: Persist a generated in-process index whose canonical identity binds the assembled catalog
+fingerprint, generated schema fingerprint, semantic revision, complete embedding model fingerprint,
+Ollama runtime version, index format version, and retrieval-document builder version. The complete
+artifact fingerprint also covers projected documents and vectors. Build/load compares identity to
+the current generated schema, curated semantics, assembled catalog, and runtime model identity.
+Evidence: An internally self-consistent M6 catalog or M7 index can still be stale relative to current
+generated/curated sources; identity comparison is therefore required in addition to self-hashing.
+Consequences: Model, runtime, schema, semantics, projection, or index-format drift fails closed and
+requires rebuild. Generated index files remain beneath `catalog/generated/` and are never semantic
+authority.
 
 ## 7. Deviation rule
 
