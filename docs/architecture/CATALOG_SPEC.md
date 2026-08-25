@@ -82,12 +82,19 @@ Version-controlled:
 
 Conversation content cannot automatically modify curated semantics.
 
+Generated foreign keys establish join connectivity evidence only. They do not establish
+`Relationship.cardinality`: an FK column may also be unique, and M5 does not preserve enough
+uniqueness metadata to distinguish one-to-one from many-to-one. M6 therefore takes cardinality
+only from validated curated relationship semantics. Neither an LLM nor merge code may infer it
+from an FK alone.
+
 ## 3. Suggested paths
 
 ```text
 catalog/
 ├── generated/
 │   ├── schema.json
+│   ├── catalog.json
 │   └── index/
 └── semantic/
     ├── tables.yaml
@@ -97,6 +104,17 @@ catalog/
 `catalog/generated/` is rebuildable.
 
 `catalog/semantic/` is source-controlled domain knowledge.
+
+M6 requires curated table semantics for every generated analytics table and rejects curated
+references to tables or columns absent from the generated snapshot. The assembled
+`catalog/generated/catalog.json` contains sorted `CatalogDocument` and curated `Relationship`
+values plus the generated schema fingerprint, canonical semantic revision, and a revalidated
+fingerprint over the complete assembled payload. It is rebuildable output, not a second source of
+curated truth.
+
+The MVP introspection boundary currently supports `BASE TABLE` objects. View support remains a
+compatibility decision for a future real-schema boundary; encountering unsupported visible
+column metadata continues to fail closed rather than broadening M5 implicitly.
 
 ## 4. Catalog document text for retrieval
 

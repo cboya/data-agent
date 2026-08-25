@@ -186,6 +186,10 @@ Acceptance:
 
 - assembled `CatalogDocument` contains metadata + curated semantics;
 - invalid curated references to nonexistent tables/columns fail validation.
+- generated FKs provide connectivity evidence only; relationship cardinality comes exclusively
+  from validated curated relationship semantics.
+- semantic revision and assembled output are deterministic; generated output does not become
+  curated authority.
 
 ---
 
@@ -337,8 +341,8 @@ Codex must update this section as milestones complete.
 [x] M2 Core contracts — complete and frozen via acceptance PR #2
 [x] M3 Persistence and run state — complete and frozen via PR #3
 [x] M4 Ollama adapters — complete and frozen via PR #4
-[ ] M5 Catalog introspection — active
-[ ] M6 Semantic catalog merge
+[x] M5 Catalog introspection — complete and frozen via PR #5
+[ ] M6 Semantic catalog merge — active
 [ ] M7 Hybrid retrieval
 [ ] M8 RequirementState and clarification loop
 [ ] M9 Query planner
@@ -367,16 +371,27 @@ passed; explicit bound host Ollama smoke 3 passed; complete `task quality` 135 p
 host-only tests skipped; final remote `Delivery / Quality` passed in run `32852333026`;
 substantive re-review approved. M4 is complete/frozen and M5 is authorized.
 
-M5 implementation note (2026-08-25): analytics-reader `information_schema` introspection now
-normalizes ten fixture base tables, ordered columns, exact MySQL column types, nullability, PK
-flags, database comments, and ten internal FK groups into `catalog/generated/schema.json`. The
-artifact excludes control-plane metadata and curated semantics, revalidates its canonical
-SHA-256, writes atomically only below the generated root, and rebuilds byte-for-byte identically.
-Focused M5 tests pass 6 tests; integrated `task bootstrap` passes and produces fingerprint
+M5 closure evidence (2026-08-25): implementation and acceptance PR #5; accepted final head
+`9d8613d`; squash-merged to `main` as `21115b1bc8d7f710f51ed65b12fe6a594012c6b1`;
+focused M5 suite 6 passed; integrated `task bootstrap` passed with ten business tables, ten
+internal FK groups, and stable generated fingerprint
 `7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64`; complete
-`task quality` passes 141 tests with 3 explicit host-only Ollama tests skipped. Remote
-`Delivery / Quality` passes on PR #5 in run `32854257631`. Substantive review remains pending, so
-M5 is not complete and M6 is not authorized.
+`task quality` 141 passed with 3 host-only Ollama tests skipped; final remote
+`Delivery / Quality` passed in run `32854415366`; substantive review approved. M5 is
+complete/frozen and M6 is authorized.
+
+M6 implementation note (2026-08-25): strict safe YAML loading now rejects duplicate/unknown
+fields, requires curated coverage for all ten generated tables, validates every curated column and
+relationship endpoint, and requires generated FK connectivity evidence without deriving
+cardinality from it. Bootstrap assembles ten `CatalogDocument` values and ten curated
+relationships into deterministic `catalog/generated/catalog.json`. The generated fingerprint is
+`7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64`, semantic
+revision is `7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50`, and
+assembled catalog fingerprint is
+`b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f`. Focused M6
+tests pass 9 tests; integrated `task bootstrap` passes; complete `task quality` passes 150 tests
+with 3 explicit host-only Ollama tests skipped. Remote quality and substantive review remain
+pending, so M6 is not complete and M7 is not authorized.
 
 ## 6. Decision log
 
@@ -478,6 +493,22 @@ Consequences: Repeated introspection of unchanged schema produces identical byte
 M6 may merge this artifact with repository-curated semantics but must not hand-maintain generated
 content. M7 must compose its index fingerprint from the generated schema fingerprint, semantic
 revision, complete embedding fingerprint, Ollama runtime version, and index format/version.
+
+2026-08-25 — M6 curated semantic authority
+Decision: Load repository YAML with safe parsing into strict Pydantic overlays, require exact
+generated-table coverage, and reject nonexistent table/column/relationship endpoints. Assemble
+sorted `CatalogDocument` values by overlaying curated text on M5 metadata, and compute one
+canonical semantic revision over the normalized curated tables and relationships. Emit
+`Relationship.cardinality` exclusively from curated relationship YAML; generated FKs never infer
+cardinality.
+Evidence: M5 proves join connectivity but intentionally omits unique-index metadata, so an FK
+alone cannot distinguish one-to-one from many-to-one. The completed curated sources cover ten
+tables and ten FK-backed relationships; integrated bootstrap produces stable semantic revision
+`7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50`.
+Consequences: Curated semantic mistakes fail bootstrap rather than leaking into retrieval.
+`catalog/generated/catalog.json` is rebuildable assembled output; only `catalog/semantic/*.yaml`
+is semantic authority. M7 consumes the generated fingerprint and semantic revision without
+recomputing business meaning.
 
 ## 7. Deviation rule
 
