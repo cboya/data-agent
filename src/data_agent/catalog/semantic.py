@@ -344,25 +344,24 @@ def assemble_semantic_catalog(
             raise SemanticCatalogError(
                 f"curated column references are invalid for {table_name}: {unknown_columns}"
             )
-        columns = [
-            CatalogColumn(
-                name=generated_column.name,
-                data_type=generated_column.data_type,
-                description=(
-                    column_semantics[generated_column.name].description
-                    if generated_column.name in column_semantics
-                    else generated_column.comment
-                ),
-                aliases=(
-                    list(column_semantics[generated_column.name].aliases)
-                    if generated_column.name in column_semantics
-                    else []
-                ),
-                nullable=generated_column.nullable,
-                primary_key=generated_column.primary_key,
+        columns: list[CatalogColumn] = []
+        for generated_column in generated_table.columns:
+            overlay = column_semantics.get(generated_column.name)
+            description = (
+                overlay.description
+                if overlay is not None and overlay.description is not None
+                else generated_column.comment
             )
-            for generated_column in generated_table.columns
-        ]
+            columns.append(
+                CatalogColumn(
+                    name=generated_column.name,
+                    data_type=generated_column.data_type,
+                    description=description,
+                    aliases=list(overlay.aliases) if overlay is not None else [],
+                    nullable=generated_column.nullable,
+                    primary_key=generated_column.primary_key,
+                )
+            )
         documents.append(
             CatalogDocument(
                 version="v0.1",

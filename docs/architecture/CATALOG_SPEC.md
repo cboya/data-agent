@@ -112,6 +112,11 @@ values plus the generated schema fingerprint, canonical semantic revision, and a
 fingerprint over the complete assembled payload. It is rebuildable output, not a second source of
 curated truth.
 
+Column semantics merge field by field. A curated non-null column `description` overrides the
+generated database comment; an omitted curated description inherits the generated comment.
+Curated aliases are independent enrichment and never clear that comment merely because a column
+overlay exists. M6 has no explicit operation for clearing a generated column description.
+
 The MVP introspection boundary currently supports `BASE TABLE` objects. View support remains a
 compatibility decision for a future real-schema boundary; encountering unsupported visible
 column metadata continues to fail closed rather than broadening M5 implicitly.

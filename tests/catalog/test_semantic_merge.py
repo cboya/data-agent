@@ -149,6 +149,61 @@ def test_semantic_merge_combines_metadata_and_curated_authority(tmp_path: Path) 
 
 
 @pytest.mark.parametrize(
+    ("column_name", "column_overlay", "expected_description"),
+    [
+        (
+            "parent_id",
+            "      parent_id:\n        aliases: [curated alias]\n",
+            "Generated FK comment",
+        ),
+        (
+            "parent_id",
+            """\
+      parent_id:
+        description: Curated parent reference
+        aliases: [curated alias]
+""",
+            "Curated parent reference",
+        ),
+        (
+            "id",
+            "      id:\n        aliases: [curated alias]\n",
+            None,
+        ),
+    ],
+)
+def test_column_overlay_merges_description_and_aliases_independently(
+    tmp_path: Path,
+    column_name: str,
+    column_overlay: str,
+    expected_description: str | None,
+) -> None:
+    tables_path, relationships_path = _write_semantics(
+        tmp_path / "catalog" / "semantic",
+        tables=f"""\
+version: v0.1
+tables:
+  dim_parent:
+    description: Curated parent description
+  fact_child:
+    description: Curated child description
+    column_semantics:
+{column_overlay}""",
+    )
+    curated = load_curated_semantics(
+        tables_path=tables_path,
+        relationships_path=relationships_path,
+    )
+
+    assembled = assemble_semantic_catalog(_generated(), curated)
+
+    child = next(document for document in assembled.documents if document.table == "fact_child")
+    column = next(column for column in child.columns if column.name == column_name)
+    assert column.description == expected_description
+    assert column.aliases == ["curated alias"]
+
+
+@pytest.mark.parametrize(
     ("tables", "relationships", "message"),
     [
         (

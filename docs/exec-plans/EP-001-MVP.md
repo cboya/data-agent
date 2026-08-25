@@ -207,6 +207,9 @@ Acceptance:
 
 - standalone retrieval eval runs;
 - meet initial retrieval targets or record exact failures before moving on;
+- before embedding, validate that the assembled catalog's generated metadata fingerprint and
+  semantic revision match the current generated schema and curated semantics, or build the index
+  directly from a freshly assembled object; an internally valid but stale catalog must fail closed;
 - index fingerprint includes embedding `ModelFingerprint`, model runtime version, catalog
   semantic revision, generated schema fingerprint, and index format/version.
 
@@ -389,9 +392,11 @@ relationships into deterministic `catalog/generated/catalog.json`. The generated
 revision is `7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50`, and
 assembled catalog fingerprint is
 `b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f`. Focused M6
-tests pass 9 tests; integrated `task bootstrap` passes; complete `task quality` passes 150 tests
-with 3 explicit host-only Ollama tests skipped. Remote `Delivery / Quality` passes on PR #6 in
-run `32856590537`. Substantive review remains pending, so M6 is not complete and M7 is not
+tests pass 12 tests; integrated `task bootstrap` passes; complete `task quality` passes 153 tests
+with 3 explicit host-only Ollama tests skipped. Substantive review requested field-sensitive
+column overlay behavior: aliases-only enrichment must inherit a generated database comment rather
+than clear it. The remediation and its three-case regression matrix pass locally; remote
+remediation quality and substantive re-review remain pending, so M6 is not complete and M7 is not
 authorized.
 
 ## 6. Decision log
@@ -501,7 +506,8 @@ generated-table coverage, and reject nonexistent table/column/relationship endpo
 sorted `CatalogDocument` values by overlaying curated text on M5 metadata, and compute one
 canonical semantic revision over the normalized curated tables and relationships. Emit
 `Relationship.cardinality` exclusively from curated relationship YAML; generated FKs never infer
-cardinality.
+cardinality. Apply column overlays field by field: a non-null curated description overrides the
+generated database comment, an omitted description inherits it, and aliases enrich independently.
 Evidence: M5 proves join connectivity but intentionally omits unique-index metadata, so an FK
 alone cannot distinguish one-to-one from many-to-one. The completed curated sources cover ten
 tables and ten FK-backed relationships; integrated bootstrap produces stable semantic revision
