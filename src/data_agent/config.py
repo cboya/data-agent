@@ -2,6 +2,7 @@
 
 import re
 from typing import Literal, Self
+from urllib.parse import urlsplit
 
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -20,6 +21,9 @@ class Settings(BaseSettings):
     ollama_base_url: str = "http://127.0.0.1:11434"
     ollama_chat_model: str = Field(min_length=1)
     ollama_embed_model: str = Field(min_length=1)
+    ollama_request_timeout_seconds: float = Field(default=60.0, gt=0, le=300)
+    ollama_max_embedding_batch: int = Field(default=32, ge=1, le=256)
+    ollama_max_response_bytes: int = Field(default=4_194_304, ge=1024, le=16_777_216)
 
     app_host: str = "127.0.0.1"
     app_port: int = Field(default=8000, ge=1, le=65535)
@@ -40,6 +44,18 @@ class Settings(BaseSettings):
     max_sql_repair_attempts: int = Field(default=1, ge=0, le=3)
     max_retrieved_tables: int = Field(default=10, gt=0)
     max_relationship_hops: int = Field(default=2, ge=0, le=3)
+
+    @field_validator("ollama_base_url")
+    @classmethod
+    def validate_ollama_base_url(cls, value: str) -> str:
+        parsed = urlsplit(value)
+        if parsed.scheme not in {"http", "https"} or parsed.hostname is None:
+            raise ValueError("must be an absolute HTTP(S) URL")
+        if parsed.username is not None or parsed.password is not None:
+            raise ValueError("must not contain credentials")
+        if parsed.query or parsed.fragment:
+            raise ValueError("must not contain a query or fragment")
+        return value.rstrip("/")
 
     @field_validator(
         "mysql_database",
