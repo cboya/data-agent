@@ -44,6 +44,7 @@ class GraphExpansionTrace:
 class RetrievalTrace:
     result: RetrievalResult
     fused_candidates: tuple[RetrievalHit, ...]
+    seed_hits: tuple[RetrievalHit, ...]
     graph_expansions: tuple[GraphExpansionTrace, ...]
 
 
@@ -157,6 +158,7 @@ class HybridRetriever:
         return RetrievalTrace(
             result=result,
             fused_candidates=fused_hits,
+            seed_hits=tuple(seed_hits),
             graph_expansions=tuple(graph_traces),
         )
 

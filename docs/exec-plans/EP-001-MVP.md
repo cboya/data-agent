@@ -426,13 +426,19 @@ embedding fingerprint `0112ea4d6590628288600ebd612ee8b094001c1e181c4eda9a64493d2
 Ollama `0.32.15`, index format `retrieval-index-v0.1`, and builder
 `retrieval-document-v0.1`; the resulting 10-document/1024-dimension index fingerprint is
 `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`. The frozen
-24-case standalone eval passes seed Recall@5 `0.990`, seed Recall@10 `1.000`, final Recall@5
-`0.990`, final Recall@10 `1.000`, Precision@5 `0.383`, 16-case relationship-path recovery
-`1.000`, and mean final table count `6.79`; no LLM reranker is justified. Focused M7 tests pass
-30 tests including real MySQL and bound Ollama smoke; `task bootstrap` passes; complete
-`task quality` passes 175 tests with 4 explicit host-only Ollama tests skipped. Remote
-`Delivery / Quality` passes on PR #7 at implementation head `e278c93` in run `32864256899`.
-Substantive review remains pending, so M7 is not complete and M8 is not authorized.
+24-case standalone eval passes actual pre-expansion seed Recall@5 `0.990`, seed Recall@10
+`0.990`, final Recall@5 `0.990`, final Recall@10 `1.000`, Precision@5 `0.383`, 16-case
+relationship-path recovery `1.000`, and mean final table count `6.79`; no LLM reranker is
+justified. Substantive review found that the first eval implementation had incorrectly measured
+seed recall over the complete fused candidate list rather than the four tables actually passed to
+graph expansion. The remediation makes those actual seed hits explicit in `RetrievalTrace`; its
+focused one-seed regression reports seed Recall@5/Recall@10 `0.333` and final
+Recall@5/Recall@10 `1.000`. The corrected focused M7 suite passes 21 tests including real MySQL
+and bound Ollama smoke; `task bootstrap` passes; complete `task quality` passes 175 tests with 4
+explicit host-only Ollama tests skipped; corrected `task eval` passes all frozen final recall gates.
+Remote `Delivery / Quality` passed before remediation on PR #7 at implementation head `e278c93`
+in run `32864256899`; remediation-head remote evidence is pending. Substantive re-review remains
+pending, so M7 is not complete and M8 is not authorized.
 
 ## 6. Decision log
 
@@ -566,8 +572,9 @@ deterministic bounded breadth-first expansion.
 Evidence: The controlled catalog contains ten bilingual documents, so an external lexical/search
 dependency or vector database adds no acceptance value. RRF is score-scale independent, and the
 existing M4 port already binds `qwen3-embedding:0.6b` requests to an immutable startup fingerprint.
-The 24-case controlled-world run retained final Recall@5 `0.990`, Recall@10 `1.000`, and path
-recovery `1.000` while reducing mean final tables from `8.75` to `6.79`.
+The corrected 24-case controlled-world run measures only the actual four pre-expansion seeds,
+reports seed Recall@5/Recall@10 `0.990`, and retains final Recall@5 `0.990`, Recall@10 `1.000`,
+and path recovery `1.000` while reducing mean final tables from `8.75` to `6.79`.
 Consequences: Lexical/semantic provenance remains visible, graph-added tables have no fabricated
 ranks, and retrieval behavior is independently evaluable without dialogue, planning, or SQL.
 

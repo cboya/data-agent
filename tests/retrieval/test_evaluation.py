@@ -73,9 +73,17 @@ def test_standalone_eval_reports_seed_final_and_path_metrics(tmp_path: Path) -> 
     output_path = tmp_path / "reports" / "retrieval.json"
     write_retrieval_eval_report(report, output_path=output_path)
 
-    assert report.metrics.seed_recall_at_5 == 1.0
+    assert report.metrics.seed_recall_at_5 == 1 / 3
+    assert report.metrics.seed_recall_at_10 == 1 / 3
+    assert report.metrics.final_recall_at_5 == 1.0
     assert report.metrics.final_recall_at_10 == 1.0
     assert report.metrics.relationship_path_recovery == 1.0
-    assert report.cases[0].seed_tables != report.cases[0].final_tables
+    assert report.cases[0].seed_tables == ("fact_order",)
+    assert report.cases[0].final_tables == (
+        "fact_order",
+        "dim_channel",
+        "dim_user",
+        "dim_region",
+    )
     assert report.passed is True
     assert output_path.is_file()

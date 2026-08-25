@@ -140,7 +140,7 @@ async def run_retrieval_evaluation(
     case_results: list[RetrievalCaseResult] = []
     for case in suite.cases:
         trace = await retriever.retrieve(case.query)
-        seed_tables = tuple(str(hit.table) for hit in trace.fused_candidates)
+        seed_tables = tuple(str(hit.table) for hit in trace.seed_hits)
         final_tables = tuple(str(hit.table) for hit in trace.result.hits)
         required = set(case.required_tables)
         available_relationships = {

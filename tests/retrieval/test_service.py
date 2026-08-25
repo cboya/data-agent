@@ -49,6 +49,7 @@ def test_hybrid_retrieval_preserves_seed_ranks_and_graph_provenance() -> None:
     assert trace.result.hits[0].source == "SEED"
     assert trace.result.hits[0].lexical_rank == 1
     assert trace.result.hits[0].semantic_rank == 1
+    assert trace.seed_hits == (trace.result.hits[0],)
     graph_hits = [hit for hit in trace.result.hits if hit.source == "GRAPH_EXPANSION"]
     assert graph_hits
     assert all(hit.lexical_rank is None and hit.semantic_rank is None for hit in graph_hits)
