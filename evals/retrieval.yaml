@@ -1,0 +1,137 @@
+version: v0.1
+
+cases:
+  - id: order-count-zh
+    query: 昨天有多少业务订单
+    required_tables: [fact_order]
+
+  - id: gmv-zh
+    query: 最近30天下单总金额 GMV
+    required_tables: [fact_order]
+
+  - id: paid-amount-zh
+    query: 最近30天实际支付金额趋势
+    required_tables: [fact_order]
+
+  - id: refund-amount-zh
+    query: 每天成功退款金额
+    required_tables: [fact_refund]
+
+  - id: net-revenue-zh
+    query: 订单扣除成功退款后的净收入
+    required_tables: [fact_order, fact_refund]
+    relationship_path:
+      - fact_refund.order_id->fact_order.id
+
+  - id: payment-failure-zh
+    query: 最近7天支付失败尝试次数
+    required_tables: [fact_payment_transaction]
+
+  - id: payment-success-rate-zh
+    query: 支付流水成功率和支付尝试次数
+    required_tables: [fact_payment_transaction]
+
+  - id: user-events-zh
+    query: 用户行为事件次数和事件名称
+    required_tables: [fact_user_event]
+
+  - id: active-users-zh
+    query: 按用户统计活跃行为事件
+    required_tables: [fact_user_event, dim_user]
+    relationship_path:
+      - fact_user_event.user_id->dim_user.id
+
+  - id: region-users-zh
+    query: 各省市注册用户数量
+    required_tables: [dim_user, dim_region]
+    relationship_path:
+      - dim_user.region_id->dim_region.id
+
+  - id: region-paid-amount-zh
+    query: 各地区用户最近30天实际支付金额
+    required_tables: [fact_order, dim_user, dim_region]
+    relationship_path:
+      - fact_order.user_id->dim_user.id
+      - dim_user.region_id->dim_region.id
+
+  - id: acquisition-channel-users-zh
+    query: 各获客渠道新增注册用户
+    required_tables: [dim_user, dim_channel]
+    relationship_path:
+      - dim_user.channel_id->dim_channel.id
+
+  - id: order-channel-sales-zh
+    query: 按订单渠道统计实际支付金额
+    required_tables: [fact_order, dim_channel]
+    relationship_path:
+      - fact_order.channel_id->dim_channel.id
+
+  - id: product-unit-sales-zh
+    query: 按商品 SKU 统计销售数量
+    required_tables: [fact_order_item, dim_product]
+    relationship_path:
+      - fact_order_item.product_id->dim_product.id
+
+  - id: category-unit-sales-zh
+    query: 按商品品类统计销量和商品数量
+    required_tables: [fact_order_item, dim_product, dim_category]
+    relationship_path:
+      - fact_order_item.product_id->dim_product.id
+      - dim_product.category_id->dim_category.id
+
+  - id: category-paid-revenue-zh
+    query: 各商品品类的订单实际支付金额
+    required_tables: [fact_order, fact_order_item, dim_product, dim_category]
+    relationship_path:
+      - fact_order_item.order_id->fact_order.id
+      - fact_order_item.product_id->dim_product.id
+      - dim_product.category_id->dim_category.id
+
+  - id: payment-attempt-orders-zh
+    query: 每张业务订单的支付尝试流水
+    required_tables: [fact_payment_transaction, fact_order]
+    relationship_path:
+      - fact_payment_transaction.order_id->fact_order.id
+
+  - id: refund-orders-zh
+    query: 每张订单对应的退款流水
+    required_tables: [fact_refund, fact_order]
+    relationship_path:
+      - fact_refund.order_id->fact_order.id
+
+  - id: event-region-zh
+    query: 各地区用户的行为事件次数
+    required_tables: [fact_user_event, dim_user, dim_region]
+    relationship_path:
+      - fact_user_event.user_id->dim_user.id
+      - dim_user.region_id->dim_region.id
+
+  - id: order-product-breakdown-zh
+    query: 订单商品明细和 SKU 构成
+    required_tables: [fact_order_item, dim_product]
+    relationship_path:
+      - fact_order_item.product_id->dim_product.id
+
+  - id: failed-payments-en
+    query: failed payment attempts by day
+    required_tables: [fact_payment_transaction]
+
+  - id: regional-revenue-en
+    query: paid order revenue by customer region
+    required_tables: [fact_order, dim_user, dim_region]
+    relationship_path:
+      - fact_order.user_id->dim_user.id
+      - dim_user.region_id->dim_region.id
+
+  - id: category-sales-en
+    query: product category unit sales
+    required_tables: [fact_order_item, dim_product, dim_category]
+    relationship_path:
+      - fact_order_item.product_id->dim_product.id
+      - dim_product.category_id->dim_category.id
+
+  - id: acquisition-channel-en
+    query: new users by acquisition channel
+    required_tables: [dim_user, dim_channel]
+    relationship_path:
+      - dim_user.channel_id->dim_channel.id
