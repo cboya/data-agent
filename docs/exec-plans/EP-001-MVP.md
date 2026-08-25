@@ -396,8 +396,8 @@ tests pass 12 tests; integrated `task bootstrap` passes; complete `task quality`
 with 3 explicit host-only Ollama tests skipped. Substantive review requested field-sensitive
 column overlay behavior: aliases-only enrichment must inherit a generated database comment rather
 than clear it. The remediation and its three-case regression matrix pass locally; remote
-remediation quality and substantive re-review remain pending, so M6 is not complete and M7 is not
-authorized.
+`Delivery / Quality` passes at remediation head `304729c` in run `32858029766`. Substantive
+re-review remains pending, so M6 is not complete and M7 is not authorized.
 
 ## 6. Decision log
 
