@@ -374,8 +374,9 @@ artifact excludes control-plane metadata and curated semantics, revalidates its 
 SHA-256, writes atomically only below the generated root, and rebuilds byte-for-byte identically.
 Focused M5 tests pass 6 tests; integrated `task bootstrap` passes and produces fingerprint
 `7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64`; complete
-`task quality` passes 141 tests with 3 explicit host-only Ollama tests skipped. Remote quality and
-substantive review remain pending, so M5 is not complete and M6 is not authorized.
+`task quality` passes 141 tests with 3 explicit host-only Ollama tests skipped. Remote
+`Delivery / Quality` passes on PR #5 in run `32854257631`. Substantive review remains pending, so
+M5 is not complete and M6 is not authorized.
 
 ## 6. Decision log
 
