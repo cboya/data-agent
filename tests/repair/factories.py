@@ -12,7 +12,7 @@ from pydantic import BaseModel
 from data_agent.contracts.base import AwareDateTime
 from data_agent.contracts.query import QueryPlan
 from data_agent.contracts.run import Run, RunStatus
-from data_agent.persistence.errors import RepairAttemptsExhaustedError
+from data_agent.persistence.errors import PersistenceInvariantError, RepairAttemptsExhaustedError
 from data_agent.planning.service import PlanningTrace
 from data_agent.query_runtime.evidence import (
     EXECUTION_METADATA_VERSION,
@@ -115,9 +115,15 @@ class CoherentRuntime:
 
 
 class MemoryRunRepository:
-    def __init__(self, *, status: RunStatus = RunStatus.VALIDATING, repair_count: int = 0) -> None:
+    def __init__(
+        self,
+        *,
+        run_id: str = "m13_run",
+        status: RunStatus = RunStatus.VALIDATING,
+        repair_count: int = 0,
+    ) -> None:
         self.run = Run(
-            id="m13_run",
+            id=run_id,
             session_id="m13_session",
             status=status,
             repair_count=repair_count,
@@ -153,16 +159,18 @@ class MemoryRunRepository:
         RunStateMachine.require_consistent(self.run)
         return self.run
 
-    def claim_repair(self, run_id: str, *, max_attempts: int) -> Run:
+    def claim_repair(
+        self,
+        run_id: str,
+        *,
+        max_attempts: int,
+        expected_status: RunStatus,
+    ) -> Run:
         assert run_id == self.run.id
         if self.run.repair_count >= max_attempts:
             raise RepairAttemptsExhaustedError("repair bound exhausted")
-        if self.run.status not in {
-            RunStatus.VALIDATING,
-            RunStatus.EXECUTING,
-            RunStatus.VERIFYING,
-        }:
-            raise ValueError("run cannot claim repair")
+        if self.run.status is not expected_status:
+            raise PersistenceInvariantError("run does not match failure stage")
         self.claim_count += 1
         self.run = self.run.model_copy(
             update={

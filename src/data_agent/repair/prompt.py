@@ -36,7 +36,8 @@ def repair_messages(
     payload = {
         "context": context.model_dump(mode="json"),
         "previous_query_plan": previous_plan.model_dump(mode="json"),
-        "repair_failure": failure.model_dump(mode="json"),
+        # Control-plane identity is fingerprinted evidence, not model context.
+        "repair_failure": failure.model_dump(mode="json", exclude={"source_run_id"}),
     }
     return [
         {"role": "system", "content": QUERY_REPAIR_SYSTEM_PROMPT},

@@ -154,7 +154,9 @@ repairable formulation, every nonrepairable policy/integrity/runtime class, veri
 non-triggering, exhausted budget, and concurrent atomic claim. It reports classification accuracy,
 policy/integrity zero-model-call accuracy, and bound enforcement. A separate bounded real-model
 corpus covers syntax, unknown-column, and one selected verification formulation failure through a
-new M9→M12 branch. It reports eligible first-attempt success, post-repair M12 pass, repair/model
+new M9→M12 branch. Cross-Run replay and typed-stage/Run-state mismatch regressions must prove zero
+attempt consumption and zero model calls, alongside the real same-Run atomic concurrency gate. It
+reports eligible first-attempt success, post-repair M12 pass, repair/model
 counts, and prompt/model/runtime/failure fingerprints. It makes no general self-healing claim.
 
 ### 5.5 Result
@@ -269,6 +271,8 @@ The standalone M13 deterministic gate additionally requires:
 - policy/integrity zero-model-call accuracy = 1.00;
 - configured repair-bound enforcement = 1.00;
 - concurrent claim does not exceed the durable bound.
+- cross-Run branch replay and failure-stage/Run-state mismatch consume zero attempts and make zero
+  model calls.
 
 The bounded real-model M13 report must separately show eligible first-attempt success and final
 post-repair M12 pass for each frozen case; it does not weaken any M10–M12 gate.

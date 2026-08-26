@@ -15,10 +15,12 @@ from data_agent.repair.policy import RepairEligibilityPolicy
 
 PLAN = "1" * 64
 CONTEXT = "2" * 64
+RUN_ID = "m13_run"
 
 
 def failure(**overrides: object) -> RepairFailure:
     values: dict[str, object] = {
+        "source_run_id": RUN_ID,
         "stage": RepairStage.SQL_GUARD,
         "category": RepairCategory.FORMULATION,
         "code": "SQL_PARSE_ERROR",
@@ -150,3 +152,10 @@ def test_failure_fingerprint_is_stable_and_binds_diagnostic_evidence() -> None:
 
     assert repair_failure_fingerprint(first) == repair_failure_fingerprint(second)
     assert repair_failure_fingerprint(first) != repair_failure_fingerprint(changed)
+
+
+def test_failure_fingerprint_binds_source_run_identity() -> None:
+    first = failure()
+    replayed = first.model_copy(update={"source_run_id": "another_run"})
+
+    assert repair_failure_fingerprint(first) != repair_failure_fingerprint(replayed)

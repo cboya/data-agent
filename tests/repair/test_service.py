@@ -40,6 +40,7 @@ NOW = datetime(2026, 8, 26, 12, tzinfo=UTC)
 def repair_failure(
     trace: object,
     *,
+    source_run_id: str = "m13_run",
     stage: RepairStage = RepairStage.SQL_GUARD,
     category: RepairCategory = RepairCategory.FORMULATION,
     code: str = "SQL_PARSE_ERROR",
@@ -50,6 +51,7 @@ def repair_failure(
 
     assert isinstance(trace, PlanningTrace)
     return RepairFailure(
+        source_run_id=source_run_id,
         stage=stage,
         category=category,
         code=code,
@@ -87,13 +89,14 @@ def run_repair(
     runs: MemoryRunRepository,
     original: object,
     failure: RepairFailure,
+    run_id: str | None = None,
 ) -> RepairPipelineOutcome:
     from data_agent.planning.service import PlanningTrace
 
     assert isinstance(original, PlanningTrace)
     return asyncio.run(
         repairer.repair(
-            run_id=runs.run.id,
+            run_id=run_id or runs.run.id,
             original=original,
             failure=failure,
             occurred_at=NOW,
@@ -115,6 +118,7 @@ def test_syntax_repair_creates_a_new_full_m9_m12_branch() -> None:
     )
 
     assert outcome.trace.outcome is RepairOutcomeKind.SUCCEEDED
+    assert outcome.trace.source_run_id == runs.run.id
     assert outcome.trace.attempt == 1
     assert outcome.run.status is RunStatus.SYNTHESIZING
     assert outcome.run.repair_count == 1
@@ -159,6 +163,7 @@ def test_selected_m12_formulation_failure_can_repair_to_pass() -> None:
         bundle.planning_trace,
         bundle.guarded_query,
         verification,
+        source_run_id="m13_run",
     )
     model = FixedRepairModel(valid_plan())
     runs = MemoryRunRepository(status=RunStatus.VERIFYING)
@@ -203,6 +208,7 @@ def test_policy_failure_is_terminal_with_zero_model_calls_and_zero_claims() -> N
 def test_coverage_gap_is_not_a_trigger_and_does_not_terminalize_run() -> None:
     original = original_trace()
     failure = RepairFailure(
+        source_run_id="m13_run",
         stage=RepairStage.VERIFICATION,
         category=RepairCategory.COVERAGE,
         code="VERIFICATION_COVERAGE_GAP",
@@ -373,5 +379,72 @@ def test_failure_identity_mismatch_is_rejected_before_repository_or_model() -> N
             failure=failure,
         )
 
+    assert runs.claim_count == 0
+    assert model.calls == []
+
+
+def test_cross_run_replay_is_rejected_before_repository_or_model() -> None:
+    original = original_trace()
+    failure = repair_failure(original, source_run_id="run_a")
+    model = FixedRepairModel()
+    runs = MemoryRunRepository(run_id="run_b")
+
+    with pytest.raises(RepairIntegrityError, match="source Run"):
+        run_repair(
+            service(model=model, runs=runs),
+            runs=runs,
+            run_id="run_b",
+            original=original,
+            failure=failure,
+        )
+
+    assert runs.run.repair_count == 0
+    assert runs.claim_count == 0
+    assert model.calls == []
+
+
+@pytest.mark.parametrize(
+    ("stage", "run_status", "code", "provider_errno", "failed_checks"),
+    [
+        (RepairStage.SQL_GUARD, RunStatus.VERIFYING, "SQL_PARSE_ERROR", None, ()),
+        (RepairStage.EXPLAIN, RunStatus.EXECUTING, "EXPLAIN_PROVIDER_ERROR", 1054, ()),
+        (RepairStage.RUNTIME, RunStatus.VALIDATING, "DATABASE_EXECUTION_ERROR", 1054, ()),
+        (
+            RepairStage.VERIFICATION,
+            RunStatus.EXECUTING,
+            "VERIFICATION_CHECK_FAILED",
+            None,
+            ("actual_columns_match_expected",),
+        ),
+    ],
+)
+def test_failure_stage_mismatch_is_rejected_by_atomic_claim(
+    stage: RepairStage,
+    run_status: RunStatus,
+    code: str,
+    provider_errno: int | None,
+    failed_checks: tuple[str, ...],
+) -> None:
+    original = original_trace()
+    failure = repair_failure(
+        original,
+        stage=stage,
+        code=code,
+        provider_errno=provider_errno,
+        failed_checks=failed_checks,
+    )
+    model = FixedRepairModel()
+    runs = MemoryRunRepository(status=run_status)
+
+    with pytest.raises(RepairIntegrityError, match="lifecycle state"):
+        run_repair(
+            service(model=model, runs=runs),
+            runs=runs,
+            original=original,
+            failure=failure,
+        )
+
+    assert runs.run.status is run_status
+    assert runs.run.repair_count == 0
     assert runs.claim_count == 0
     assert model.calls == []

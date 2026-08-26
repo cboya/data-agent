@@ -152,8 +152,14 @@ class MySQLRunRepository:
         finally:
             connection.close()
 
-    def claim_repair(self, run_id: str, *, max_attempts: int) -> Run:
-        """Atomically consume one repair attempt before any model call."""
+    def claim_repair(
+        self,
+        run_id: str,
+        *,
+        max_attempts: int,
+        expected_status: RunStatus,
+    ) -> Run:
+        """Atomically validate the failure stage and consume one repair attempt."""
 
         if max_attempts < 0:
             raise ValueError("repair-attempt bound cannot be negative")
@@ -173,13 +179,10 @@ class MySQLRunRepository:
                     raise RepairAttemptsExhaustedError(
                         f"Run {run_id} exhausted its repair-attempt bound"
                     )
-                if current.status not in {
-                    RunStatus.VALIDATING,
-                    RunStatus.EXECUTING,
-                    RunStatus.VERIFYING,
-                }:
+                if current.status is not expected_status:
                     raise PersistenceInvariantError(
-                        f"Run status cannot claim repair: {current.status.value}"
+                        "Run status does not match repair failure stage: "
+                        f"expected {expected_status.value}, found {current.status.value}"
                     )
                 if current.status is not RunStatus.VALIDATING:
                     RunStateMachine.transition(current.status, RunStatus.VALIDATING)

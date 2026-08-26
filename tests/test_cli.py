@@ -183,7 +183,7 @@ def _passing_repair_report() -> RepairEvalReport:
             suite_version="v0.1",
             suite_fingerprint="a" * 64,
             repair_policy_version="repair-policy-v0.1",
-            failure_fingerprint_version="repair-failure-fingerprint-v0.1",
+            failure_fingerprint_version="repair-failure-fingerprint-v0.2",
             max_attempts=1,
         ),
         metrics=RepairEvalMetrics(

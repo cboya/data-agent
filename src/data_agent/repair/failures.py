@@ -24,6 +24,8 @@ def _identities(trace: PlanningTrace) -> tuple[str, str]:
 def failure_from_admission(
     trace: PlanningTrace,
     outcome: SQLAdmissionOutcome,
+    *,
+    source_run_id: str,
 ) -> RepairFailure:
     plan_identity, context_identity = _identities(trace)
     if outcome.guard.candidate is None:
@@ -32,6 +34,7 @@ def failure_from_admission(
             RepairCategory.FORMULATION if code == "SQL_PARSE_ERROR" else RepairCategory.POLICY
         )
         return RepairFailure(
+            source_run_id=source_run_id,
             stage=RepairStage.SQL_GUARD,
             category=category,
             code=code,
@@ -48,6 +51,7 @@ def failure_from_admission(
             else RepairCategory.AVAILABILITY
         )
         return RepairFailure(
+            source_run_id=source_run_id,
             stage=RepairStage.EXPLAIN,
             category=category,
             code="EXPLAIN_PROVIDER_ERROR",
@@ -62,6 +66,7 @@ def failure_from_admission(
         RepairCategory.COST if reason == "ROW_ESTIMATE_LIMIT_EXCEEDED" else RepairCategory.POLICY
     )
     return RepairFailure(
+        source_run_id=source_run_id,
         stage=RepairStage.EXPLAIN,
         category=category,
         code=reason,
@@ -74,6 +79,8 @@ def failure_from_runtime(
     trace: PlanningTrace,
     query: GuardedQuery,
     error: RuntimeExecutionError,
+    *,
+    source_run_id: str,
 ) -> RepairFailure:
     plan_identity, context_identity = _identities(trace)
     if isinstance(error, CapabilityIntegrityError):
@@ -89,6 +96,7 @@ def failure_from_runtime(
     else:
         category = RepairCategory.RESULT
     return RepairFailure(
+        source_run_id=source_run_id,
         stage=RepairStage.RUNTIME,
         category=category,
         code=error.code,
@@ -105,6 +113,8 @@ def failure_from_verification(
     trace: PlanningTrace,
     query: GuardedQuery,
     verification: VerificationTrace,
+    *,
+    source_run_id: str,
 ) -> RepairFailure:
     plan_identity, context_identity = _identities(trace)
     failed = tuple(str(check.name) for check in verification.result.checks if not check.passed)
@@ -117,6 +127,7 @@ def failure_from_verification(
         category = RepairCategory.FORMULATION
         code = "VERIFICATION_CHECK_FAILED"
     return RepairFailure(
+        source_run_id=source_run_id,
         stage=RepairStage.VERIFICATION,
         category=category,
         code=code,
@@ -132,12 +143,15 @@ def failure_from_coverage(
     trace: PlanningTrace,
     query: GuardedQuery,
     verification: VerificationTrace,
+    *,
+    source_run_id: str,
 ) -> RepairFailure:
     plan_identity, context_identity = _identities(trace)
     gaps = tuple(str(gap.name) for gap in verification.coverage_gaps)
     if not gaps:
         raise ValueError("verification has no coverage gap")
     return RepairFailure(
+        source_run_id=source_run_id,
         stage=RepairStage.VERIFICATION,
         category=RepairCategory.COVERAGE,
         code="VERIFICATION_COVERAGE_GAP",
@@ -152,10 +166,12 @@ def failure_from_coverage(
 def failure_from_verification_integrity(
     trace: PlanningTrace,
     *,
+    source_run_id: str,
     code: str = "VERIFICATION_INTEGRITY_ERROR",
 ) -> RepairFailure:
     plan_identity, context_identity = _identities(trace)
     return RepairFailure(
+        source_run_id=source_run_id,
         stage=RepairStage.VERIFICATION,
         category=RepairCategory.INTEGRITY,
         code=code,

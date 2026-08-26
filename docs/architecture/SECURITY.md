@@ -245,10 +245,13 @@ Repair must not circumvent or consume an attempt for:
 - timeout, database unavailability, result decoding/type failure, or truncation;
 - a verification coverage gap.
 
-An eligible attempt is atomically persisted before the model call. A replacement uses the exact
-same fingerprinted PlannerContext and starts a new M9→M12 evidence chain; it cannot rerun retrieval,
-widen tables, or reuse a previous GuardedQuery, execution, result, or verification. Security
-rejection is terminal for that candidate.
+An eligible failure is fingerprint-bound to the durable source Run. A mismatched Run is rejected
+before repository or model access. The typed failure stage maps to the exact expected Run state
+(`SQL_GUARD`/`EXPLAIN` → `VALIDATING`, `RUNTIME` → `EXECUTING`, `VERIFICATION` → `VERIFYING`),
+which is checked under the same row lock that atomically persists the attempt before the model
+call. A replacement uses the exact same fingerprinted PlannerContext and starts a new M9→M12
+evidence chain; it cannot rerun retrieval, widen tables, or reuse a previous GuardedQuery,
+execution, result, or verification. Any security rejection is terminal for that candidate.
 
 ## 12. Prompt injection boundary
 

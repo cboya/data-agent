@@ -12,9 +12,9 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from data_agent.contracts.base import NonEmptyString
 from data_agent.verification.evidence import VerificationEvidenceIdentity
 
-REPAIR_FAILURE_FINGERPRINT_VERSION = "repair-failure-fingerprint-v0.1"
+REPAIR_FAILURE_FINGERPRINT_VERSION = "repair-failure-fingerprint-v0.2"
 REPAIR_POLICY_VERSION = "repair-policy-v0.1"
-REPAIR_TRACE_VERSION = "repair-trace-v0.1"
+REPAIR_TRACE_VERSION = "repair-trace-v0.2"
 
 
 class RepairStage(StrEnum):
@@ -53,7 +53,8 @@ class _RepairModel(BaseModel):
 
 
 class RepairFailure(_RepairModel):
-    version: Literal["v0.1"] = "v0.1"
+    version: Literal["v0.2"] = "v0.2"
+    source_run_id: NonEmptyString
     stage: RepairStage
     category: RepairCategory
     code: NonEmptyString
@@ -88,8 +89,9 @@ def repair_failure_fingerprint(failure: RepairFailure) -> str:
 
 
 class RepairTrace(_RepairModel):
-    version: Literal["repair-trace-v0.1"] = "repair-trace-v0.1"
+    version: Literal["repair-trace-v0.2"] = "repair-trace-v0.2"
     repair_policy_version: Literal["repair-policy-v0.1"] = "repair-policy-v0.1"
+    source_run_id: NonEmptyString
     prompt_version: NonEmptyString
     attempt: int = Field(ge=0)
     max_attempts: int = Field(ge=0)

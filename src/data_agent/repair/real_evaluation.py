@@ -190,7 +190,7 @@ def _initial_failure(
         planner_context_fingerprint=original.planner_context_fingerprint,
     )
     if case_id in {"syntax", "unknown-column"}:
-        return failure_from_admission(original, admission)
+        return failure_from_admission(original, admission, source_run_id=run.id)
     if admission.guarded_query is None:
         raise RuntimeError("verification smoke input did not pass M10")
     repository = MySQLRunRepository(settings)
@@ -209,7 +209,12 @@ def _initial_failure(
     )
     if verification.result.status != "FAILED":
         raise RuntimeError("verification smoke input unexpectedly passed M12")
-    return failure_from_verification(original, admission.guarded_query, verification)
+    return failure_from_verification(
+        original,
+        admission.guarded_query,
+        verification,
+        source_run_id=run.id,
+    )
 
 
 async def evaluate_real_repair(settings: Settings) -> RealRepairReport:

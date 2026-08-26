@@ -377,8 +377,12 @@ source, governed direct-JOIN, and grouping-key formulation checks. Policy/cost/i
 capability/namespace, availability/timeout/decoding, truncation, and verification coverage gaps are
 terminal or non-triggering and make no repair-model call.
 
-An eligible attempt atomically increments durable `Run.repair_count` before inference. It proposes
-a new full public `QueryPlan v0.1` with `query-repair-v0.1` under the exact original
+Each internal `RepairFailure v0.2` includes the source Run identity in its canonical fingerprint.
+The repair entry point rejects a caller-supplied Run mismatch before repository or model access.
+An eligible attempt maps `SQL_GUARD`/`EXPLAIN` to `VALIDATING`, `RUNTIME` to `EXECUTING`, and
+`VERIFICATION` to `VERIFYING`; the repository checks that exact state and atomically increments
+durable `Run.repair_count` under one row lock before inference. It proposes a new full public
+`QueryPlan v0.1` with `query-repair-v0.1` under the exact original
 `PlannerContext`; retrieval, catalog, RequirementState, and authorized tables cannot expand. The
 replacement passes M9 `PlannerPolicy`, a fresh M10 guard and EXPLAIN, a fresh M11 execution, and a
 fresh M12 verification. Previous capabilities, execution evidence, results, and verification are
@@ -387,7 +391,9 @@ raw result rows. `VALIDATING → REPAIR_EXHAUSTED` is legal so a consumed M10-st
 without a new `REPAIRING` status.
 
 **Reason:** Retrying unchanged evidence cannot correct formulation and lets concurrency obscure the
-attempt bound. Text classification would allow provider or prompt content to influence authority.
+attempt bound. Without source Run and lifecycle-stage binding, the same failed branch could consume
+another Run's budget or claim from the wrong lifecycle point. Text classification would allow
+provider or prompt content to influence authority.
 Reusing downstream evidence would break the M9→M12 identity chain. A durable pre-inference claim
 and exact-context replacement branch are the smallest design that makes the default one-attempt
 limit auditable and fail closed.

@@ -205,8 +205,11 @@ PlannerPolicy revalidates the normalized proposal before any downstream use.
 
 Default MVP: maximum one repair attempt per run.
 
-The Harness atomically claims and increments durable `Run.repair_count` before inference, so model
-failure consumes an attempt and concurrent callers cannot exceed the bound. Security/policy,
+`RepairFailure v0.2` binds the failed branch to its source Run. The Harness rejects a supplied Run
+mismatch before repository or model access, then atomically checks the Run state expected for the
+typed failure stage and increments durable `Run.repair_count` before inference. The opaque source
+Run ID is not sent to the model. Model failure consumes an attempt and concurrent callers cannot
+exceed the bound. Security/policy,
 EXPLAIN cost, integrity/capability, availability/timeout/decoding, truncation, and coverage-gap
 outcomes must not be “repaired around” and cause zero repair-model calls.
 

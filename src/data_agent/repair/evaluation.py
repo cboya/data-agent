@@ -148,6 +148,7 @@ def load_repair_eval_suite(
 
 def _failure(case: RepairEvalCase) -> RepairFailure:
     return RepairFailure(
+        source_run_id="m13_eval_run",
         stage=case.stage,
         category=case.category,
         code=case.code,

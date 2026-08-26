@@ -5,7 +5,7 @@ import pytest
 
 from data_agent.config import Settings
 from data_agent.contracts.run import RunStatus
-from data_agent.persistence.errors import RepairAttemptsExhaustedError
+from data_agent.persistence.errors import PersistenceInvariantError, RepairAttemptsExhaustedError
 from data_agent.persistence.mysql.runs import MySQLRunRepository
 from data_agent.persistence.mysql.sessions import MySQLSessionRepository
 from data_agent.run_state import InvalidRunTransitionError
@@ -109,13 +109,21 @@ def test_repair_attempt_is_claimed_durably_before_inference(settings: Settings) 
     created = repository.create(run(created_session.id))
     _advance_to_validating(repository, created.id)
 
-    claimed = repository.claim_repair(created.id, max_attempts=1)
+    claimed = repository.claim_repair(
+        created.id,
+        max_attempts=1,
+        expected_status=RunStatus.VALIDATING,
+    )
 
     assert claimed.status is RunStatus.VALIDATING
     assert claimed.repair_count == 1
     assert repository.get(created.id).repair_count == 1
     with pytest.raises(RepairAttemptsExhaustedError):
-        repository.claim_repair(created.id, max_attempts=1)
+        repository.claim_repair(
+            created.id,
+            max_attempts=1,
+            expected_status=RunStatus.VALIDATING,
+        )
     assert repository.get(created.id).repair_count == 1
 
 
@@ -126,7 +134,11 @@ def test_concurrent_repair_claims_cannot_exceed_bound(settings: Settings) -> Non
 
     def claim() -> str:
         try:
-            MySQLRunRepository(settings).claim_repair(created.id, max_attempts=1)
+            MySQLRunRepository(settings).claim_repair(
+                created.id,
+                max_attempts=1,
+                expected_status=RunStatus.VALIDATING,
+            )
         except RepairAttemptsExhaustedError:
             return "EXHAUSTED"
         return "CLAIMED"
@@ -136,3 +148,33 @@ def test_concurrent_repair_claims_cannot_exceed_bound(settings: Settings) -> Non
 
     assert outcomes == ["CLAIMED", "EXHAUSTED"]
     assert MySQLRunRepository(settings).get(created.id).repair_count == 1
+
+
+def test_repair_claim_rejects_failure_stage_mismatch_without_consuming_budget(
+    settings: Settings,
+) -> None:
+    created_session = MySQLSessionRepository(settings).create(session()).session
+    repository = MySQLRunRepository(settings)
+    created = repository.create(run(created_session.id))
+    _advance_to_validating(repository, created.id)
+    repository.transition(
+        created.id,
+        RunStatus.EXECUTING,
+        transitioned_at=timestamp() + timedelta(minutes=5),
+    )
+    repository.transition(
+        created.id,
+        RunStatus.VERIFYING,
+        transitioned_at=timestamp() + timedelta(minutes=6),
+    )
+
+    with pytest.raises(PersistenceInvariantError, match="does not match repair failure stage"):
+        repository.claim_repair(
+            created.id,
+            max_attempts=1,
+            expected_status=RunStatus.VALIDATING,
+        )
+
+    unchanged = repository.get(created.id)
+    assert unchanged.status is RunStatus.VERIFYING
+    assert unchanged.repair_count == 0

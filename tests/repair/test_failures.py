@@ -45,14 +45,22 @@ def test_guard_parse_and_explain_errno_are_distinct_typed_failures() -> None:
         syntax_trace.plan,
         planner_context_fingerprint=syntax_trace.planner_context_fingerprint,
     )
-    syntax = failure_from_admission(syntax_trace, syntax_outcome)
+    syntax = failure_from_admission(
+        syntax_trace,
+        syntax_outcome,
+        source_run_id="m13_run",
+    )
 
     unknown_trace = original_trace()
     unknown_outcome = _admission(UnknownColumnProvider()).admit(
         unknown_trace.plan,
         planner_context_fingerprint=unknown_trace.planner_context_fingerprint,
     )
-    unknown = failure_from_admission(unknown_trace, unknown_outcome)
+    unknown = failure_from_admission(
+        unknown_trace,
+        unknown_outcome,
+        source_run_id="m13_run",
+    )
 
     assert (syntax.stage, syntax.category, syntax.code) == (
         RepairStage.SQL_GUARD,
@@ -77,11 +85,13 @@ def test_runtime_eligibility_uses_errno_while_timeout_stays_terminal() -> None:
             provider_errno=1052,
             safe_detail="ambiguous column",
         ),
+        source_run_id="m13_run",
     )
     timeout = failure_from_runtime(
         bundle.planning_trace,
         bundle.guarded_query,
         QueryTimeoutError("timed out", provider_errno=3024),
+        source_run_id="m13_run",
     )
 
     assert unknown.category is RepairCategory.FORMULATION
@@ -105,6 +115,7 @@ def test_verification_coverage_is_typed_non_trigger_evidence() -> None:
         bundle.planning_trace,
         bundle.guarded_query,
         verification,
+        source_run_id="m13_run",
     )
 
     assert failure.category is RepairCategory.COVERAGE

@@ -362,6 +362,9 @@ Acceptance:
   verification coverage gaps make zero repair-model calls and do not increment `repair_count`;
 - an attempt is atomically claimed in the control database before the model call; model failure
   consumes the attempt and concurrent callers cannot exceed the configured bound;
+- failure evidence fingerprints its source Run; a supplied Run mismatch fails before repository or
+  model access, and the typed failure stage is checked against the exact expected Run state under
+  the same row lock that consumes the attempt;
 - replacement evidence is a new branch and must run M9 policy, full M10 guard plus EXPLAIN, M11
   execution, and M12 verification from scratch; failed evidence is never overwritten or reused;
 - the repair prompt treats bounded diagnostic detail as untrusted data and cannot widen retrieval,
@@ -776,7 +779,7 @@ fingerprint remained `3be8b6e22367efb6eca7c827a8ad38443e3f1e0a0e26150f720eeaf8c7
 `Delivery / Quality` passed. M12 is complete/frozen; M13 is active. M14 remains unauthorized.
 
 M13 activation note (2026-08-26): use `repair-policy-v0.1`, `query-repair-v0.1`,
-`repair-failure-fingerprint-v0.1`, and `repair-trace-v0.1`. Repair returns a replacement public
+`repair-failure-fingerprint-v0.2`, and `repair-trace-v0.2`. Repair returns a replacement public
 `QueryPlan v0.1`. Eligibility is an exact typed allowlist. The only initial provider codes are
 MySQL `1052` (ambiguous column) and `1054` (unknown column), whether
 raised by Harness-owned EXPLAIN or runtime execution. Selected M12 repairable check names are
@@ -820,6 +823,32 @@ produce new evidence branches ending in M12 PASS: eligible first-attempt success
 post-repair M12 pass `1.000`, and bound enforcement `1.000`. This is controlled-world evidence
 only, not a general self-healing claim. M13 remains active pending PR and substantive review; M14
 remains unauthorized.
+
+M13 substantive-review remediation evidence (2026-08-26): review of head `f66b483` identified one
+P1 in the durable repair authority chain: failure evidence did not bind the Run whose budget it
+consumed, and the atomic claim accepted any repairable lifecycle state regardless of typed failure
+stage. Internal `RepairFailure v0.2` now requires `source_run_id`; its
+`repair-failure-fingerprint-v0.2` and `RepairTrace v0.2` bind that identity. The retained explicit
+service `run_id` must equal the evidence source before any repository/model access. The opaque Run
+ID is deliberately excluded from model context. `SQL_GUARD`/`EXPLAIN`, `RUNTIME`, and
+`VERIFICATION` map deterministically to `VALIDATING`, `EXECUTING`, and `VERIFYING`; MySQL validates
+that exact status under the same `SELECT ... FOR UPDATE` lock that increments `repair_count`.
+
+The remediation regressions prove cross-Run replay leaves the target Run at `repair_count=0` with
+zero claims/model calls; all four typed stages reject a mismatched lifecycle state with the same
+zero-call behavior; the real control database rolls back a stage mismatch without changing
+`VERIFYING` or `repair_count=0`; and the existing same-Run cross-service concurrency bound remains
+covered. The final focused repair/control-DB/M10/M11 suite passes 53 tests. `task bootstrap`
+preserves ten tables, ten orders, paid amount `1545.00`, successful refunds `110.00`, and retrieval
+index fingerprint `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`.
+`task quality` passes 399 tests with 6 explicit host-only Ollama tests skipped. The unchanged
+19-case deterministic suite fingerprint
+`c087d5e8d3c9dc9c33244b61ebe4fd0334460a062eea05b62db03ae5fbf1474f` remains PASS at `1.000`
+for eligibility, policy/integrity zero-model-call, configured bound, and concurrent bound. The
+three-case real-Ollama syntax/`1054`/verification-alias smoke remains PASS at first-attempt
+`1.000`, post-M12 `1.000`, and bound `1.000`, with the unchanged model/runtime/catalog/index
+identities already recorded above. M13 remains active pending substantive re-review; M14 remains
+unauthorized.
 
 PR #13 implementation commit `2ee9234b7f1e63fbce8c82a339578b0c59e56302` passes remote
 `Delivery / Quality` in run `32936610821`. The PR remains open with required reviewer `cboya` and

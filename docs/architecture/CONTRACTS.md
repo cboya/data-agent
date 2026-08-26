@@ -558,13 +558,16 @@ One Run represents processing one inbound user message. `CLARIFYING`, `COMPLETED
 `POLICY_DENIED`, `QUERY_TOO_EXPENSIVE`, `REPAIR_EXHAUSTED`, and `FAILED` are terminal outcomes;
 a later user reply creates a new Run in the same Session.
 
-M13 does not add a public repair contract or Run status. Internal `RepairFailure v0.1` carries a
-typed stage/category/code, optional bounded provider errno/SQLSTATE and sanitized diagnostic
-detail, the original QueryPlan and PlannerContext fingerprints, and applicable downstream
-fingerprints. Its canonical `repair-failure-fingerprint-v0.1` determines evidence identity, not
-eligibility. Internal `RepairTrace v0.1` binds policy/prompt versions, attempt/max, failure,
-original/replacement plan fingerprints, unchanged PlannerContext fingerprint, model/runtime,
-outcome, and final verification identity on success. Neither type contains raw result rows.
+M13 does not add a public repair contract or Run status. Internal `RepairFailure v0.2` carries its
+source Run ID, a typed stage/category/code, optional bounded provider errno/SQLSTATE and sanitized
+diagnostic detail, the original QueryPlan and PlannerContext fingerprints, and applicable
+downstream fingerprints. Its canonical `repair-failure-fingerprint-v0.2` binds the source Run and
+determines evidence identity, not eligibility. Internal `RepairTrace v0.2` records that source Run
+and binds policy/prompt versions, attempt/max, failure, original/replacement plan fingerprints,
+unchanged PlannerContext fingerprint, model/runtime, outcome, and final verification identity on
+success. `SQL_GUARD`/`EXPLAIN`, `RUNTIME`, and `VERIFICATION` failure stages may claim only from
+`VALIDATING`, `EXECUTING`, and `VERIFYING`, respectively; this check is atomic with the attempt
+increment. Neither type contains raw result rows.
 The provider-facing `RepairPlanProposal` mirrors public `QueryPlan v0.1` but requires at least one
 `expected_columns` item; it is normalized immediately to `QueryPlan` and is never persisted or
 treated as semantic authority.

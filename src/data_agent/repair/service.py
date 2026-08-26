@@ -11,7 +11,7 @@ from data_agent.contracts.execution import ExecutionResult
 from data_agent.contracts.query import QueryPlan
 from data_agent.contracts.run import Run, RunStatus
 from data_agent.model_runtime.ports import ChatModel
-from data_agent.persistence.errors import RepairAttemptsExhaustedError
+from data_agent.persistence.errors import PersistenceInvariantError, RepairAttemptsExhaustedError
 from data_agent.persistence.ports import RunRepository
 from data_agent.planning.context import planner_context_fingerprint
 from data_agent.planning.errors import PlannerPolicyError
@@ -24,6 +24,7 @@ from data_agent.repair.errors import RepairIntegrityError
 from data_agent.repair.evidence import (
     RepairFailure,
     RepairOutcomeKind,
+    RepairStage,
     RepairTrace,
     repair_failure_fingerprint,
 )
@@ -51,6 +52,14 @@ class RepairPipelineOutcome:
 
 class RepairQueryRuntime(Protocol):
     def execute_with_evidence(self, query: GuardedQuery) -> RuntimeExecutionEvidence: ...
+
+
+_EXPECTED_RUN_STATUS = {
+    RepairStage.SQL_GUARD: RunStatus.VALIDATING,
+    RepairStage.EXPLAIN: RunStatus.VALIDATING,
+    RepairStage.RUNTIME: RunStatus.EXECUTING,
+    RepairStage.VERIFICATION: RunStatus.VERIFYING,
+}
 
 
 class BoundedRepairService:
@@ -92,7 +101,7 @@ class BoundedRepairService:
         failure: RepairFailure,
         occurred_at: datetime | None = None,
     ) -> RepairPipelineOutcome:
-        self._verify_original_branch(original, failure)
+        self._verify_original_branch(run_id, original, failure)
         decision = self._eligibility.evaluate(failure)
         timestamp = occurred_at or datetime.now(UTC)
         if not decision.eligible:
@@ -133,7 +142,11 @@ class BoundedRepairService:
         occurred_at: datetime,
     ) -> RepairPipelineOutcome:
         try:
-            claimed = self._runs.claim_repair(run_id, max_attempts=self._max_attempts)
+            claimed = self._runs.claim_repair(
+                run_id,
+                max_attempts=self._max_attempts,
+                expected_status=_EXPECTED_RUN_STATUS[failure.stage],
+            )
         except RepairAttemptsExhaustedError:
             current = self._runs.get(run_id)
             if self._max_attempts == 0 and current.status in {
@@ -157,6 +170,10 @@ class BoundedRepairService:
                 ),
                 run=current,
             )
+        except PersistenceInvariantError as error:
+            raise RepairIntegrityError(
+                "repair failure stage does not match the source Run lifecycle state"
+            ) from error
 
         attempt = claimed.repair_count
         try:
@@ -332,9 +349,12 @@ class BoundedRepairService:
 
     def _verify_original_branch(
         self,
+        run_id: str,
         original: PlanningTrace,
         failure: RepairFailure,
     ) -> None:
+        if run_id != failure.source_run_id:
+            raise RepairIntegrityError("repair failure does not belong to the supplied source Run")
         actual_context = planner_context_fingerprint(original.context)
         actual_plan = query_plan_fingerprint(original.plan)
         if (
@@ -364,6 +384,7 @@ class BoundedRepairService:
         verification: VerificationTrace | None = None,
     ) -> RepairTrace:
         return RepairTrace(
+            source_run_id=failure.source_run_id,
             prompt_version=QUERY_REPAIR_PROMPT_VERSION,
             attempt=attempt,
             max_attempts=self._max_attempts,
