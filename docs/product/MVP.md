@@ -191,8 +191,9 @@ GET  /runs/{run_id}
 {
   "type": "clarification",
   "session_id": "sess_...",
-  "message": "你希望查看实际支付金额、订单量还是 GMV？",
-  "requirement_status": "CLARIFYING"
+  "run_id": "run_...",
+  "question": "你希望查看实际支付金额、订单量还是 GMV？",
+  "requirement": {}
 }
 ```
 
@@ -208,20 +209,36 @@ GET  /runs/{run_id}
     "columns": [],
     "rows": []
   },
-  "assumptions": [],
+  "assumptions": {
+    "requirement": [],
+    "query_plan": []
+  },
   "evidence": {
     "tables": [],
     "sql": "...",
     "query_duration_ms": 0,
-    "row_count": 0
+    "returned_row_count": 0,
+    "repair_count": 0
   },
   "verification": {
-    "status": "PASSED"
+    "status": "PASSED",
+    "scope": "COVERAGE_BOUNDED",
+    "policy_version": "verification-policy-v0.1",
+    "coverage": 0.9,
+    "unsupported": []
+  },
+  "synthesis": {
+    "mode": "MODEL",
+    "limitation": null
   }
 }
 ```
 
-The exact HTTP envelope may evolve, but the domain payload semantics must remain consistent with `CONTRACTS.md`.
+Exact database `Decimal` values serialize as base-10 strings so the HTTP boundary cannot silently
+convert them to binary floating point. Safe failures are a typed `failure` envelope containing
+stable `session_id`, `run_id`, code, message, and terminal Run status. The model cannot generate
+any envelope field other than answer language; payload semantics remain consistent with
+`CONTRACTS.md`.
 
 ## 8. UX principles
 

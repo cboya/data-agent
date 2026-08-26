@@ -109,6 +109,20 @@ task m13-eval
 task m13-ollama-smoke
 ```
 
+M14 adds the provider-free answer/response-authority evaluation and a separate three-case
+real-Ollama structured-answer smoke:
+
+```bash
+task m14-eval
+task m14-ollama-smoke
+task m14-e2e-smoke
+```
+
+`MAX_ANSWER_CONTEXT_ROWS` defaults to 100 and `MAX_ANSWER_CONTEXT_BYTES` defaults to 128 KiB.
+These limits are independent from M11's returned-result caps. Exceeding either makes no answer
+model call and returns a deterministic no-new-facts synthesis fallback while retaining verified
+structured data in the API response.
+
 M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
 The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub for bootstrap
 identity and index plumbing; substantive embedding quality evidence comes from the explicitly
@@ -196,8 +210,8 @@ task quality
 task eval
 ```
 
-`task eval` runs the standalone retrieval, dialogue, planner, SQL-guard, runtime, verification, and
-deterministic repair evaluations. M10 writes its machine-readable report under `evals/reports/`, binds SQLGlot/policy
+`task eval` runs the standalone retrieval, dialogue, planner, SQL-guard, runtime, verification,
+deterministic repair, and deterministic answer evaluations. M10 writes its machine-readable report under `evals/reports/`, binds SQLGlot/policy
 configuration and the accepted M9 snapshot fingerprint, runs only Harness-owned JSON EXPLAIN, and
 does not execute normal SQL. Plain EXPLAIN is protected by the pre-provider approved-function
 policy rather than assumed to be inherently side-effect free.
@@ -208,5 +222,7 @@ M12 may claim only that all applicable invariants encoded by its current policy 
 time/formula semantics remain explicit coverage gaps rather than global correctness claims.
 M13's real-Ollama smoke remains separate and claims only bounded controlled-world repair evidence,
 not general self-healing.
+M14's real-Ollama smoke is also separate and reports structured parse, grounding, reference,
+prompt-injection, and one-call behavior without grading exact wording.
 
 apart from installing Ollama and the configured local models.

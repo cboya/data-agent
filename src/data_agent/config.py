@@ -53,6 +53,8 @@ class Settings(BaseSettings):
     retrieval_semantic_top_k: int = Field(default=10, ge=1, le=100)
     retrieval_seed_tables: int = Field(default=4, ge=1, le=20)
     retrieval_rrf_k: float = Field(default=60.0, gt=0, le=1000)
+    max_answer_context_rows: int = Field(default=100, ge=1, le=1_000)
+    max_answer_context_bytes: int = Field(default=131_072, ge=1_024, le=4_194_304)
 
     @field_validator("ollama_base_url")
     @classmethod

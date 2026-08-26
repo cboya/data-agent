@@ -4,6 +4,15 @@ import argparse
 import asyncio
 from collections.abc import Sequence
 
+from data_agent.answer.evaluation import (
+    evaluate_current_answer,
+    format_answer_eval_summary,
+)
+from data_agent.answer.real_evaluation import (
+    evaluate_real_answer,
+    format_real_answer_summary,
+    write_real_answer_report,
+)
 from data_agent.config import Settings
 from data_agent.dialogue.evaluation import format_dialogue_eval_summary
 from data_agent.dialogue.runtime import evaluate_current_dialogue
@@ -36,6 +45,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument(
         "command",
         choices=(
+            "answer-eval",
+            "answer-ollama-eval",
             "bootstrap",
             "eval",
             "planner-eval",
@@ -73,6 +84,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         runtime_report = evaluate_current_runtime(settings)
         verification_report = evaluate_current_verification()
         repair_report = evaluate_current_repair(settings.max_sql_repair_attempts)
+        answer_report = evaluate_current_answer()
         print(format_retrieval_eval_summary(retrieval_report))
         print(format_dialogue_eval_summary(dialogue_report))
         print(format_planner_eval_summary(planner_report))
@@ -80,6 +92,7 @@ def main(argv: Sequence[str] | None = None) -> int:
         print(format_runtime_eval_summary(runtime_report))
         print(format_verification_eval_summary(verification_report))
         print(format_repair_eval_summary(repair_report))
+        print(format_answer_eval_summary(answer_report))
         return (
             0
             if retrieval_report.passed
@@ -89,8 +102,19 @@ def main(argv: Sequence[str] | None = None) -> int:
             and runtime_report.passed
             and verification_report.passed
             and repair_report.passed
+            and answer_report.passed
             else 1
         )
+    if args.command == "answer-eval":
+        answer_report = evaluate_current_answer()
+        print(format_answer_eval_summary(answer_report))
+        return 0 if answer_report.passed else 1
+    if args.command == "answer-ollama-eval":
+        settings = Settings()  # type: ignore[call-arg]
+        report = asyncio.run(evaluate_real_answer(settings))
+        write_real_answer_report(report)
+        print(format_real_answer_summary(report))
+        return 0 if report.passed else 1
     if args.command == "planner-eval":
         settings = Settings()  # type: ignore[call-arg]
         planner_report = asyncio.run(evaluate_current_planner(settings))

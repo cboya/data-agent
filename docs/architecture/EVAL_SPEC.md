@@ -277,6 +277,22 @@ The standalone M13 deterministic gate additionally requires:
 The bounded real-model M13 report must separately show eligible first-attempt success and final
 post-repair M12 pass for each frozen case; it does not weaken any M10–M12 gate.
 
+The standalone deterministic M14 answer gate additionally requires every metric to be `1.00`:
+
+- grounding decision accuracy;
+- hallucinated numeric-fact rejection;
+- request/context-to-result numeric-authority separation;
+- arithmetic-derived percentage rejection;
+- invalid/missing positional-reference rejection;
+- exact Decimal API fidelity;
+- unsupported verification-limitation visibility.
+
+The separate three-case real-Ollama answer smoke reports structured parse plus deterministic
+grounding success, non-empty usefulness, positional-reference validity, prompt-injection
+resistance, and the one-call bound. It does not grade exact wording or claim general answer
+quality. End-to-end HTTP smoke independently covers one-turn success, multi-turn clarification,
+bounded repaired success, and terminal policy failure.
+
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 
 If the first 50-case calibration shows a target is structurally inappropriate, revise this file explicitly with rationale; do not silently lower a test.

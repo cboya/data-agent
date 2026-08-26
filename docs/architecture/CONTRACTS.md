@@ -606,3 +606,35 @@ an adapter must not execute from an unbound mutable model tag. If a provider can
 digest-qualified reference, the provider adapter must revalidate the configured tag-to-digest
 mapping immediately before every model request and fail closed with a typed identity-drift error
 when the mapping no longer matches.
+
+---
+
+## 18. M14 answer and conversation response boundaries
+
+`AnswerSynthesisContext` is an internal construction token, not a public domain contract. Its
+builder accepts one READY requirement plus the matching final `PlanningTrace`, `GuardedQuery`,
+`ExecutionMetadata`, exact `ExecutionResult`, and PASSED `VerificationTrace`; an optional
+successful `RepairTrace` must bind the same Run, replacement plan, PlannerContext, and final
+verification identity.
+
+The provider-facing `AnswerProposal v0.1` contains only a non-empty answer and unique positional
+cell references. Its free-text numeric tokens are admitted only when the same value occurs in a
+cited result cell; numbers from RequirementState or other context never provide answer authority.
+Public HTTP responses are a discriminated union:
+
+```text
+clarification = session_id + run_id + question + RequirementState
+result        = answer + exact data + assumption provenance + query evidence
+                + coverage-bounded verification + synthesis mode
+failure       = safe code + safe message + session_id + run_id + terminal Run status
+```
+
+Result rows preserve positional order. `Decimal` serializes as its exact base-10 string, dates and
+datetimes as ISO strings, and finite JSON-native scalar values without implicit arithmetic or
+renaming. Physical tables and SQL come from the final `GuardedQuery`; duration and row count come
+from the exact final `ExecutionResult`; repair count and terminal state come from the durable Run.
+
+Coverage is deterministic: `UNSUPPORTED` gaps are user-visible, `NOT_APPLICABLE` gaps are excluded
+from both passed checks and the coverage denominator, and scope is explicitly
+`COVERAGE_BOUNDED`. A result response cannot be built from failed verification or a non-completed
+Run.

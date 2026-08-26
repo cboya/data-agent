@@ -43,6 +43,18 @@ class StoredDialogueTurn:
     assistant_message: StoredMessage | None
 
 
+@dataclass(frozen=True)
+class StoredRunDialogueTurn:
+    turn: StoredDialogueTurn
+    run: Run
+
+
+@dataclass(frozen=True)
+class StoredRunCompletion:
+    assistant_message: StoredMessage
+    run: Run
+
+
 class SessionRepository(Protocol):
     def create(self, session: Session) -> StoredSession: ...
 
@@ -68,6 +80,29 @@ class DialogueTurnStore(Protocol):
         user_message: Message,
         assistant_message: Message | None,
     ) -> StoredDialogueTurn: ...
+
+
+class ConversationUnitOfWork(DialogueTurnStore, Protocol):
+    """Atomic persistence boundaries required by the M14 orchestrator."""
+
+    def commit_dialogue_with_run(
+        self,
+        *,
+        session: Session,
+        expected_revision: int,
+        user_message: Message,
+        assistant_message: Message | None,
+        run_id: str,
+        target: RunStatus,
+    ) -> StoredRunDialogueTurn: ...
+
+    def complete_run_with_message(
+        self,
+        *,
+        run_id: str,
+        assistant_message: Message,
+        completed_at: AwareDateTime,
+    ) -> StoredRunCompletion: ...
 
 
 class RunRepository(Protocol):

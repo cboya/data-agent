@@ -66,6 +66,24 @@ tasks:
     cmds:
       - uv run data-agent repair-ollama-eval
 
+  m14-eval:
+    desc: Run the standalone M14 grounding and response-authority evaluation
+    deps: [sync]
+    cmds:
+      - uv run data-agent answer-eval
+
+  m14-ollama-smoke:
+    desc: Run the bound three-case real Ollama M14 answer smoke
+    deps: [sync]
+    cmds:
+      - uv run data-agent answer-ollama-eval
+
+  m14-e2e-smoke:
+    desc: Run one real HTTP path through Ollama, MySQL, and M8-M14
+    deps: [sync]
+    cmds:
+      - RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_conversation_e2e.py
+
   reset:
     desc: Reset generated local state
     deps: [sync]

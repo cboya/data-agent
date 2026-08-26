@@ -136,6 +136,11 @@ Owns:
 
 The LLM must not own these concerns.
 
+M14 composes M8–M14 through a thin conversation orchestrator. The orchestrator sequences existing
+services and Run transitions; it does not reimplement their semantic, guard, execution,
+verification, or repair policies. Dialogue outcome persistence is atomic with its Run outcome,
+and final assistant-answer persistence is atomic with Run completion.
+
 Durable control-plane state is stored separately from analytics data. The MVP may use the same
 MySQL server, but it must use a distinct schema and runtime principal for sessions, messages,
 runs, and artifacts. Semantic catalog discovery is scoped to the analytics schema and must not
@@ -183,6 +188,11 @@ Owns:
 - empirical invariants;
 - structured tracing;
 - Golden Dataset evaluation.
+
+Final answer language is probabilistic, but its response envelope is assurance-owned. Only a
+coherent PASSED verification branch enters synthesis; data, assumptions, query evidence,
+coverage limitations, and Run facts are projected deterministically. Request/context numeric
+literals are scope metadata rather than interchangeable result evidence.
 
 ## 6. Core domain objects
 

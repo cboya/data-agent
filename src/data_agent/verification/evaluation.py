@@ -219,6 +219,9 @@ class _EvidenceBundle:
     execution_result: ExecutionResult
 
 
+ConstructedVerificationEvidence = _EvidenceBundle
+
+
 def load_verification_eval_suite(
     path: Path = VERIFICATION_EVAL_PATH,
 ) -> tuple[VerificationEvalSuite, str]:
@@ -407,6 +410,23 @@ def _bundle(
         guarded_query=guarded_query,
         execution_metadata=metadata,
         execution_result=result,
+    )
+
+
+def build_constructed_verification_evidence(
+    catalog: AssembledSemanticCatalog,
+    *,
+    requirement: RequirementState | None = None,
+    plan: QueryPlan | None = None,
+    result: ExecutionResult | None = None,
+) -> ConstructedVerificationEvidence:
+    """Public provider-free coherent evidence fixture shared by later eval layers."""
+
+    return _bundle(
+        catalog,
+        requirement=requirement or _requirement(),
+        plan=plan or _plan(),
+        result=result or _result(),
     )
 
 
