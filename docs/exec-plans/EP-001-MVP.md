@@ -647,8 +647,9 @@ shape, numeric fidelity, capability-only admission, read-only enforcement, and n
 each score `1.000`. Focused M11/M10/config/CLI coverage passes 43 tests; `task bootstrap` passes
 with unchanged retrieval index fingerprint
 `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
-`task quality` passes 314 tests with 6 explicit host-only Ollama tests skipped. M11 remains active
-pending remote `Delivery / Quality` and substantive review; M12 remains unauthorized.
+`task quality` passes 314 tests with 6 explicit host-only Ollama tests skipped. PR #11 implementation
+head `e6cb1ba` passes remote `Delivery / Quality` in run `32924666433`. M11 remains active pending
+substantive review; M12 remains unauthorized.
 
 ## 6. Decision log
 
