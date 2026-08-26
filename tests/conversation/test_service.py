@@ -19,6 +19,7 @@ from data_agent.conversation.service import ConversationOrchestrator
 from data_agent.dialogue.service import DialogueEngine, DialogueService
 from data_agent.planning.service import PlanningTrace
 from data_agent.repair.service import BoundedRepairService
+from data_agent.retrieval.errors import RetrievalError
 from data_agent.sql_guard.explain import ExplainPolicy
 from data_agent.sql_guard.guard import SQLGuard
 from data_agent.sql_guard.service import SQLAdmissionService
@@ -27,6 +28,7 @@ from tests.answer.factories import FixedAnswerModel
 from tests.conversation.factories import (
     NOW,
     MemoryConversationUnitOfWork,
+    MemoryTraceRepository,
     RecordingPlanner,
     RecordingRetriever,
     retrieval_trace,
@@ -87,6 +89,8 @@ def _orchestrator(
     verifier: DeterministicVerifier | None = None,
     repair_error: Exception | None = None,
     answer_error: Exception | None = None,
+    retrieval_error: Exception | None = None,
+    max_repair_attempts: int = 1,
 ) -> tuple[
     ConversationOrchestrator,
     RecordingRetriever,
@@ -97,7 +101,8 @@ def _orchestrator(
     MemoryConversationUnitOfWork,
 ]:
     runs = MemoryRunRepository(run_id="unused", status=RunStatus.RECEIVED)
-    uow = MemoryConversationUnitOfWork(runs=runs)
+    traces = MemoryTraceRepository()
+    uow = MemoryConversationUnitOfWork(runs=runs, traces=traces)
     ids = count(1)
 
     def id_factory(prefix: str) -> str:
@@ -110,7 +115,7 @@ def _orchestrator(
         clock=lambda: NOW,
         id_factory=id_factory,
     )
-    retriever = RecordingRetriever(retrieval_trace())
+    retriever = RecordingRetriever(retrieval_trace(), error=retrieval_error)
     planner = RecordingPlanner(planning_trace or evidence_bundle().planning_trace)
     admission = SQLAdmissionService(
         guard=SQLGuard(analytics_schema="data_agent"),
@@ -124,6 +129,8 @@ def _orchestrator(
         run_repository=runs,
         admission=admission,
         query_runtime=runtime,
+        max_attempts=max_repair_attempts,
+        defer_terminal_transitions=True,
     )
     answer_model = FixedAnswerModel(
         AnswerProposal(
@@ -147,6 +154,7 @@ def _orchestrator(
         synthesizer=AnswerSynthesizer(chat_model=answer_model),
         clock=lambda: NOW,
         id_factory=id_factory,
+        traces=traces,
     )
     return orchestrator, retriever, planner, repair_model, answer_model, runs, uow
 
@@ -228,6 +236,25 @@ def test_policy_denial_is_typed_and_never_calls_answer_model() -> None:
     assert answer_model.calls == []
 
 
+def test_retrieval_failure_has_typed_failed_stage_trace_before_terminal() -> None:
+    orchestrator, retriever, _, _, answer_model, runs, uow = _orchestrator(
+        retrieval_error=RetrievalError("index unavailable")
+    )
+
+    response = asyncio.run(
+        orchestrator.process_message(session_id="session-m14", content="最近支付金额")
+    )
+
+    assert isinstance(response, FailureResponse)
+    assert response.code == "PIPELINE_FAILED"
+    assert retriever.calls == 1
+    assert answer_model.calls == []
+    assert runs.run.status is RunStatus.FAILED
+    events = uow.traces.list_for_run(str(runs.run.id))
+    assert events[-2].event_type.value == "RETRIEVAL_COMPLETED"
+    assert events[-2].payload["outcome"] == "FAILED"
+
+
 class _AlwaysFailedVerifier(DeterministicVerifier):
     def verify(self, context: object):  # type: ignore[no-untyped-def]
         from data_agent.contracts.execution import ExecutionResult
@@ -287,6 +314,29 @@ def test_terminal_failed_repair_makes_zero_answer_calls() -> None:
     assert runs.run.status is RunStatus.REPAIR_EXHAUSTED
     assert len(repair_model.calls) == 1
     assert answer_model.calls == []
+
+
+def test_zero_repair_budget_terminalizes_with_attempt_zero_trace() -> None:
+    orchestrator, _, _, repair_model, answer_model, runs, uow = _orchestrator(
+        verifier=_AlwaysFailedVerifier(), max_repair_attempts=0
+    )
+
+    response = asyncio.run(
+        orchestrator.process_message(session_id="session-m14", content="最近支付金额")
+    )
+
+    assert isinstance(response, FailureResponse)
+    assert response.status is RunStatus.REPAIR_EXHAUSTED
+    assert runs.run.repair_count == 0
+    assert repair_model.calls == []
+    assert answer_model.calls == []
+    repair_event = next(
+        event
+        for event in uow.traces.list_for_run(str(runs.run.id))
+        if event.event_type.value == "REPAIR_COMPLETED"
+    )
+    assert repair_event.attempt == 0
+    assert repair_event.payload["outcome"] == "EXHAUSTED"
 
 
 def test_synthesis_failure_is_typed_and_does_not_persist_final_message() -> None:

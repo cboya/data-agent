@@ -48,6 +48,8 @@ class RepairPipelineOutcome:
     execution_metadata: ExecutionMetadata | None = None
     execution_result: ExecutionResult | None = None
     verification_trace: VerificationTrace | None = None
+    terminal_status: RunStatus | None = None
+    terminal_error_code: str | None = None
 
 
 class RepairQueryRuntime(Protocol):
@@ -78,6 +80,7 @@ class BoundedRepairService:
         max_attempts: int = 1,
         model_fingerprint: str | None = None,
         runtime_version: str | None = None,
+        defer_terminal_transitions: bool = False,
     ) -> None:
         if max_attempts < 0:
             raise ValueError("repair-attempt bound cannot be negative")
@@ -91,6 +94,7 @@ class BoundedRepairService:
         self._max_attempts = max_attempts
         self._model_fingerprint = model_fingerprint
         self._runtime_version = runtime_version
+        self._defer_terminal_transitions = defer_terminal_transitions
         self._locks: dict[str, asyncio.Lock] = {}
 
     async def repair(
@@ -106,7 +110,7 @@ class BoundedRepairService:
         timestamp = occurred_at or datetime.now(UTC)
         if not decision.eligible:
             run = self._runs.get(run_id)
-            if decision.terminal_status is not None:
+            if decision.terminal_status is not None and not self._defer_terminal_transitions:
                 run = self._runs.transition(
                     run_id,
                     decision.terminal_status,
@@ -122,6 +126,8 @@ class BoundedRepairService:
                     outcome=RepairOutcomeKind.NOT_ELIGIBLE,
                 ),
                 run=run,
+                terminal_status=decision.terminal_status,
+                terminal_error_code=str(failure.code),
             )
 
         lock = self._locks.setdefault(run_id, asyncio.Lock())
@@ -149,11 +155,16 @@ class BoundedRepairService:
             )
         except RepairAttemptsExhaustedError:
             current = self._runs.get(run_id)
-            if self._max_attempts == 0 and current.status in {
-                RunStatus.VALIDATING,
-                RunStatus.EXECUTING,
-                RunStatus.VERIFYING,
-            }:
+            if (
+                self._max_attempts == 0
+                and current.status
+                in {
+                    RunStatus.VALIDATING,
+                    RunStatus.EXECUTING,
+                    RunStatus.VERIFYING,
+                }
+                and not self._defer_terminal_transitions
+            ):
                 current = self._runs.transition(
                     run_id,
                     RunStatus.REPAIR_EXHAUSTED,
@@ -169,6 +180,8 @@ class BoundedRepairService:
                     outcome=RepairOutcomeKind.EXHAUSTED,
                 ),
                 run=current,
+                terminal_status=RunStatus.REPAIR_EXHAUSTED,
+                terminal_error_code="REPAIR_EXHAUSTED",
             )
         except PersistenceInvariantError as error:
             raise RepairIntegrityError(
@@ -198,6 +211,8 @@ class BoundedRepairService:
                     outcome=RepairOutcomeKind.MODEL_FAILED,
                 ),
                 run=terminal,
+                terminal_status=RunStatus.REPAIR_EXHAUSTED,
+                terminal_error_code="REPAIR_MODEL_FAILED",
             )
 
         try:
@@ -214,6 +229,8 @@ class BoundedRepairService:
                     replacement=proposal,
                 ),
                 run=terminal,
+                terminal_status=RunStatus.REPAIR_EXHAUSTED,
+                terminal_error_code="REPAIR_PLAN_POLICY_FAILED",
             )
 
         admission = self._admission.admit(
@@ -232,6 +249,8 @@ class BoundedRepairService:
                     replacement=replacement.plan,
                 ),
                 run=terminal,
+                terminal_status=RunStatus.REPAIR_EXHAUSTED,
+                terminal_error_code="REPAIR_ADMISSION_FAILED",
                 replacement_planning_trace=replacement,
             )
 
@@ -255,6 +274,8 @@ class BoundedRepairService:
                     replacement=replacement.plan,
                 ),
                 run=terminal,
+                terminal_status=RunStatus.REPAIR_EXHAUSTED,
+                terminal_error_code="REPAIR_EXECUTION_FAILED",
                 replacement_planning_trace=replacement,
                 guarded_query=query,
             )
@@ -284,6 +305,8 @@ class BoundedRepairService:
                     replacement=replacement.plan,
                 ),
                 run=terminal,
+                terminal_status=RunStatus.REPAIR_EXHAUSTED,
+                terminal_error_code="REPAIR_VERIFICATION_INTEGRITY",
                 replacement_planning_trace=replacement,
                 guarded_query=query,
                 execution_metadata=execution.metadata,
@@ -301,6 +324,8 @@ class BoundedRepairService:
                     replacement=replacement.plan,
                 ),
                 run=terminal,
+                terminal_status=RunStatus.REPAIR_EXHAUSTED,
+                terminal_error_code="REPAIR_VERIFICATION_FAILED",
                 replacement_planning_trace=replacement,
                 guarded_query=query,
                 execution_metadata=execution.metadata,
@@ -365,6 +390,8 @@ class BoundedRepairService:
             raise RepairIntegrityError("repair failure does not match the original M9 branch")
 
     def _exhaust(self, run_id: str, occurred_at: datetime, error_code: str) -> Run:
+        if self._defer_terminal_transitions:
+            return self._runs.get(run_id)
         return self._runs.transition(
             run_id,
             RunStatus.REPAIR_EXHAUSTED,

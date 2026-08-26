@@ -25,6 +25,7 @@ from data_agent.model_runtime.ports import (
 from data_agent.persistence.mysql.dialogue_turns import MySQLDialogueTurnStore
 from data_agent.persistence.mysql.runs import MySQLRunRepository
 from data_agent.persistence.mysql.sessions import MySQLSessionRepository
+from data_agent.persistence.mysql.traces import MySQLTraceRepository
 from data_agent.persistence.ports import StoredSession
 from data_agent.planning.service import QueryPlanner
 from data_agent.query_runtime.runtime import build_readonly_query_runtime
@@ -144,6 +145,7 @@ def build_conversation_application(
         max_attempts=settings.max_sql_repair_attempts,
         model_fingerprint=diagnostics.chat.value,
         runtime_version=diagnostics.runtime_version,
+        defer_terminal_transitions=True,
     )
     orchestrator = ConversationOrchestrator(
         dialogue=dialogue,
@@ -164,6 +166,7 @@ def build_conversation_application(
         ),
         clock=lambda: datetime.now(UTC),
         id_factory=_id,
+        traces=MySQLTraceRepository(settings),
     )
     return ConversationApplication(
         sessions=MySQLSessionRepository(settings),

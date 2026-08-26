@@ -8,6 +8,7 @@ from data_agent.contracts.base import AwareDateTime
 from data_agent.contracts.message import Message
 from data_agent.contracts.run import Run, RunStatus
 from data_agent.contracts.session import Session
+from data_agent.trace.model import TraceEvent, TraceEventDraft
 
 
 @dataclass(frozen=True)
@@ -94,6 +95,7 @@ class ConversationUnitOfWork(DialogueTurnStore, Protocol):
         assistant_message: Message | None,
         run_id: str,
         target: RunStatus,
+        trace_events: tuple[TraceEventDraft, ...],
     ) -> StoredRunDialogueTurn: ...
 
     def complete_run_with_message(
@@ -102,7 +104,18 @@ class ConversationUnitOfWork(DialogueTurnStore, Protocol):
         run_id: str,
         assistant_message: Message,
         completed_at: AwareDateTime,
+        trace_events: tuple[TraceEventDraft, ...],
     ) -> StoredRunCompletion: ...
+
+    def terminate_run_with_trace(
+        self,
+        *,
+        run_id: str,
+        target: RunStatus,
+        completed_at: AwareDateTime,
+        error_code: str,
+        trace_events: tuple[TraceEventDraft, ...],
+    ) -> Run: ...
 
 
 class RunRepository(Protocol):
@@ -126,6 +139,16 @@ class RunRepository(Protocol):
         max_attempts: int,
         expected_status: RunStatus,
     ) -> Run: ...
+
+
+class TraceRepository(Protocol):
+    """Append-only M15 evidence store; no mutation operation exists."""
+
+    def append(self, draft: TraceEventDraft) -> TraceEvent: ...
+
+    def append_many(self, drafts: tuple[TraceEventDraft, ...]) -> tuple[TraceEvent, ...]: ...
+
+    def list_for_run(self, run_id: str) -> list[TraceEvent]: ...
 
 
 class ArtifactRepository(Protocol):

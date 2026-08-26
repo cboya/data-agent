@@ -66,6 +66,7 @@ reader. The runtime privilege matrix is:
 | `agent_message` | yes | yes | no | no |
 | `agent_run` | yes | yes | yes | no |
 | `agent_artifact` | yes | yes | no | no |
+| `agent_trace_event` | yes | yes | no | no |
 
 Migration/bootstrap administration remains separate from runtime credentials. The control
 principal receives no analytics-schema privilege, and the analytics reader receives no
@@ -290,6 +291,20 @@ Prefer:
 - duration;
 - small bounded samples only when needed;
 - hashes/fingerprints.
+
+M15 enforces this preference mechanically. `agent_trace_event.payload_json` is bounded and
+fingerprinted; event-specific top-level allowlists plus recursive field-name checks reject
+generic data envelopes, raw/result `rows`, passwords, credentials,
+secrets, duplicated answer text, hidden reasoning, chain-of-thought, and scratchpad data. Execution
+events retain result fingerprint, column names, row/byte counts, truncation, principal class, and capability
+identities but never values. Synthesis events retain answer-message ID, prompt/mode, and bounded
+cell references plus the hashed provider proposal identity, but never duplicate the answer. Runtime SQL privileges are exactly SELECT/INSERT
+on trace events: UPDATE and DELETE are denied.
+
+Golden expectations and trusted Oracle SQL are also security-sensitive acceptance authority. They
+exist only under top-level `eval_harness` and `evals/`; architecture tests reject any runtime or
+model-prompt import/path reference to them. Oracle SQL executes only through the analytics
+read-only principal after source validation as one SELECT and is never supplied to the Data Agent.
 
 M11 success metadata binds the exact bounded result through a versioned canonical fingerprint but
 never embeds raw rows. The exact bounded M9 semantic context is separately fingerprinted over its

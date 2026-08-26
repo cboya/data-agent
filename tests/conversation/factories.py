@@ -7,7 +7,7 @@ from datetime import UTC, datetime
 
 from data_agent.contracts.message import Message
 from data_agent.contracts.requirement import RequirementStatus
-from data_agent.contracts.run import RunStatus
+from data_agent.contracts.run import Run, RunStatus
 from data_agent.contracts.session import Session, SessionStatus
 from data_agent.conversation.models import (
     ConversationResponse,
@@ -26,6 +26,8 @@ from data_agent.persistence.ports import (
 )
 from data_agent.planning.service import PlanningTrace
 from data_agent.retrieval.service import RetrievalTrace
+from data_agent.trace.model import TraceEvent, TraceEventDraft
+from data_agent.trace.policy import TraceCompletenessPolicy
 from tests.planning.factories import retrieval_result
 from tests.repair.factories import MemoryRunRepository
 from tests.verification.factories import ready_requirement
@@ -45,8 +47,15 @@ def active_session() -> Session:
 
 
 class MemoryConversationUnitOfWork:
-    def __init__(self, *, runs: MemoryRunRepository, session: Session | None = None) -> None:
+    def __init__(
+        self,
+        *,
+        runs: MemoryRunRepository,
+        traces: MemoryTraceRepository,
+        session: Session | None = None,
+    ) -> None:
         self.runs = runs
+        self.traces = traces
         self.session = StoredSession(session=session or active_session(), revision=0)
         self.messages: list[StoredMessage] = []
         self.completion_count = 0
@@ -87,6 +96,7 @@ class MemoryConversationUnitOfWork:
         assistant_message: Message | None,
         run_id: str,
         target: RunStatus,
+        trace_events: tuple[TraceEventDraft, ...],
     ) -> StoredRunDialogueTurn:
         turn = self.commit(
             session=session,
@@ -95,6 +105,9 @@ class MemoryConversationUnitOfWork:
             assistant_message=assistant_message,
         )
         run = self.runs.transition(run_id, target, transitioned_at=NOW)
+        self.traces.append_many(trace_events)
+        if target in {RunStatus.CLARIFYING, RunStatus.FAILED}:
+            TraceCompletenessPolicy().validate(run, tuple(self.traces.list_for_run(run_id)))
         return StoredRunDialogueTurn(turn=turn, run=run)
 
     def complete_run_with_message(
@@ -103,11 +116,33 @@ class MemoryConversationUnitOfWork:
         run_id: str,
         assistant_message: Message,
         completed_at: datetime,
+        trace_events: tuple[TraceEventDraft, ...],
     ) -> StoredRunCompletion:
         stored = self._append(assistant_message)
         run = self.runs.transition(run_id, RunStatus.COMPLETED, transitioned_at=completed_at)
+        self.traces.append_many(trace_events)
+        TraceCompletenessPolicy().validate(run, tuple(self.traces.list_for_run(run_id)))
         self.completion_count += 1
         return StoredRunCompletion(assistant_message=stored, run=run)
+
+    def terminate_run_with_trace(
+        self,
+        *,
+        run_id: str,
+        target: RunStatus,
+        completed_at: datetime,
+        error_code: str,
+        trace_events: tuple[TraceEventDraft, ...],
+    ) -> Run:
+        run = self.runs.transition(
+            run_id,
+            target,
+            transitioned_at=completed_at,
+            error_code=error_code,
+        )
+        self.traces.append_many(trace_events)
+        TraceCompletenessPolicy().validate(run, tuple(self.traces.list_for_run(run_id)))
+        return run
 
     def _append(self, message: Message) -> StoredMessage:
         stored = StoredMessage(message=message, sequence=len(self.messages) + 1)
@@ -118,11 +153,14 @@ class MemoryConversationUnitOfWork:
 @dataclass
 class RecordingRetriever:
     trace: RetrievalTrace
+    error: Exception | None = None
     calls: int = 0
 
     async def retrieve(self, query: str) -> RetrievalTrace:
         assert query
         self.calls += 1
+        if self.error is not None:
+            raise self.error
         return self.trace
 
 
@@ -137,6 +175,28 @@ def retrieval_trace() -> RetrievalTrace:
         seed_hits=tuple(result.hits),
         graph_expansions=(),
     )
+
+
+class MemoryTraceRepository:
+    def __init__(self) -> None:
+        self.events: dict[str, list[TraceEvent]] = {}
+
+    def append(self, draft: TraceEventDraft) -> TraceEvent:
+        return self.append_many((draft,))[0]
+
+    def append_many(self, drafts: tuple[TraceEventDraft, ...]) -> tuple[TraceEvent, ...]:
+        inserted: list[TraceEvent] = []
+        for draft in drafts:
+            values = self.events.setdefault(str(draft.run_id), [])
+            event = TraceEvent.model_validate(
+                {**draft.model_dump(mode="python"), "sequence": len(values) + 1}
+            )
+            values.append(event)
+            inserted.append(event)
+        return tuple(inserted)
+
+    def list_for_run(self, run_id: str) -> list[TraceEvent]:
+        return list(self.events.get(run_id, ()))
 
 
 @dataclass

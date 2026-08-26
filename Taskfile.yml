@@ -25,16 +25,16 @@ tasks:
     desc: Run formatting, lint, type, and deterministic test gates
     deps: [sync]
     cmds:
-      - uv run ruff format --check src tests
-      - uv run ruff check src tests
+      - uv run ruff format --check src tests eval_harness
+      - uv run ruff check src tests eval_harness
       - uv run mypy
       - uv run pytest
 
   eval:
-    desc: Run the Golden Dataset evaluation
+    desc: Run all stage evals and the public-API Golden Dataset acceptance
     deps: [sync]
     cmds:
-      - uv run data-agent eval
+      - uv run python -m eval_harness
 
   m10-eval:
     desc: Run the standalone M10 SQL guard and EXPLAIN evaluation

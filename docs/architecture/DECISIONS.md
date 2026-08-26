@@ -441,3 +441,61 @@ turn with its Run outcome, and separately atomically appends the final assistant
 the user boundary. Positional references remain unambiguous with duplicate column labels, while
 atomic completion prevents conversation history and Run state from reporting contradictory
 durable outcomes.
+
+---
+
+## D-030 — Trace is append-only evidence; Golden truth is acceptance-only
+
+**Decision:** M15 persists observable pipeline outcomes in a dedicated append-only
+`agent_trace_event` table. Each event has a unique ID, Run/Session identity, contiguous per-Run
+sequence, bounded attempt (`0` or `1`), typed stage/event, schema version, bounded JSON payload,
+canonical payload fingerprint, and timestamp. Event-type/stage pairing, sensitive/raw-row field
+rejection, payload size, reload fingerprint, sequence, identity, ordering, attempt branches, and
+terminal completeness are deterministic policies. Required `COMPLETED`, `CLARIFYING`, and failure
+terminal events share the control-plane transaction that persists their terminal Run outcome; a
+trace write failure cannot be converted to a successful public response. Repair services retain
+their frozen standalone transition behavior, while production defers repair terminal transitions
+to this trace-aware unit of work.
+
+The source-controlled `evals/golden.yaml` contains 59 public Session/Message API cases. Trusted
+Oracle SQL is static and isolated in `evals/oracles.yaml`; it is validated as one read-only SELECT
+and used only by the top-level `eval_harness` package. Runtime packages and every model prompt are
+mechanically prohibited from importing either acceptance source. Golden result assertions compare
+typed result values independent of row order and do not require exact generated SQL text.
+`EvaluationEnvironment v0.1` binds Git, Golden, generated schema, semantic catalog/revision,
+retrieval index, both model fingerprints, Ollama, all prompt/policy versions, trace schema,
+dependency lock, and Python under one canonical fingerprint.
+Final report construction rejects a dirty Git worktree and records UTC as the evaluation timezone.
+
+**Reason:** A trace must make execution auditable without becoming a second semantic or policy
+authority, and it must not persist hidden chain-of-thought, credentials, answer duplicates, or raw
+result rows. Allowing Golden expectations or Oracle SQL into runtime/model context would leak the
+answer and invalidate acceptance evidence. Model scores without a complete environment identity
+cannot distinguish behavioral change from model, data, catalog, prompt, policy, or dependency
+drift.
+
+---
+
+## D-031 — Golden semantics are model-neutral; behavioral evidence is model-bound
+
+**Decision:** Freeze 59 meaningful controlled-world cases independently of whether the initially
+available local model passes them. The suite contains 55 Oracle-backed result cases over 54
+distinct semantic/result Oracles, including 15 simple, 22 aggregation/time, 11 relationship/trap,
+two empty-population, four multi-turn clarification/correction, one repair-eligible formulation,
+and four safe terminal-failure paths. Every result is judged against static typed values and
+governed table evidence; no prompt receives acceptance truth, no SQL text is compared, and no
+behavioral gate is lowered.
+
+The initial `gemma4:latest` is an 8B Q4 local model. Its pre-freeze 54-case challenge run achieved
+Golden E2E `0.352`, result-Oracle `0.365`, and trace integrity `1.000`. Common failure shapes were
+spurious grouping, omitted filters, and wrong governed dimensions. That result remains valid
+diagnostic evidence for that exact environment, not a reason to remove hard cases. Final release
+behavioral acceptance may use a stronger local Ollama chat model, but its immutable
+`ModelFingerprint` and all other environment identities must be recorded and the entire frozen
+suite rerun. Small-model failure is permitted only within the probabilistic behavior thresholds;
+deterministic safety and trace gates remain exact.
+
+**Reason:** Golden truth describes intended product semantics, while an environment-bound score
+describes one model's capability. Optimizing case selection around an 8B model would reverse that
+authority relationship and overstate generalization. A stronger model may improve behavior, but
+cannot change Oracle truth, catalog authority, safety policy, or the scored suite.

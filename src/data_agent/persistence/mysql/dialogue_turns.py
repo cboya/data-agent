@@ -27,6 +27,7 @@ from data_agent.persistence.mysql.common import (
 from data_agent.persistence.mysql.messages import _message_from_row
 from data_agent.persistence.mysql.runs import _run_from_row
 from data_agent.persistence.mysql.sessions import _session_from_row
+from data_agent.persistence.mysql.traces import _insert_trace_drafts, _load_trace_rows
 from data_agent.persistence.ports import (
     DialogueTurnSnapshot,
     StoredDialogueTurn,
@@ -36,6 +37,8 @@ from data_agent.persistence.ports import (
     StoredSession,
 )
 from data_agent.run_state import TERMINAL_RUN_STATUSES, RunStateMachine
+from data_agent.trace.model import TraceEventDraft
+from data_agent.trace.policy import TraceCompletenessPolicy
 
 
 def _validate_messages(
@@ -141,6 +144,7 @@ class MySQLDialogueTurnStore:
         assistant_message: Message | None,
         run_id: str,
         target: RunStatus,
+        trace_events: tuple[TraceEventDraft, ...],
     ) -> StoredRunDialogueTurn:
         expected = {
             RunStatus.CLARIFYING: (RequirementStatus.CLARIFYING, True),
@@ -149,6 +153,8 @@ class MySQLDialogueTurnStore:
         }.get(target)
         if expected is None:
             raise PersistenceInvariantError("dialogue may only enter a frozen post-M8 Run state")
+        if target in TERMINAL_RUN_STATUSES and not trace_events:
+            raise PersistenceInvariantError("terminal dialogue outcome requires trace evidence")
         requirement_status, requires_assistant = expected
         if session.requirement.status is not requirement_status:
             raise PersistenceInvariantError("dialogue RequirementState does not match Run target")
@@ -161,6 +167,7 @@ class MySQLDialogueTurnStore:
             assistant_message=assistant_message,
             run_id=run_id,
             target=target,
+            trace_events=trace_events,
         )
         if updated_run is None:
             raise AssertionError("atomic dialogue commit did not update the Run")
@@ -175,6 +182,7 @@ class MySQLDialogueTurnStore:
         assistant_message: Message | None,
         run_id: str | None,
         target: RunStatus | None,
+        trace_events: tuple[TraceEventDraft, ...] = (),
     ) -> tuple[StoredDialogueTurn, Run | None]:
         if expected_revision < 0:
             raise ValueError("expected Session revision cannot be negative")
@@ -285,6 +293,12 @@ class MySQLDialogueTurnStore:
                             updated_run.id,
                         ),
                     )
+                    _insert_trace_drafts(cursor, run=updated_run, drafts=trace_events)
+                    if trace_events and updated_run.status in TERMINAL_RUN_STATUSES:
+                        TraceCompletenessPolicy().validate(
+                            updated_run,
+                            _load_trace_rows(cursor, str(updated_run.id)),
+                        )
             connection.commit()
         except (OptimisticConcurrencyError, PersistenceInvariantError, RecordNotFoundError):
             connection.rollback()
@@ -312,9 +326,12 @@ class MySQLDialogueTurnStore:
         run_id: str,
         assistant_message: Message,
         completed_at: AwareDateTime,
+        trace_events: tuple[TraceEventDraft, ...],
     ) -> StoredRunCompletion:
         if assistant_message.role is not MessageRole.ASSISTANT:
             raise PersistenceInvariantError("Run completion requires one ASSISTANT message")
+        if not trace_events:
+            raise PersistenceInvariantError("Run completion requires terminal trace evidence")
         connection = control_connection(self._settings, autocommit=False)
         try:
             with connection.cursor() as cursor:
@@ -370,6 +387,12 @@ class MySQLDialogueTurnStore:
                         run_id,
                     ),
                 )
+                _insert_trace_drafts(cursor, run=updated, drafts=trace_events)
+                if trace_events:
+                    TraceCompletenessPolicy().validate(
+                        updated,
+                        _load_trace_rows(cursor, str(updated.id)),
+                    )
             connection.commit()
             return StoredRunCompletion(assistant_message=stored_message, run=updated)
         except (PersistenceInvariantError, RecordNotFoundError, ValueError):
@@ -378,6 +401,73 @@ class MySQLDialogueTurnStore:
         except pymysql.MySQLError as error:
             connection.rollback()
             raise_write_error(error, record=f"Run completion {run_id}")
+        except Exception:
+            connection.rollback()
+            raise
+        finally:
+            connection.close()
+
+    def terminate_run_with_trace(
+        self,
+        *,
+        run_id: str,
+        target: RunStatus,
+        completed_at: AwareDateTime,
+        error_code: str,
+        trace_events: tuple[TraceEventDraft, ...],
+    ) -> Run:
+        if target not in TERMINAL_RUN_STATUSES or target in {
+            RunStatus.COMPLETED,
+            RunStatus.CLARIFYING,
+        }:
+            raise PersistenceInvariantError("failure terminalization requires a failure Run state")
+        if not trace_events:
+            raise PersistenceInvariantError("failure terminalization requires trace evidence")
+        connection = control_connection(self._settings, autocommit=False)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id, session_id, status, repair_count, started_at, completed_at, "
+                    "error_code FROM agent_run WHERE id = %s FOR UPDATE",
+                    (run_id,),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise RecordNotFoundError(f"Run {run_id} does not exist")
+                current = _run_from_row(cast(tuple[object, ...], row))
+                RunStateMachine.transition(current.status, target)
+                updated = Run.model_validate(
+                    {
+                        **current.model_dump(mode="python"),
+                        "status": target,
+                        "completed_at": completed_at,
+                        "error_code": error_code,
+                    }
+                )
+                RunStateMachine.require_consistent(updated)
+                cursor.execute(
+                    "UPDATE agent_run SET status = %s, completed_at = %s, error_code = %s "
+                    "WHERE id = %s",
+                    (
+                        target.value,
+                        to_database_datetime(completed_at),
+                        error_code,
+                        run_id,
+                    ),
+                )
+                _insert_trace_drafts(cursor, run=updated, drafts=trace_events)
+                TraceCompletenessPolicy().validate(
+                    updated,
+                    _load_trace_rows(cursor, str(updated.id)),
+                )
+            connection.commit()
+            return updated
+        except (PersistenceInvariantError, RecordNotFoundError, ValueError):
+            connection.rollback()
+            raise
+        except pymysql.MySQLError as error:
+            connection.rollback()
+            raise_write_error(error, record=f"Run terminalization {run_id}")
         except Exception:
             connection.rollback()
             raise

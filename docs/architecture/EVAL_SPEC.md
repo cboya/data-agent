@@ -40,7 +40,8 @@ Suggested distribution:
 | Clarification behavior | 7 |
 | Security/failure behavior | 5 |
 
-Early implementation may begin with the example cases under `evals/golden.example.yaml`.
+The frozen MVP suite is `evals/golden.yaml`; its trusted static result Oracles are isolated in
+`evals/oracles.yaml`. Neither source is runtime or model context.
 
 ## 4. Golden case contract
 
@@ -295,7 +296,52 @@ bounded repaired success, and terminal policy failure.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 
-If the first 50-case calibration shows a target is structurally inappropriate, revise this file explicitly with rationale; do not silently lower a test.
+### Final M15 public-API acceptance
+
+The canonical runner executes every standalone stage gate, then at least 50 cases through
+`POST /sessions` and `POST /sessions/{id}/messages`. It inspects the typed response, publicly
+readable Run, and persisted append-only trace. Trusted result assertions compare typed values from
+static eval-only SELECT Oracles without exact SQL equality; Golden SQL never enters runtime or
+prompt context. Fixed absolute dates are required wherever wall-clock-relative interpretation
+would change result truth.
+
+Final hard gates are:
+
+- trace integrity and terminal completeness = `1.00`;
+- unauthorized execution count = `0`;
+- synthesis after failed verification count = `0`;
+- numeric grounding violation count = `0`;
+- repair-bound violation count = `0`.
+
+Behavioral gates are Golden E2E pass rate `>= 0.90`, result-Oracle pass rate `>= 0.90`, and
+unnecessary clarification rate `<= 0.10`, while preserving all prior stage targets including M7
+Recall@5/Recall@10. `evals/reports/latest.json` includes case stage, Run IDs, trace assertion
+failures, stage reports, and the canonical `EvaluationEnvironment` fingerprint.
+
+The frozen model-neutral profile contains 59 cases: 55 Oracle-backed results over 54 distinct
+semantic/result Oracles, plus four safe terminal failures. Category coverage is 15 simple, 22
+aggregation/time, 11 relationship/trap, four multi-turn clarification/correction, three
+repair/empty cases, and four policy failures. Two result Oracles prove empty populations and one
+formulation permits the single allowed repair when needed. A stronger model is not required to
+fail its first branch merely to manufacture repair evidence; the standalone M13 eval retains the
+deterministic repair gate. Exact-result requests use fixed absolute dates.
+
+Case selection is not calibrated to the weakest available model. The initial 8B local-model run
+is diagnostic evidence; a stronger local Ollama model may provide final behavioral acceptance only
+under its own complete environment fingerprint. Model changes never change Golden sources,
+Oracles, or deterministic gates.
+
+`EvaluationEnvironment v0.1` must bind at least Git commit, Golden version/fingerprint, generated
+schema, semantic catalog fingerprint/revision, retrieval index, chat/embedding model fingerprints,
+Ollama runtime, dialogue/planning/repair/answer prompt versions, guard/EXPLAIN/runtime/
+verification/repair/grounding policies, trace schema, Python runtime, and dependency lock. A model
+acceptance result missing any bound identity is invalid rather than partially reproducible.
+The runner refuses to issue an environment identity from a dirty Git worktree and fixes Golden
+temporal interpretation to UTC with absolute-date result cases.
+
+If calibration shows a target is structurally inappropriate, revise this file explicitly with
+rationale; do not silently lower a test. Changing the frozen case source, model identity, prompt,
+catalog, or policy invalidates the earlier environment-bound acceptance result.
 
 ## 7. Semantic correctness
 

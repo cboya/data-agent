@@ -409,14 +409,30 @@ Acceptance:
 
 ### M15 — Trace + Golden Dataset eval
 
-Complete trace recording and expand Golden Dataset to at least 50 cases.
+Complete append-only structured trace recording, expand the public-API Golden Dataset to at least
+50 cases, and make clean-state MVP acceptance reproducible under a complete environment identity.
 
 Acceptance:
 
-- `task eval` produces machine-readable and human-readable report;
-- environment/model/index fingerprints captured;
-- trace persistence stores execution metadata/references, not raw result rows by default;
-- hard gates and behavioral targets in `EVAL_SPEC.md` pass.
+- Trace records observable evidence rather than hidden reasoning and never becomes domain/runtime
+  authority;
+- a dedicated append-only control store assigns contiguous per-Run sequence and records attempt,
+  stage, event type, schema version, bounded payload, fingerprint, and timestamp;
+- dialogue, retrieval, planning, admission, execution, verification, repair, synthesis, and terminal
+  outcomes are covered without default raw-result-row or duplicated-answer persistence;
+- deterministic completeness policy validates clarification, direct success, terminal failure, and
+  repaired success shapes plus identity/order/attempt invariants;
+- trace persistence failure cannot silently continue to a successful response, and required
+  terminal evidence is coordinated with durable terminal Run state;
+- versioned Golden Dataset contains at least 50 meaningful cases and exercises the public Session
+  and Message HTTP surface with deterministic semantic/result oracles rather than exact SQL text;
+- runtime and prompts have no access to Golden expectations or oracle SQL;
+- every final report binds Git, suite, schema/catalog/index, model/runtime, prompt/policy,
+  dependency, and Python identities under one environment fingerprint;
+- canonical `task eval` preserves every stage gate, adds Golden E2E and trace integrity metrics,
+  writes human-readable output plus ignored `evals/reports/latest.json`, and attributes failures;
+- clean `task reset`, `task bootstrap`, `task quality`, and `task eval` all pass without generated
+  source drift.
 
 ---
 
@@ -439,8 +455,8 @@ Codex must update this section as milestones complete.
 [x] M11 Read-only runtime — complete and frozen via PR #11
 [x] M12 Verification — complete and frozen via PR #12
 [x] M13 Bounded repair — complete and frozen via PR #13
-[ ] M14 Answer synthesis + API — active
-[ ] M15 Trace + Golden Dataset eval
+[x] M14 Answer synthesis + API — complete and frozen via PR #14
+[ ] M15 Trace + Golden Dataset eval — active
 ```
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
@@ -897,16 +913,17 @@ serialize as strings. Context larger than `MAX_ANSWER_CONTEXT_ROWS` or
 `MAX_ANSWER_CONTEXT_BYTES` returns a deterministic `RESULT_TOO_LARGE` fallback with zero model
 calls and no new result facts. The minimal conversation UoW extends the existing M8 store so
 dialogue/Run outcomes and final-message/Run completion cannot partially commit. The orchestrator
-only sequences existing M8–M14 authorities. Deterministic M14 eval currently passes all six
+only sequences existing M8–M14 authorities. Deterministic M14 eval currently passes all seven
 frozen cases and every grounding/Decimal/coverage metric at `1.000`; host and initial remote
 acceptance evidence are recorded below.
 
 M14 local acceptance evidence (2026-08-26): `task bootstrap` rebuilt the ten-table controlled
 world and retrieval index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`;
 the focused answer/conversation/API/MySQL-UoW suite passes 40 tests; final `task quality` passes
-433 tests with 7 explicit host-only skips. `task m14-eval` passes six frozen cases with grounding,
-ungrounded-number rejection, arithmetic rejection, reference rejection, Decimal fidelity, and
-coverage visibility each `1.000`. Initial real-model evidence showed Ollama omitted a
+433 tests with 7 explicit host-only skips. `task m14-eval` originally passed six frozen cases and
+the final v0.2 suite passes seven, adding request/result numeric-authority separation while every
+grounding, arithmetic, reference, Decimal, and coverage metric remains `1.000`. Initial real-model
+evidence showed Ollama omitted a
 default-valued reference list, so `AnswerProposal v0.1` now makes `evidence_refs` provider-required
 (empty only for an empty result); the final three-case real-Ollama smoke reports structured
 grounding, non-empty usefulness, reference validity, injection resistance, and one-call bound each
@@ -938,6 +955,49 @@ smoke remains fully green, and the real FastAPI→Ollama→MySQL path passes in 
 `Delivery / Quality` passes on remediation head
 `56685dc2bdefb67b0a40aef478610d5a1d00fe80` in run `32947600298` (50 seconds). M14 is ready for
 substantive re-review; it stays active, PR #14 must not merge, and M15 remains unauthorized.
+
+M14 closure evidence (2026-08-26): acceptance PR #14; numeric-authority remediation commit
+`56685dc2bdefb67b0a40aef478610d5a1d00fe80`; accepted final head
+`7d950538c7898379f2bf8bc97b5f6f5e35de1988`; substantive re-review approved; final remote
+`Delivery / Quality` passed in run `32947750444` (52 seconds); squash-merged to protected `main`
+as `8cf14aa2766603ffb581abf8fb08874dbdd3e478`. The final seven-case deterministic answer eval,
+three-case real-Ollama smoke, and FastAPI→Ollama→MySQL path remained green. M14 is
+complete/frozen; M15 is authorized/active. MVP release remains unauthorized.
+
+M15 activation note (2026-08-26): Trace records only observable structured evidence, never hidden
+reasoning, credentials, or default raw result rows, and cannot become authority for any M8–M14
+decision. Use a dedicated append-only `agent_trace_event` store with deterministic per-Run
+sequence and explicit attempt branches. Golden expectations and oracle SQL belong exclusively to
+the evaluation harness outside runtime packages. Final behavioral evidence is meaningful only
+under a canonical environment identity binding repository, Golden, schema/catalog/index,
+model/runtime, prompt/policy, dependency, and Python fingerprints. M15 adds no Agent intelligence.
+
+M15 implementation note (2026-08-26): migration `005_agent_trace_event.sql` introduces a
+dedicated append-only trace ledger with contiguous per-Run sequencing, attempt/stage/event
+identity, canonical bounded payload fingerprints, and runtime SELECT/INSERT-only privileges.
+The conversation orchestrator projects observable M8–M14 outcomes without raw rows, duplicated
+answers, credentials, or hidden reasoning. Terminal Run state and required terminal trace evidence
+commit through one control-plane unit of work. `eval_harness` drives the public Session/Message API,
+reloads persisted Run/trace state, executes isolated static SELECT Oracles through the analytics
+reader, preserves all standalone stage gates, and emits one environment-bound final report.
+
+M15 model-bound calibration note (2026-08-26): the first 54-case challenge run under the bound
+8B Q4 `gemma4:latest` environment achieved E2E `0.352`, result-Oracle `0.365`, and trace integrity
+`1.000`. Observed failures included spurious grouping, omitted filters, and wrong governed
+dimensions; this remains diagnostic evidence rather than a case-selection input. The frozen
+model-neutral suite now contains 59 cases: 55 result cases over 54 distinct Oracles, with 15
+simple, 22 aggregation/time, 11 relationship/trap, four multi-turn clarification/correction,
+three repair/empty, and four policy-failure cases. Two Oracles prove empty populations and one
+formulation permits the single M13 repair when the model needs it; the standalone repair eval
+retains deterministic attempt-1 coverage. Final behavioral acceptance may use a stronger local Ollama model,
+but it must rerun the unchanged suite under a new complete environment fingerprint. Golden
+fingerprint `53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7`
+binds the exact suite.
+
+M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
+APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
+focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag
+are terminal closure evidence; no post-merge closure-only PR is required.
 
 ## 6. Decision log
 

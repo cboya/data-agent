@@ -12,7 +12,9 @@ from data_agent.persistence.mysql.dialogue_turns import MySQLDialogueTurnStore
 from data_agent.persistence.mysql.messages import MySQLMessageRepository
 from data_agent.persistence.mysql.runs import MySQLRunRepository
 from data_agent.persistence.mysql.sessions import MySQLSessionRepository
-from tests.persistence.factories import message, requirement, run, session, timestamp
+from data_agent.persistence.mysql.traces import MySQLTraceRepository
+from data_agent.trace.model import EVENT_STAGE, TraceEventDraft, TraceEventType
+from tests.persistence.factories import message, requirement, run, session, timestamp, unique_id
 
 pytestmark = pytest.mark.integration
 
@@ -27,6 +29,58 @@ def _updated(current: Session, *, status: RequirementStatus, minutes: int) -> Se
             "requirement": requirement_value,
             "updated_at": current.updated_at + timedelta(minutes=minutes),
         }
+    )
+
+
+def _trace_draft(
+    session_id: str,
+    run_id: str,
+    event_type: TraceEventType,
+    index: int,
+    *,
+    payload: dict[str, object] | None = None,
+) -> TraceEventDraft:
+    successful_outcome = {
+        TraceEventType.RUN_RECEIVED: "RECEIVED",
+        TraceEventType.VERIFICATION_COMPLETED: "PASSED",
+    }.get(event_type, "SUCCEEDED")
+    return TraceEventDraft(
+        id=unique_id("trace"),
+        session_id=session_id,
+        run_id=run_id,
+        attempt=0,
+        stage=EVENT_STAGE[event_type],
+        event_type=event_type,
+        payload=payload or {"outcome": successful_outcome},
+        occurred_at=timestamp() + timedelta(seconds=index),
+    )
+
+
+def _direct_trace(session_id: str, run_id: str) -> tuple[TraceEventDraft, ...]:
+    types = (
+        TraceEventType.RUN_RECEIVED,
+        TraceEventType.DIALOGUE_COMPLETED,
+        TraceEventType.RETRIEVAL_COMPLETED,
+        TraceEventType.PLANNING_COMPLETED,
+        TraceEventType.SQL_ADMISSION_COMPLETED,
+        TraceEventType.EXECUTION_COMPLETED,
+        TraceEventType.VERIFICATION_COMPLETED,
+        TraceEventType.SYNTHESIS_COMPLETED,
+        TraceEventType.RUN_TERMINATED,
+    )
+    return tuple(
+        _trace_draft(
+            session_id,
+            run_id,
+            event_type,
+            index,
+            payload=(
+                {"outcome": "TERMINATED", "terminal_status": RunStatus.COMPLETED.value}
+                if event_type is TraceEventType.RUN_TERMINATED
+                else None
+            ),
+        )
+        for index, event_type in enumerate(types, start=1)
     )
 
 
@@ -124,6 +178,31 @@ def test_dialogue_and_run_outcome_commit_in_one_transaction(settings: Settings) 
         assistant_message=assistant,
         run_id=str(active_run.id),
         target=RunStatus.CLARIFYING,
+        trace_events=(
+            _trace_draft(
+                str(created.session.id),
+                str(active_run.id),
+                TraceEventType.RUN_RECEIVED,
+                1,
+                payload={"outcome": "RECEIVED"},
+            ),
+            _trace_draft(
+                str(created.session.id),
+                str(active_run.id),
+                TraceEventType.DIALOGUE_COMPLETED,
+                2,
+            ),
+            _trace_draft(
+                str(created.session.id),
+                str(active_run.id),
+                TraceEventType.RUN_TERMINATED,
+                3,
+                payload={
+                    "outcome": "TERMINATED",
+                    "terminal_status": RunStatus.CLARIFYING.value,
+                },
+            ),
+        ),
     )
 
     assert stored.run.status is RunStatus.CLARIFYING
@@ -162,6 +241,7 @@ def test_dialogue_insert_failure_rolls_back_run_outcome(settings: Settings) -> N
             assistant_message=None,
             run_id=str(active_run.id),
             target=RunStatus.RETRIEVING,
+            trace_events=(),
         )
 
     assert runs.get(str(active_run.id)).status is RunStatus.UNDERSTANDING
@@ -201,11 +281,14 @@ def test_final_answer_and_run_completion_commit_in_one_transaction(
         "已验证结果",
         role=MessageRole.ASSISTANT,
     ).model_copy(update={"created_at": completed_at})
+    trace = _direct_trace(str(created.session.id), str(active_run.id))
+    MySQLTraceRepository(settings).append_many(trace[:-2])
 
     stored = MySQLDialogueTurnStore(settings).complete_run_with_message(
         run_id=str(active_run.id),
         assistant_message=assistant,
         completed_at=completed_at,
+        trace_events=trace[-2:],
     )
 
     assert stored.run.status is RunStatus.COMPLETED
@@ -224,6 +307,8 @@ def test_final_message_failure_rolls_back_run_completion(settings: Settings) -> 
     active_run = runs.create(run(created.session.id))
     _advance_to_synthesizing(runs, str(active_run.id))
     completed_at = timestamp() + timedelta(minutes=8)
+    trace = _direct_trace(str(created.session.id), str(active_run.id))
+    MySQLTraceRepository(settings).append_many(trace[:-2])
 
     with pytest.raises(DuplicateRecordError):
         MySQLDialogueTurnStore(settings).complete_run_with_message(
@@ -235,6 +320,7 @@ def test_final_message_failure_rolls_back_run_completion(settings: Settings) -> 
                 message_id=duplicate.id,
             ).model_copy(update={"created_at": completed_at}),
             completed_at=completed_at,
+            trace_events=trace[-2:],
         )
 
     assert runs.get(str(active_run.id)).status is RunStatus.SYNTHESIZING
