@@ -106,7 +106,7 @@ def _passing_runtime_report() -> RuntimeEvalReport:
         identity=RuntimeEvalIdentity(
             suite_version="v0.1",
             suite_fingerprint="a" * 64,
-            runtime_policy_version="query-runtime-v0.1",
+            runtime_policy_version="query-runtime-v0.2",
             sql_guard_policy_version="sql-guard-v0.2",
             explain_policy_version="explain-policy-v0.1",
             pymysql_version="1.1.2",

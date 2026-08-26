@@ -317,9 +317,11 @@ safety. See the MySQL 8.4 [derived-table EXPLAIN side-effect example](https://de
 
 ## D-026 — M11 execution is capability-only, streaming, and connection-discarding
 
-**Decision:** M11 accepts only the current immutable `GuardedQuery`, revalidates its SQL digest and
-M10 policy identities, and executes the admitted SQL unchanged. Each execution receives a new
-analytics-reader connection, verifies session read-only mode, and sets MySQL
+**Decision:** M11 accepts only the current immutable `GuardedQuery`, revalidates its SQL digest,
+M10 analytics execution namespace, and M10 policy identities, and executes the admitted SQL
+unchanged. The namespace against which M10 admitted unqualified tables is fingerprinted into both
+guarded capabilities and must equal the runtime default database before connection. Each execution
+receives a new analytics-reader connection, verifies session read-only mode, and sets MySQL
 `max_execution_time`; the client read timeout is separately bounded above that server limit.
 
 Results use PyMySQL `SSCursor` with row-bound-plus-one detection and a deterministic type-tagged

@@ -38,6 +38,7 @@ def guarded_query(
     sql: str = "SELECT paid_amount FROM fact_order ORDER BY id",
     *,
     tables: list[str] | None = None,
+    analytics_schema: str = "data_agent",
 ) -> GuardedQuery:
     plan = QueryPlan(
         version="v0.1",
@@ -49,7 +50,7 @@ def guarded_query(
         explanation="M11 fixture",
     )
     outcome = SQLAdmissionService(
-        guard=SQLGuard(analytics_schema="data_agent"),
+        guard=SQLGuard(analytics_schema=analytics_schema),
         explain_provider=StaticExplainProvider(),
         explain_policy=ExplainPolicy(max_estimated_rows_per_access=100),
     ).admit(plan)
@@ -136,12 +137,14 @@ class FakeFactory:
         self,
         query_cursor: FakeCursor,
         *,
+        database_schema: str = "data_agent",
         max_execution_time_ms: int = 5_000,
         connect_error: BaseException | None = None,
     ) -> None:
+        self.database_schema = database_schema
         self.connection = FakeConnection(
             setup_cursor=SessionCursor(
-                schema=self.database_schema,
+                schema=database_schema,
                 principal=self.principal_name,
                 timeout_ms=max_execution_time_ms,
             ),

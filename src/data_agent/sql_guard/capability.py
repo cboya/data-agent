@@ -47,6 +47,7 @@ def _capability_fingerprint(
     *,
     sql_digest: str,
     query_plan_fingerprint: str,
+    execution_namespace: str,
     guard_policy_version: str,
     explain_policy_version: str | None,
     physical_tables: tuple[PhysicalTable, ...],
@@ -56,6 +57,7 @@ def _capability_fingerprint(
     payload = {
         "sql_digest": sql_digest,
         "query_plan_fingerprint": query_plan_fingerprint,
+        "execution_namespace": execution_namespace,
         "guard_policy_version": guard_policy_version,
         "explain_policy_version": explain_policy_version,
         "physical_tables": [
@@ -77,6 +79,7 @@ class GuardedSQL:
     sql: str
     sql_digest: str
     query_plan_fingerprint: str
+    execution_namespace: str
     guard_policy_version: str
     capability_fingerprint: str
     physical_tables: tuple[PhysicalTable, ...]
@@ -95,11 +98,14 @@ class GuardedSQL:
             raise ValueError("GuardedSQL SQL digest mismatch")
         if not _is_sha256(self.query_plan_fingerprint):
             raise ValueError("GuardedSQL QueryPlan fingerprint is invalid")
+        if not self.execution_namespace.strip():
+            raise ValueError("GuardedSQL execution namespace is missing")
         if not self.guard_policy_version.strip():
             raise ValueError("GuardedSQL guard policy identity is missing")
         expected = _capability_fingerprint(
             sql_digest=self.sql_digest,
             query_plan_fingerprint=self.query_plan_fingerprint,
+            execution_namespace=self.execution_namespace,
             guard_policy_version=self.guard_policy_version,
             explain_policy_version=None,
             physical_tables=self.physical_tables,
@@ -117,6 +123,7 @@ class GuardedQuery:
     sql: str
     sql_digest: str
     query_plan_fingerprint: str
+    execution_namespace: str
     guard_policy_version: str
     explain_policy_version: str
     capability_fingerprint: str
@@ -144,11 +151,14 @@ class GuardedQuery:
             raise ValueError("GuardedQuery SQL digest mismatch")
         if not _is_sha256(self.query_plan_fingerprint):
             raise ValueError("GuardedQuery QueryPlan fingerprint is invalid")
+        if not self.execution_namespace.strip():
+            raise ValueError("GuardedQuery execution namespace is missing")
         if not self.guard_policy_version.strip() or not self.explain_policy_version.strip():
             raise ValueError("GuardedQuery policy identity is missing")
         expected = _capability_fingerprint(
             sql_digest=self.sql_digest,
             query_plan_fingerprint=self.query_plan_fingerprint,
+            execution_namespace=self.execution_namespace,
             guard_policy_version=self.guard_policy_version,
             explain_policy_version=self.explain_policy_version,
             physical_tables=self.physical_tables,
@@ -174,6 +184,7 @@ def issue_guarded_sql(
     *,
     physical_tables: tuple[PhysicalTable, ...],
     guard_result: SQLGuardResult,
+    execution_namespace: str,
     guard_policy_version: str,
 ) -> GuardedSQL:
     sql = str(plan.sql)
@@ -183,10 +194,12 @@ def issue_guarded_sql(
         sql=sql,
         sql_digest=sql_digest,
         query_plan_fingerprint=query_plan_fingerprint,
+        execution_namespace=execution_namespace,
         guard_policy_version=guard_policy_version,
         capability_fingerprint=_capability_fingerprint(
             sql_digest=sql_digest,
             query_plan_fingerprint=query_plan_fingerprint,
+            execution_namespace=execution_namespace,
             guard_policy_version=guard_policy_version,
             explain_policy_version=None,
             physical_tables=physical_tables,
@@ -208,6 +221,7 @@ def issue_guarded_query(
     capability_fingerprint = _capability_fingerprint(
         sql_digest=candidate.sql_digest,
         query_plan_fingerprint=candidate.query_plan_fingerprint,
+        execution_namespace=candidate.execution_namespace,
         guard_policy_version=candidate.guard_policy_version,
         explain_policy_version=explain_policy_version,
         physical_tables=candidate.physical_tables,
@@ -218,6 +232,7 @@ def issue_guarded_query(
         sql=candidate.sql,
         sql_digest=candidate.sql_digest,
         query_plan_fingerprint=candidate.query_plan_fingerprint,
+        execution_namespace=candidate.execution_namespace,
         guard_policy_version=candidate.guard_policy_version,
         explain_policy_version=explain_policy_version,
         capability_fingerprint=capability_fingerprint,

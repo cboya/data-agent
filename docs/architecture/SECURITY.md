@@ -93,9 +93,11 @@ Raw SQL is data; GuardedQuery is capability.
 
 Future normal-query execution consumes the exact immutable payload admitted by M10, not a new SQL
 string. The SQL guard runs before EXPLAIN; EXPLAIN success is never treated as statement safety.
-M11 revalidates that payload's SHA-256 and current guard/EXPLAIN policy identities immediately
-before execution. It must not inject a `LIMIT`, re-render the AST, add a hint, wrap the query, or
-otherwise execute SQL text different from the admitted capability.
+M11 revalidates that payload's SHA-256, the M10 analytics execution namespace, and current
+guard/EXPLAIN policy identities immediately before execution. The capability namespace must equal
+the runtime connection factory's default database before any connection is opened. M11 must not
+inject a `LIMIT`, re-render the AST, add a hint, wrap the query, or otherwise execute SQL text
+different from the admitted capability.
 
 Every candidate SQL query must:
 

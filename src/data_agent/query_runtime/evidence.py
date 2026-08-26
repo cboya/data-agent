@@ -25,6 +25,7 @@ class ExecutionMetadata:
     guarded_query_fingerprint: str
     sql_digest: str
     query_plan_fingerprint: str
+    execution_namespace: str
     guard_policy_version: str
     explain_policy_version: str
     physical_tables: tuple[str, ...]

@@ -332,6 +332,7 @@ class SQLGuard:
             plan,
             physical_tables=physical_tables,
             guard_result=result,
+            execution_namespace=self._analytics_schema,
             guard_policy_version=SQL_GUARD_POLICY_VERSION,
         )
         unused = tuple(

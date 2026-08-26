@@ -299,7 +299,8 @@ Acceptance:
 - the only public query-execution input is the immutable M10 `GuardedQuery` capability; raw SQL,
   `QueryPlan`, and pre-EXPLAIN `GuardedSQL` have no runtime route;
 - capability SQL digest and issuing guard/EXPLAIN policy identities are revalidated immediately
-  before execution, and the exact admitted SQL is sent unchanged to MySQL;
+  before execution; M10's analytics execution namespace is fingerprinted and must match the M11
+  runtime database before connection; the exact admitted SQL is then sent unchanged to MySQL;
 - a dedicated analytics-reader connection enables and verifies session read-only mode and a
   server `max_execution_time`; a bounded client read timeout is greater than the server bound;
 - execution uses an unbuffered cursor, never `fetchall`, reads at most the configured row bound
@@ -651,6 +652,21 @@ with unchanged retrieval index fingerprint
 head `e6cb1ba` passes remote `Delivery / Quality` in run `32924666433`. M11 remains active pending
 substantive review; M12 remains unauthorized.
 
+M11 execution-namespace remediation note (2026-08-26): substantive review identified that exact
+SQL identity alone did not bind the default database used to resolve unqualified tables. M10 now
+copies `SQLGuard.analytics_schema` into `GuardedSQL.execution_namespace`, propagates it unchanged
+to `GuardedQuery`, and covers it with both stage capability fingerprints. M11 verifies the complete
+capability and then requires `query.execution_namespace == connection_factory.database_schema`
+before generating execution state or calling `connect()`. Focused regressions prove a capability
+issued for `analytics_a` cannot reach a runtime configured for `analytics_b`, namespace tampering
+invalidates the fingerprint, both failures keep `connect_count == 0`, and the matching namespace
+path retains normal execution. M11 remains active pending substantive re-review; M12 remains
+unauthorized. The remediation bumps the runtime policy to
+`query-runtime-v0.2`; focused M11/M10/config/CLI coverage passes 45 tests, `task bootstrap` passes
+with the unchanged retrieval index fingerprint, complete `task quality` passes 316 tests with 6
+explicit host-only Ollama tests skipped, and the six-case runtime eval retains every metric at
+`1.000`. Remote `Delivery / Quality` remains pending for the remediation head.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -877,11 +893,12 @@ model; changes require recorded calibration evidence.
 
 2026-08-26 — M11 capability-only streaming runtime
 Decision: Execute only the current fully fingerprinted M10 `GuardedQuery` through a synchronous
-PyMySQL service. Use one non-pooled analytics-reader connection, verified session read-only mode,
-MySQL `max_execution_time`, and a larger bounded client read timeout. Stream with `SSCursor`, use
-row-bound-plus-one detection plus an 8 MiB default type-tagged normalized-byte budget, and close
-the connection without closing the cursor whenever unread rows remain. Emit metadata through a
-separate sink and never retry.
+PyMySQL service. Bind M10's analytics execution namespace into the capability and reject a runtime
+database mismatch before connection. Use one non-pooled analytics-reader connection, verified
+session read-only mode, MySQL `max_execution_time`, and a larger bounded client read timeout.
+Stream with `SSCursor`, use row-bound-plus-one detection plus an 8 MiB default type-tagged
+normalized-byte budget, and close the connection without closing the cursor whenever unread rows
+remain. Emit metadata through a separate sink and never retry.
 Evidence: MySQL documents session transaction access mode and millisecond read-only SELECT
 timeouts; PyMySQL documents that `SSCursor` reads on demand and cursor close exhausts remaining
 data. The real controlled-world suite proves server timeout code 3024, row/byte truncation,

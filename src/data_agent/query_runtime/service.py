@@ -46,7 +46,7 @@ from data_agent.sql_guard.guard import SQL_GUARD_POLICY_VERSION
 _MAX_SAFE_ERROR_CHARACTERS = 512
 _UNAVAILABLE_MYSQL_CODES = frozenset({2002, 2003, 2005, 2006, 2013})
 _QUERY_TIMEOUT_MYSQL_CODES = frozenset({3024})
-QUERY_RUNTIME_POLICY_VERSION = "query-runtime-v0.1"
+QUERY_RUNTIME_POLICY_VERSION = "query-runtime-v0.2"
 
 
 @dataclass(frozen=True)
@@ -146,6 +146,10 @@ class ReadOnlyQueryRuntime:
             )
         except (AttributeError, TypeError, ValueError) as error:
             raise CapabilityIntegrityError("GuardedQuery integrity validation failed") from error
+        if query.execution_namespace != self._connection_factory.database_schema:
+            raise CapabilityIntegrityError(
+                "GuardedQuery execution namespace does not match the query runtime"
+            )
 
         execution_id = str(uuid.uuid4())
         started_at = datetime.now(UTC)
@@ -354,6 +358,7 @@ class ReadOnlyQueryRuntime:
             guarded_query_fingerprint=query.capability_fingerprint,
             sql_digest=query.sql_digest,
             query_plan_fingerprint=query.query_plan_fingerprint,
+            execution_namespace=query.execution_namespace,
             guard_policy_version=query.guard_policy_version,
             explain_policy_version=query.explain_policy_version,
             physical_tables=tuple(table.qualified_name for table in query.physical_tables),

@@ -55,6 +55,33 @@ def test_tampered_or_stale_capability_fails_before_connect() -> None:
     assert factory.connect_count == 0
 
 
+def test_capability_namespace_must_match_runtime_before_connect() -> None:
+    factory = FakeFactory(
+        FakeCursor(rows=[(1,)], columns=["id"]),
+        database_schema="analytics_b",
+    )
+    capability = guarded_query(
+        "SELECT id FROM fact_order",
+        analytics_schema="analytics_a",
+    )
+
+    with pytest.raises(CapabilityIntegrityError, match="namespace"):
+        runtime(factory).execute(capability)
+
+    assert factory.connect_count == 0
+
+
+def test_tampered_namespace_is_part_of_capability_fingerprint() -> None:
+    factory = FakeFactory(FakeCursor(rows=[(1,)], columns=["id"]))
+    capability = guarded_query("SELECT id FROM fact_order")
+    object.__setattr__(capability, "execution_namespace", "other_analytics")
+
+    with pytest.raises(CapabilityIntegrityError, match="integrity"):
+        runtime(factory).execute(capability)
+
+    assert factory.connect_count == 0
+
+
 def test_exact_sql_session_policy_shape_and_numeric_fidelity() -> None:
     sql = " SELECT paid_amount AS id, id FROM fact_order ORDER BY id "
     cursor = FakeCursor(rows=[(Decimal("100.00"), 1)], columns=["id", "id"])
@@ -78,6 +105,7 @@ def test_exact_sql_session_policy_shape_and_numeric_fidelity() -> None:
     metadata = sink.records[0]
     assert metadata.outcome is ExecutionOutcome.SUCCEEDED
     assert metadata.sql_digest == guarded_query(sql).sql_digest
+    assert metadata.execution_namespace == "data_agent"
     assert metadata.returned_row_count == 1
     assert not hasattr(metadata, "rows")
 

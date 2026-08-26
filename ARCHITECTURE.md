@@ -375,13 +375,14 @@ provider because plain MySQL EXPLAIN may evaluate a stored function in optimizer
 M11 must consume that immutable capability instead of accepting a new arbitrary SQL string.
 `EXPLAIN ANALYZE` is outside M10 because it executes the statement.
 
-M11 revalidates the capability digest and issuing guard/EXPLAIN policy identities, then submits
-the admitted SQL text unchanged. It uses one dedicated analytics-reader connection per execution,
-verifies session read-only mode, and applies both MySQL `max_execution_time` and a larger bounded
-client read timeout. Results are read through an unbuffered cursor under independent row and
-normalized-byte budgets. On truncation the dedicated connection is abandoned without closing the
-unbuffered cursor, because cursor close would drain the remaining result. Actual cursor metadata
-and positional rows remain database evidence; unsupported cell types fail closed.
+M11 revalidates the capability digest, M10 analytics execution namespace, and issuing
+guard/EXPLAIN policy identities, then submits the admitted SQL text unchanged. A namespace
+mismatch fails before a connection is opened. It uses one dedicated analytics-reader connection
+per execution, verifies session read-only mode, and applies both MySQL `max_execution_time` and a
+larger bounded client read timeout. Results are read through an unbuffered cursor under independent
+row and normalized-byte budgets. On truncation the dedicated connection is abandoned without
+closing the unbuffered cursor, because cursor close would drain the remaining result. Actual cursor
+metadata and positional rows remain database evidence; unsupported cell types fail closed.
 
 Generated SQL is never trusted merely because an LLM produced it.
 
