@@ -855,6 +855,11 @@ PR #13 implementation commit `2ee9234b7f1e63fbce8c82a339578b0c59e56302` passes r
 is ready for substantive M13 review; it must not be merged and M14 must not start without explicit
 authorization.
 
+PR #13 P1 remediation commit `ac2648ed90df46fe221cf8b11419f63cb649b1af` passes remote
+`Delivery / Quality` in run `32938518767` (57 seconds). The PR remains open for substantive
+re-review; M13 is not complete, the PR must not be merged, and M14 must not start without explicit
+authorization.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
