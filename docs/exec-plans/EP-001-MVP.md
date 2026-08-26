@@ -821,6 +821,11 @@ post-repair M12 pass `1.000`, and bound enforcement `1.000`. This is controlled-
 only, not a general self-healing claim. M13 remains active pending PR and substantive review; M14
 remains unauthorized.
 
+PR #13 implementation commit `2ee9234b7f1e63fbce8c82a339578b0c59e56302` passes remote
+`Delivery / Quality` in run `32936610821`. The PR remains open with required reviewer `cboya` and
+is ready for substantive M13 review; it must not be merged and M14 must not start without explicit
+authorization.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
