@@ -2,6 +2,8 @@
 
 from data_agent.contracts.query import QueryPlan
 
+TEST_PLANNER_CONTEXT_FINGERPRINT = "9" * 64
+
 
 def query_plan(sql: str, *, tables: list[str] | None = None) -> QueryPlan:
     return QueryPlan(

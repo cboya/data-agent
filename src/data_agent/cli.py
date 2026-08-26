@@ -19,6 +19,10 @@ from data_agent.retrieval.runtime import (
 )
 from data_agent.sql_guard.evaluation import format_sql_guard_eval_summary
 from data_agent.sql_guard.runtime import evaluate_current_sql_guard
+from data_agent.verification.evaluation import (
+    evaluate_current_verification,
+    format_verification_eval_summary,
+)
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -32,6 +36,7 @@ def build_parser() -> argparse.ArgumentParser:
             "reset",
             "runtime-eval",
             "sql-guard-eval",
+            "verification-eval",
         ),
     )
     return parser
@@ -58,11 +63,13 @@ def main(argv: Sequence[str] | None = None) -> int:
         planner_report = asyncio.run(evaluate_current_planner(settings))
         sql_guard_report = evaluate_current_sql_guard(settings)
         runtime_report = evaluate_current_runtime(settings)
+        verification_report = evaluate_current_verification()
         print(format_retrieval_eval_summary(retrieval_report))
         print(format_dialogue_eval_summary(dialogue_report))
         print(format_planner_eval_summary(planner_report))
         print(format_sql_guard_eval_summary(sql_guard_report))
         print(format_runtime_eval_summary(runtime_report))
+        print(format_verification_eval_summary(verification_report))
         return (
             0
             if retrieval_report.passed
@@ -70,6 +77,7 @@ def main(argv: Sequence[str] | None = None) -> int:
             and planner_report.passed
             and sql_guard_report.passed
             and runtime_report.passed
+            and verification_report.passed
             else 1
         )
     if args.command == "planner-eval":
@@ -87,6 +95,10 @@ def main(argv: Sequence[str] | None = None) -> int:
         runtime_report = evaluate_current_runtime(settings)
         print(format_runtime_eval_summary(runtime_report))
         return 0 if runtime_report.passed else 1
+    if args.command == "verification-eval":
+        verification_report = evaluate_current_verification()
+        print(format_verification_eval_summary(verification_report))
+        return 0 if verification_report.passed else 1
     if args.command == "reset":
         reset_mysql()
         print("MySQL generated state removed; curated catalog files were preserved.")

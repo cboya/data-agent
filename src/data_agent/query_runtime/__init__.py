@@ -13,6 +13,7 @@ from data_agent.query_runtime.evidence import (
     ExecutionMetadata,
     ExecutionMetadataSink,
     ExecutionOutcome,
+    execution_result_fingerprint,
 )
 from data_agent.query_runtime.runtime import build_readonly_query_runtime
 from data_agent.query_runtime.service import ReadOnlyQueryRuntime, RuntimeLimits
@@ -31,4 +32,5 @@ __all__ = [
     "RuntimeLimits",
     "UnsupportedResultTypeError",
     "build_readonly_query_runtime",
+    "execution_result_fingerprint",
 ]

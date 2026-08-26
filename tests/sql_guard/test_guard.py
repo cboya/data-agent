@@ -3,8 +3,16 @@
 import pytest
 
 from data_agent.contracts.execution import GuardStatus
-from data_agent.sql_guard import SQLGuard, SQLViolation
-from tests.sql_guard.factories import query_plan
+from data_agent.contracts.query import QueryPlan
+from data_agent.sql_guard import SQLGuard, SQLGuardEvaluation, SQLViolation
+from tests.sql_guard.factories import TEST_PLANNER_CONTEXT_FINGERPRINT, query_plan
+
+
+def _evaluate(guard: SQLGuard, plan: QueryPlan) -> SQLGuardEvaluation:
+    return guard.evaluate(
+        plan,
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
 
 @pytest.fixture
@@ -52,7 +60,7 @@ def test_scope_aware_physical_tables_pass(
     tables: list[str],
     referenced: list[str],
 ) -> None:
-    evaluation = guard.evaluate(query_plan(sql, tables=tables))
+    evaluation = _evaluate(guard, query_plan(sql, tables=tables))
 
     assert evaluation.result.status is GuardStatus.PASSED
     assert evaluation.result.referenced_tables == referenced
@@ -61,8 +69,8 @@ def test_scope_aware_physical_tables_pass(
 
 
 def test_subset_authority_reports_unused_declared_tables(guard: SQLGuard) -> None:
-    evaluation = guard.evaluate(
-        query_plan("SELECT id FROM fact_order", tables=["fact_order", "dim_user"])
+    evaluation = _evaluate(
+        guard, query_plan("SELECT id FROM fact_order", tables=["fact_order", "dim_user"])
     )
 
     assert evaluation.result.status is GuardStatus.PASSED
@@ -70,13 +78,14 @@ def test_subset_authority_reports_unused_declared_tables(guard: SQLGuard) -> Non
 
 
 def test_approved_analytics_function_surface_passes(guard: SQLGuard) -> None:
-    evaluation = guard.evaluate(
+    evaluation = _evaluate(
+        guard,
         query_plan(
             "SELECT DATE(DATE_SUB(CURRENT_DATE(), INTERVAL 1 DAY)) AS period, "
             "COUNT(id) AS order_count, "
             "CAST(COALESCE(SUM(CASE WHEN status = 'PAID' THEN paid_amount ELSE 0 END), 0) "
             "AS DECIMAL(18, 2)) AS paid_amount FROM fact_order"
-        )
+        ),
     )
 
     assert evaluation.result.status is GuardStatus.PASSED
@@ -94,7 +103,7 @@ def test_approved_analytics_function_surface_passes(guard: SQLGuard) -> None:
     ],
 )
 def test_non_analytics_namespaces_fail_closed(guard: SQLGuard, sql: str) -> None:
-    evaluation = guard.evaluate(query_plan(sql))
+    evaluation = _evaluate(guard, query_plan(sql))
 
     assert evaluation.result.status is GuardStatus.REJECTED
     assert evaluation.result.violations[0].startswith(SQLViolation.UNAUTHORIZED_SCHEMA)
@@ -102,11 +111,12 @@ def test_non_analytics_namespaces_fail_closed(guard: SQLGuard, sql: str) -> None
 
 
 def test_sql_tables_must_be_subset_of_query_plan_tables(guard: SQLGuard) -> None:
-    evaluation = guard.evaluate(
+    evaluation = _evaluate(
+        guard,
         query_plan(
             "SELECT * FROM fact_order JOIN dim_user ON dim_user.id = fact_order.user_id",
             tables=["fact_order"],
-        )
+        ),
     )
 
     assert evaluation.result.status is GuardStatus.REJECTED
@@ -188,7 +198,7 @@ def test_adversarial_sql_fails_closed(
     sql: str,
     violation: SQLViolation,
 ) -> None:
-    evaluation = guard.evaluate(query_plan(sql))
+    evaluation = _evaluate(guard, query_plan(sql))
 
     assert evaluation.result.status is GuardStatus.REJECTED
     assert evaluation.result.violations[0].startswith(violation.value)
@@ -198,15 +208,15 @@ def test_adversarial_sql_fails_closed(
 def test_size_bound_precedes_parsing() -> None:
     guard = SQLGuard(analytics_schema="data_agent", max_sql_characters=10)
 
-    evaluation = guard.evaluate(query_plan("SELECT * FROM fact_order"))
+    evaluation = _evaluate(guard, query_plan("SELECT * FROM fact_order"))
 
     assert evaluation.result.violations == ["SQL_TOO_LARGE"]
     assert evaluation.parse_succeeded is False
 
 
 def test_declared_table_authority_is_defensively_unique(guard: SQLGuard) -> None:
-    evaluation = guard.evaluate(
-        query_plan("SELECT * FROM fact_order", tables=["fact_order", "FACT_ORDER"])
+    evaluation = _evaluate(
+        guard, query_plan("SELECT * FROM fact_order", tables=["fact_order", "FACT_ORDER"])
     )
 
     assert evaluation.result.violations == ["INVALID_DECLARED_TABLES"]
@@ -214,14 +224,17 @@ def test_declared_table_authority_is_defensively_unique(guard: SQLGuard) -> None
 
 
 def test_namespace_precedes_dangerous_function_policy(guard: SQLGuard) -> None:
-    evaluation = guard.evaluate(
-        query_plan("SELECT SLEEP(1) FROM other.fact_order", tables=["fact_order"])
+    evaluation = _evaluate(
+        guard, query_plan("SELECT SLEEP(1) FROM other.fact_order", tables=["fact_order"])
     )
 
     assert evaluation.result.violations == ["UNAUTHORIZED_SCHEMA:other"]
 
 
 def test_table_subset_precedes_optimizer_hint_policy(guard: SQLGuard) -> None:
-    evaluation = guard.evaluate(query_plan("SELECT /*+ MAX_EXECUTION_TIME(1) */ * FROM dim_user"))
+    evaluation = _evaluate(
+        guard,
+        query_plan("SELECT /*+ MAX_EXECUTION_TIME(1) */ * FROM dim_user"),
+    )
 
     assert evaluation.result.violations == ["UNDECLARED_TABLE:dim_user"]

@@ -15,7 +15,12 @@ from data_agent.query_runtime import (
     QueryTimeoutError,
     UnsupportedResultTypeError,
 )
-from data_agent.query_runtime.evidence import ExecutionOutcome
+from data_agent.query_runtime.evidence import (
+    EXECUTION_METADATA_VERSION,
+    RESULT_FINGERPRINT_VERSION,
+    ExecutionOutcome,
+    execution_result_fingerprint,
+)
 from data_agent.sql_guard.capability import GuardedQuery
 from tests.query_runtime.factories import (
     FakeCursor,
@@ -103,9 +108,12 @@ def test_exact_sql_session_policy_shape_and_numeric_fidelity() -> None:
         "@@SESSION.transaction_read_only, @@SESSION.max_execution_time",
     ]
     metadata = sink.records[0]
+    assert metadata.version == EXECUTION_METADATA_VERSION == "execution-metadata-v0.2"
     assert metadata.outcome is ExecutionOutcome.SUCCEEDED
     assert metadata.sql_digest == guarded_query(sql).sql_digest
     assert metadata.execution_namespace == "data_agent"
+    assert metadata.result_fingerprint_version == RESULT_FINGERPRINT_VERSION
+    assert metadata.result_fingerprint == execution_result_fingerprint(result)
     assert metadata.returned_row_count == 1
     assert not hasattr(metadata, "rows")
 

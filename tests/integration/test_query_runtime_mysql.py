@@ -14,10 +14,11 @@ from data_agent.query_runtime import (
     ReadOnlyQueryRuntime,
     RuntimeLimits,
 )
-from data_agent.query_runtime.evidence import ExecutionMetadata
+from data_agent.query_runtime.evidence import ExecutionMetadata, execution_result_fingerprint
 from data_agent.query_runtime.mysql import MySQLQueryConnectionFactory
 from data_agent.sql_guard import ExplainPolicy, MySQLExplainProvider, SQLAdmissionService, SQLGuard
 from data_agent.sql_guard.capability import GuardedQuery
+from tests.sql_guard.factories import TEST_PLANNER_CONTEXT_FINGERPRINT
 
 
 class RecordingMetadataSink:
@@ -47,7 +48,8 @@ def _admit(settings: Settings, sql: str, tables: list[str]) -> GuardedQuery:
             sql=sql,
             expected_columns=[],
             explanation="M10-admitted M11 integration query",
-        )
+        ),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
     )
     assert outcome.guarded_query is not None
     return outcome.guarded_query
@@ -75,13 +77,16 @@ def _runtime(
 @pytest.mark.integration
 def test_real_runtime_preserves_actual_duplicate_columns_and_decimal(settings: Settings) -> None:
     sql = "SELECT paid_amount AS value, id AS value FROM fact_order WHERE id = 1"
+    sink = RecordingMetadataSink()
 
-    result = _runtime(settings).execute(_admit(settings, sql, ["fact_order"]))
+    result = _runtime(settings, sink=sink).execute(_admit(settings, sql, ["fact_order"]))
 
     assert result.columns == ["value", "value"]
     assert result.rows == [[Decimal("100.00"), 1]]
     assert isinstance(result.rows[0][0], Decimal)
     assert result.truncated is False
+    assert sink.records[0].result_fingerprint == execution_result_fingerprint(result)
+    assert not hasattr(sink.records[0], "rows")
 
 
 @pytest.mark.integration

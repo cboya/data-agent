@@ -27,7 +27,9 @@ def _sql_digest(sql: str) -> str:
     return hashlib.sha256(sql.encode("utf-8")).hexdigest()
 
 
-def _query_plan_fingerprint(plan: QueryPlan) -> str:
+def query_plan_fingerprint(plan: QueryPlan) -> str:
+    """Return the canonical M9 plan identity bound by M10 capabilities."""
+
     canonical = json.dumps(
         plan.model_dump(mode="json"),
         ensure_ascii=True,
@@ -47,6 +49,7 @@ def _capability_fingerprint(
     *,
     sql_digest: str,
     query_plan_fingerprint: str,
+    planner_context_fingerprint: str,
     execution_namespace: str,
     guard_policy_version: str,
     explain_policy_version: str | None,
@@ -57,6 +60,7 @@ def _capability_fingerprint(
     payload = {
         "sql_digest": sql_digest,
         "query_plan_fingerprint": query_plan_fingerprint,
+        "planner_context_fingerprint": planner_context_fingerprint,
         "execution_namespace": execution_namespace,
         "guard_policy_version": guard_policy_version,
         "explain_policy_version": explain_policy_version,
@@ -79,6 +83,7 @@ class GuardedSQL:
     sql: str
     sql_digest: str
     query_plan_fingerprint: str
+    planner_context_fingerprint: str
     execution_namespace: str
     guard_policy_version: str
     capability_fingerprint: str
@@ -98,6 +103,8 @@ class GuardedSQL:
             raise ValueError("GuardedSQL SQL digest mismatch")
         if not _is_sha256(self.query_plan_fingerprint):
             raise ValueError("GuardedSQL QueryPlan fingerprint is invalid")
+        if not _is_sha256(self.planner_context_fingerprint):
+            raise ValueError("GuardedSQL PlannerContext fingerprint is invalid")
         if not self.execution_namespace.strip():
             raise ValueError("GuardedSQL execution namespace is missing")
         if not self.guard_policy_version.strip():
@@ -105,6 +112,7 @@ class GuardedSQL:
         expected = _capability_fingerprint(
             sql_digest=self.sql_digest,
             query_plan_fingerprint=self.query_plan_fingerprint,
+            planner_context_fingerprint=self.planner_context_fingerprint,
             execution_namespace=self.execution_namespace,
             guard_policy_version=self.guard_policy_version,
             explain_policy_version=None,
@@ -123,6 +131,7 @@ class GuardedQuery:
     sql: str
     sql_digest: str
     query_plan_fingerprint: str
+    planner_context_fingerprint: str
     execution_namespace: str
     guard_policy_version: str
     explain_policy_version: str
@@ -151,6 +160,8 @@ class GuardedQuery:
             raise ValueError("GuardedQuery SQL digest mismatch")
         if not _is_sha256(self.query_plan_fingerprint):
             raise ValueError("GuardedQuery QueryPlan fingerprint is invalid")
+        if not _is_sha256(self.planner_context_fingerprint):
+            raise ValueError("GuardedQuery PlannerContext fingerprint is invalid")
         if not self.execution_namespace.strip():
             raise ValueError("GuardedQuery execution namespace is missing")
         if not self.guard_policy_version.strip() or not self.explain_policy_version.strip():
@@ -158,6 +169,7 @@ class GuardedQuery:
         expected = _capability_fingerprint(
             sql_digest=self.sql_digest,
             query_plan_fingerprint=self.query_plan_fingerprint,
+            planner_context_fingerprint=self.planner_context_fingerprint,
             execution_namespace=self.execution_namespace,
             guard_policy_version=self.guard_policy_version,
             explain_policy_version=self.explain_policy_version,
@@ -182,6 +194,7 @@ class GuardedQuery:
 def issue_guarded_sql(
     plan: QueryPlan,
     *,
+    planner_context_fingerprint: str,
     physical_tables: tuple[PhysicalTable, ...],
     guard_result: SQLGuardResult,
     execution_namespace: str,
@@ -189,16 +202,18 @@ def issue_guarded_sql(
 ) -> GuardedSQL:
     sql = str(plan.sql)
     sql_digest = _sql_digest(sql)
-    query_plan_fingerprint = _query_plan_fingerprint(plan)
+    plan_fingerprint = query_plan_fingerprint(plan)
     return GuardedSQL(
         sql=sql,
         sql_digest=sql_digest,
-        query_plan_fingerprint=query_plan_fingerprint,
+        query_plan_fingerprint=plan_fingerprint,
+        planner_context_fingerprint=planner_context_fingerprint,
         execution_namespace=execution_namespace,
         guard_policy_version=guard_policy_version,
         capability_fingerprint=_capability_fingerprint(
             sql_digest=sql_digest,
-            query_plan_fingerprint=query_plan_fingerprint,
+            query_plan_fingerprint=plan_fingerprint,
+            planner_context_fingerprint=planner_context_fingerprint,
             execution_namespace=execution_namespace,
             guard_policy_version=guard_policy_version,
             explain_policy_version=None,
@@ -221,6 +236,7 @@ def issue_guarded_query(
     capability_fingerprint = _capability_fingerprint(
         sql_digest=candidate.sql_digest,
         query_plan_fingerprint=candidate.query_plan_fingerprint,
+        planner_context_fingerprint=candidate.planner_context_fingerprint,
         execution_namespace=candidate.execution_namespace,
         guard_policy_version=candidate.guard_policy_version,
         explain_policy_version=explain_policy_version,
@@ -232,6 +248,7 @@ def issue_guarded_query(
         sql=candidate.sql,
         sql_digest=candidate.sql_digest,
         query_plan_fingerprint=candidate.query_plan_fingerprint,
+        planner_context_fingerprint=candidate.planner_context_fingerprint,
         execution_namespace=candidate.execution_namespace,
         guard_policy_version=candidate.guard_policy_version,
         explain_policy_version=explain_policy_version,

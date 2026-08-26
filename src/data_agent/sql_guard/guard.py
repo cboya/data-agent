@@ -183,7 +183,12 @@ class SQLGuard:
         self._analytics_schema = analytics_schema
         self._max_sql_characters = max_sql_characters
 
-    def evaluate(self, plan: QueryPlan) -> SQLGuardEvaluation:
+    def evaluate(
+        self,
+        plan: QueryPlan,
+        *,
+        planner_context_fingerprint: str,
+    ) -> SQLGuardEvaluation:
         sql = str(plan.sql)
         if len(sql) > self._max_sql_characters:
             return _rejected(SQLViolation.SQL_TOO_LARGE)
@@ -330,6 +335,7 @@ class SQLGuard:
         )
         candidate = issue_guarded_sql(
             plan,
+            planner_context_fingerprint=planner_context_fingerprint,
             physical_tables=physical_tables,
             guard_result=result,
             execution_namespace=self._analytics_schema,

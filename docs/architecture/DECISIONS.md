@@ -298,7 +298,8 @@ physical tables with SQLGlot scopes, applies namespace/table/construct policy, t
 then—proves every function belongs to a conservative approved analytics surface before allowing a
 Harness-owned `EXPLAIN FORMAT=JSON`. Unknown/`Anonymous` functions fail closed. An internal
 immutable `GuardedQuery` binds the exact SQL payload, its SHA-256 digest, QueryPlan identity,
-`SQLGuardResult`, and accepted `ExplainResult` for future M11 consumption.
+the versioned fingerprint of the exact bounded M9 `PlannerContext`, `SQLGuardResult`, and accepted
+`ExplainResult` for future M11 consumption.
 
 Neither the EXPLAIN adapter nor future execution code should accept arbitrary SQL when the internal
 guarded capability can express the required authority. M10 never constructs `EXPLAIN ANALYZE` and
@@ -335,3 +336,32 @@ separate from `ExecutionResult` rows.
 fetching and cursor-draining cleanup would make the configured row cap cosmetic rather than a
 client resource bound, while row count alone cannot bound wide values. Dedicated connections are
 the smallest deterministic MVP design that makes early termination safe without a pool protocol.
+
+---
+
+## D-027 — Verification judges existing evidence and is coverage-bounded
+
+**Decision:** M12 accepts one coherent internal evidence context spanning the accepted M9
+`PlanningTrace`, M10 `GuardedQuery`, M11 `ExecutionMetadata`, and exact bounded
+`ExecutionResult`. It verifies evidence identity before running deterministic structural,
+semantic, and empirical checks. It never queries MySQL, calls a model, generates or repairs SQL,
+or mutates upstream state.
+
+M9 computes `planner-context-fingerprint-v0.1` over canonical JSON for the complete bounded
+`PlannerContext`, including requirement state, ordered allowed tables, full bounded M6 documents
+and relationships, and catalog/retrieval identities. M10 binds that fingerprint beside the
+QueryPlan fingerprint in its capability; M11 propagates it in execution metadata; M12 recomputes
+the current trace context and requires all three stored identities to match before any check.
+
+M11 metadata evolves internally to `execution-metadata-v0.2` and binds the exact bounded result
+through a versioned canonical fingerprint over ordered columns, typed positional rows, returned
+row count, and truncation state. Public `ExecutionResult v0.1` and `VerificationResult v0.1`
+remain unchanged. Internal verification trace records applied checks separately from
+not-applicable and unsupported coverage gaps.
+
+**Reason:** SQL execution success and matching row/byte counts do not prove that separately
+transported rows belong to the same execution, and current structured semantics cannot prove every
+time/formula interpretation. `PASSED` therefore means every applicable encoded invariant passed;
+it is not a proof that all possible semantic errors have been excluded. Not checked is never
+represented as passed, and evidence-chain mismatch is a typed integrity error rather than an
+ordinary business-check failure.

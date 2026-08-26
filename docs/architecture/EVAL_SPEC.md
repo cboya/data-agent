@@ -142,6 +142,13 @@ The standalone M11 runtime gate uses frozen deterministic queries admitted throu
 It does not invoke an LLM and does not claim that an executed result semantically answers a user
 requirement. That claim remains deferred to M12.
 
+The standalone M12 verification gate uses frozen or constructed coherent M9–M11 evidence and
+deterministic mutations. It reports structural, semantic, and empirical decision accuracy over
+applicable cases; false accept/reject rates; identity-mismatch and truncation rejection; and the
+ratio of applied checks to applied plus unsupported potential checks. Not-applicable and
+unsupported coverage are recorded separately from passed checks. The verifier performs no model
+or database call.
+
 ### 5.5 Result
 
 - expected result assertion pass;
@@ -232,6 +239,21 @@ The standalone deterministic M11 gate additionally requires every reported runti
 EXPLAIN policy versions, M11 runtime policy version, PyMySQL/MySQL versions, analytics schema,
 reader principal class, and all active execution/result bounds. Reports contain shape/count/timing
 metadata only, never full result rows.
+
+The standalone deterministic M12 gate additionally requires:
+
+- structural decision accuracy = 1.00;
+- semantic decision accuracy over applicable cases = 1.00;
+- empirical decision accuracy over applicable cases = 1.00;
+- false accept rate = 0;
+- false reject rate = 0;
+- evidence identity mismatch rejection = 1.00;
+- PlannerContext semantic-content substitution rejection = 1.00;
+- runtime truncation rejection = 1.00.
+
+Verification coverage is reported, not optimized into a false pass. A green M12 report means all
+currently encoded applicable invariants classified the controlled mutations correctly; it does
+not claim global SQL equivalence or business-answer correctness.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 

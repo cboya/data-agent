@@ -20,6 +20,9 @@ REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 SQL_GUARD_EVAL_PATH = REPOSITORY_ROOT / "evals" / "sql_guard.yaml"
 M9_PROPOSAL_SNAPSHOT_PATH = REPOSITORY_ROOT / "evals" / "m9-proposals-v0.3.json"
 SQL_GUARD_REPORT_PATH = REPOSITORY_ROOT / "evals" / "reports" / "sql-guard-latest.json"
+_STANDALONE_EVAL_CONTEXT_FINGERPRINT = hashlib.sha256(
+    b"m10-standalone-eval-context-v0.1"
+).hexdigest()
 
 
 class _UniqueKeySafeLoader(yaml.SafeLoader):  # type: ignore[misc]
@@ -271,7 +274,8 @@ def run_sql_guard_evaluation(
                 sql=case.sql,
                 expected_columns=[],
                 explanation="Frozen M10 security corpus",
-            )
+            ),
+            planner_context_fingerprint=_STANDALONE_EVAL_CONTEXT_FINGERPRINT,
         )
         security_results.append(
             _case_result(
@@ -291,7 +295,10 @@ def run_sql_guard_evaluation(
             case_id=case.id,
             source="accepted_m9_proposal",
             category="m9_proposal",
-            outcome=admission.admit(case.plan),
+            outcome=admission.admit(
+                case.plan,
+                planner_context_fingerprint=_STANDALONE_EVAL_CONTEXT_FINGERPRINT,
+            ),
         )
         for case in snapshot.cases
     ]

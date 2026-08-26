@@ -31,6 +31,9 @@ from data_agent.sql_guard.service import SQLAdmissionService
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
 RUNTIME_EVAL_PATH = REPOSITORY_ROOT / "evals" / "runtime.yaml"
 RUNTIME_REPORT_PATH = REPOSITORY_ROOT / "evals" / "reports" / "runtime-latest.json"
+_STANDALONE_EVAL_CONTEXT_FINGERPRINT = hashlib.sha256(
+    b"m11-standalone-eval-context-v0.1"
+).hexdigest()
 
 
 class RuntimeEvaluationError(RuntimeError):
@@ -195,7 +198,8 @@ def _issue_case_capability(
             sql=case.sql,
             expected_columns=[],
             explanation="Frozen M11 deterministic runtime case",
-        )
+        ),
+        planner_context_fingerprint=_STANDALONE_EVAL_CONTEXT_FINGERPRINT,
     )
     if outcome.guarded_query is None:
         raise RuntimeEvaluationError(f"M10 did not issue capability for M11 case: {case.id}")

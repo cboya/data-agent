@@ -3,7 +3,11 @@ import asyncio
 import pytest
 
 from data_agent.contracts.query import ExpectedColumn
-from data_agent.planning.context import PlannerContext, PlannerContextBuilder
+from data_agent.planning.context import (
+    PlannerContext,
+    PlannerContextBuilder,
+    planner_context_fingerprint,
+)
 from data_agent.planning.errors import PlannerPolicyError
 from data_agent.planning.policy import PlannerPolicy
 from data_agent.planning.prompt import PLANNER_PROMPT_VERSION
@@ -100,6 +104,7 @@ def test_query_planner_uses_public_query_plan_and_returns_trace() -> None:
     assert trace.prompt_version == PLANNER_PROMPT_VERSION
     assert trace.retrieval_index_fingerprint == INDEX_FINGERPRINT
     assert trace.allowed_tables == ("fact_order", "dim_user")
+    assert trace.planner_context_fingerprint == planner_context_fingerprint(trace.context)
     assert trace.model_fingerprint is None
     assert tuple(str(table) for table in trace.context.allowed_tables) == (
         "fact_order",

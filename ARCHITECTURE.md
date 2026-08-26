@@ -369,11 +369,12 @@ Before SQL reaches MySQL:
 9. execute via a MySQL account with only required read privileges.
 
 Raw SQL is data; `GuardedQuery` is capability. M10 binds the exact guarded payload and SHA-256
-identity, proves a conservative EXPLAIN-safe analytics function surface, then permits only
-Harness-owned `EXPLAIN FORMAT=JSON`. Unknown/stored/loadable-function shapes fail closed before the
-provider because plain MySQL EXPLAIN may evaluate a stored function in optimizer subquery paths.
-M11 must consume that immutable capability instead of accepting a new arbitrary SQL string.
-`EXPLAIN ANALYZE` is outside M10 because it executes the statement.
+identity together with both the accepted QueryPlan fingerprint and the exact bounded M9
+PlannerContext fingerprint, proves a conservative EXPLAIN-safe analytics function surface, then
+permits only Harness-owned `EXPLAIN FORMAT=JSON`. Unknown/stored/loadable-function shapes fail
+closed before the provider because plain MySQL EXPLAIN may evaluate a stored function in optimizer
+subquery paths. M11 must consume that immutable capability instead of accepting a new arbitrary
+SQL string. `EXPLAIN ANALYZE` is outside M10 because it executes the statement.
 
 M11 revalidates the capability digest, M10 analytics execution namespace, and issuing
 guard/EXPLAIN policy identities, then submits the admitted SQL text unchanged. A namespace
@@ -388,13 +389,24 @@ Generated SQL is never trusted merely because an LLM produced it.
 
 ## 13. Verification
 
-Verification is ordered:
+Verification judges existing evidence; it does not generate new evidence. M12 receives one
+coherent M9 planning, M10 capability, M11 metadata, and bounded-result context. It validates that
+identity chain before checks, including recomputing the versioned fingerprint of the complete M9
+bounded semantic world (`RequirementState`, allowed tables, CatalogDocuments, Relationships, and
+catalog/retrieval identities). It never queries MySQL, calls an LLM, rewrites SQL, repairs, or
+mutates upstream state.
+
+Verification is deterministic and ordered:
 
 1. **Structural** — execution and shape correctness.
 2. **Semantic** — requirement/metric/time/grain/table consistency.
 3. **Empirical** — deterministic numeric/business invariants where available.
 
-An LLM-based qualitative check may assist later, but it is not the primary correctness authority.
+`PASSED` means every applicable invariant encoded by the current verification policy passed; it is
+not a proof that every possible semantic error has been excluded. Not-applicable and unsupported
+checks are trace coverage gaps, never successful `CheckResult` values. An LLM-based qualitative
+check may assist later, but it is not the primary correctness authority and is absent from the MVP
+verifier.
 
 ## 14. Trace model
 
@@ -414,9 +426,11 @@ Every run must make observable:
 
 Raw large result sets and secrets must not be indiscriminately logged.
 
-M11 execution metadata binds the SQL/plan/policy identities, physical tables, database principal
-class, active resource bounds, timing, returned row/byte counts, truncation, and typed outcome.
-It is emitted separately from `ExecutionResult`; full raw result rows are not metadata artifacts.
+M11 execution metadata binds the SQL/plan/PlannerContext/policy identities, physical tables,
+database principal class, active resource bounds, timing, returned row/byte counts, truncation,
+typed outcome, and a versioned fingerprint of the exact bounded `ExecutionResult`. It is emitted
+separately from the result; full raw result rows are not metadata artifacts. M12 trace records the
+evidence identities, applied checks, explicit coverage gaps, and public verification result.
 
 ## 15. MVP non-goals
 

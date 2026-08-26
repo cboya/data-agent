@@ -5,6 +5,7 @@ import pytest
 from data_agent.config import Settings
 from data_agent.contracts.query import QueryPlan
 from data_agent.sql_guard import ExplainPolicy, MySQLExplainProvider, SQLAdmissionService, SQLGuard
+from tests.sql_guard.factories import TEST_PLANNER_CONTEXT_FINGERPRINT
 
 
 @pytest.mark.integration
@@ -34,7 +35,10 @@ def test_real_mysql_json_explain_issues_guarded_query(settings: Settings) -> Non
         ),
     )
 
-    outcome = admission.admit(plan)
+    outcome = admission.admit(
+        plan,
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guarded_query is not None
     assert outcome.guarded_query.sql == sql
@@ -60,7 +64,10 @@ def test_rejected_sql_never_reaches_real_mysql_explain(settings: Settings) -> No
         explain_policy=ExplainPolicy(max_estimated_rows_per_access=100_000),
     )
 
-    outcome = admission.admit(plan)
+    outcome = admission.admit(
+        plan,
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guarded_query is None
     assert outcome.explain_result is None

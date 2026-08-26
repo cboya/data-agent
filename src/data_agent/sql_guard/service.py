@@ -33,8 +33,16 @@ class SQLAdmissionService:
         self._explain_provider = explain_provider
         self._explain_policy = explain_policy
 
-    def admit(self, plan: QueryPlan) -> SQLAdmissionOutcome:
-        guard = self._guard.evaluate(plan)
+    def admit(
+        self,
+        plan: QueryPlan,
+        *,
+        planner_context_fingerprint: str,
+    ) -> SQLAdmissionOutcome:
+        guard = self._guard.evaluate(
+            plan,
+            planner_context_fingerprint=planner_context_fingerprint,
+        )
         if guard.candidate is None:
             return SQLAdmissionOutcome(guard=guard)
         try:
