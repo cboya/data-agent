@@ -27,7 +27,9 @@ def _sql_digest(sql: str) -> str:
     return hashlib.sha256(sql.encode("utf-8")).hexdigest()
 
 
-def _query_plan_fingerprint(plan: QueryPlan) -> str:
+def query_plan_fingerprint(plan: QueryPlan) -> str:
+    """Return the canonical M9 plan identity bound by M10 capabilities."""
+
     canonical = json.dumps(
         plan.model_dump(mode="json"),
         ensure_ascii=True,
@@ -189,16 +191,16 @@ def issue_guarded_sql(
 ) -> GuardedSQL:
     sql = str(plan.sql)
     sql_digest = _sql_digest(sql)
-    query_plan_fingerprint = _query_plan_fingerprint(plan)
+    plan_fingerprint = query_plan_fingerprint(plan)
     return GuardedSQL(
         sql=sql,
         sql_digest=sql_digest,
-        query_plan_fingerprint=query_plan_fingerprint,
+        query_plan_fingerprint=plan_fingerprint,
         execution_namespace=execution_namespace,
         guard_policy_version=guard_policy_version,
         capability_fingerprint=_capability_fingerprint(
             sql_digest=sql_digest,
-            query_plan_fingerprint=query_plan_fingerprint,
+            query_plan_fingerprint=plan_fingerprint,
             execution_namespace=execution_namespace,
             guard_policy_version=guard_policy_version,
             explain_policy_version=None,

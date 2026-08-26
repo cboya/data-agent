@@ -1,0 +1,675 @@
+"""Standalone deterministic M12 evaluation over constructed coherent evidence."""
+
+from __future__ import annotations
+
+import hashlib
+import json
+from dataclasses import dataclass, replace
+from datetime import UTC, date, datetime
+from decimal import Decimal
+from pathlib import Path
+from typing import Any, Literal, Self
+
+import yaml  # type: ignore[import-untyped]
+from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
+
+from data_agent.catalog.semantic import AssembledSemanticCatalog, load_assembled_catalog
+from data_agent.contracts.catalog import CatalogDocument, Relationship
+from data_agent.contracts.execution import ExecutionResult
+from data_agent.contracts.query import ExpectedColumn, QueryPlan
+from data_agent.contracts.requirement import (
+    DimensionRequirement,
+    MetricRequirement,
+    RequirementState,
+    RequirementStatus,
+    ResolutionStatus,
+    TimeRange,
+)
+from data_agent.planning.context import PlannerCatalogIdentity, PlannerContext
+from data_agent.planning.prompt import PLANNER_PROMPT_VERSION
+from data_agent.planning.service import PlanningTrace
+from data_agent.query_runtime.evidence import (
+    EXECUTION_METADATA_VERSION,
+    RESULT_BYTE_ACCOUNTING_VERSION,
+    RESULT_FINGERPRINT_VERSION,
+    ExecutionMetadata,
+    ExecutionOutcome,
+    execution_result_fingerprint,
+)
+from data_agent.sql_guard.capability import GuardedQuery, GuardedSQL
+from data_agent.sql_guard.explain import EXPLAIN_POLICY_VERSION, ExplainPolicy
+from data_agent.sql_guard.guard import SQL_GUARD_POLICY_VERSION, SQLGuard
+from data_agent.sql_guard.service import SQLAdmissionService
+from data_agent.verification.context import build_verification_context
+from data_agent.verification.errors import VerificationIntegrityError
+from data_agent.verification.evidence import (
+    VERIFICATION_POLICY_VERSION,
+    CoverageDisposition,
+    VerificationTrace,
+)
+from data_agent.verification.service import DeterministicVerifier
+
+REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
+VERIFICATION_EVAL_PATH = REPOSITORY_ROOT / "evals" / "verification.yaml"
+VERIFICATION_REPORT_PATH = REPOSITORY_ROOT / "evals" / "reports" / "verification-latest.json"
+
+type VerificationMutation = Literal[
+    "VALID",
+    "COLUMN_MISMATCH",
+    "TRUNCATED",
+    "MISSING_METRIC",
+    "MISSING_DIMENSION",
+    "MISSING_PERIOD",
+    "WRONG_METRIC_SOURCE",
+    "INVALID_JOIN",
+    "NEGATIVE_COUNT",
+    "DUPLICATE_GROUP_KEYS",
+    "PLAN_IDENTITY_MISMATCH",
+    "CAPABILITY_METADATA_MISMATCH",
+    "RESULT_FINGERPRINT_MISMATCH",
+]
+type ExpectedVerificationDecision = Literal[
+    "PASS",
+    "STRUCTURAL_FAILURE",
+    "SEMANTIC_FAILURE",
+    "EMPIRICAL_FAILURE",
+    "INTEGRITY_ERROR",
+]
+
+_VALID_SQL = (
+    "SELECT DATE(o.paid_at) AS period, r.province AS province, "
+    "SUM(o.paid_amount) AS paid_amount FROM fact_order AS o "
+    "JOIN dim_user AS u ON o.user_id = u.id "
+    "JOIN dim_region AS r ON u.region_id = r.id "
+    "WHERE o.paid_at >= DATE_SUB(CURRENT_DATE, INTERVAL 30 DAY) "
+    "GROUP BY DATE(o.paid_at), r.province"
+)
+
+
+class VerificationEvaluationError(RuntimeError):
+    pass
+
+
+class _UniqueKeySafeLoader(yaml.SafeLoader):  # type: ignore[misc]
+    def construct_mapping(self, node: Any, deep: bool = False) -> dict[Any, Any]:
+        self.flatten_mapping(node)
+        mapping: dict[Any, Any] = {}
+        for key_node, value_node in node.value:
+            key = self.construct_object(key_node, deep=deep)
+            if key in mapping:
+                raise yaml.constructor.ConstructorError(
+                    "while constructing a mapping",
+                    node.start_mark,
+                    f"found duplicate key: {key}",
+                    key_node.start_mark,
+                )
+            mapping[key] = self.construct_object(value_node, deep=deep)
+        return mapping
+
+
+class _EvaluationModel(BaseModel):
+    model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
+
+
+class VerificationEvalCase(_EvaluationModel):
+    id: str = Field(min_length=1, pattern=r"\S")
+    mutation: VerificationMutation
+    expected: ExpectedVerificationDecision
+
+
+class VerificationEvalSuite(_EvaluationModel):
+    version: Literal["v0.1"]
+    cases: tuple[VerificationEvalCase, ...] = Field(min_length=12)
+
+    @model_validator(mode="after")
+    def cases_cover_m12_boundaries(self) -> Self:
+        ids = [case.id for case in self.cases]
+        if len(ids) != len(set(ids)):
+            raise ValueError("verification eval case ids must be unique")
+        required: set[ExpectedVerificationDecision] = {
+            "PASS",
+            "STRUCTURAL_FAILURE",
+            "SEMANTIC_FAILURE",
+            "EMPIRICAL_FAILURE",
+            "INTEGRITY_ERROR",
+        }
+        if {case.expected for case in self.cases} != required:
+            raise ValueError("verification eval must cover every decision class")
+        return self
+
+
+class VerificationEvalCaseResult(_EvaluationModel):
+    id: str
+    mutation: str
+    expected: ExpectedVerificationDecision
+    actual: ExpectedVerificationDecision
+    failed_categories: tuple[str, ...]
+    applied_check_count: int = Field(ge=0)
+    not_applicable_gap_count: int = Field(ge=0)
+    unsupported_gap_count: int = Field(ge=0)
+    passed: bool
+
+
+class VerificationEvalMetrics(_EvaluationModel):
+    case_count: int = Field(ge=12)
+    structural_decision_accuracy: float = Field(ge=0, le=1)
+    semantic_decision_accuracy: float = Field(ge=0, le=1)
+    empirical_decision_accuracy: float = Field(ge=0, le=1)
+    false_accept_rate: float = Field(ge=0, le=1)
+    false_reject_rate: float = Field(ge=0, le=1)
+    identity_mismatch_rejection: float = Field(ge=0, le=1)
+    truncation_rejection: float = Field(ge=0, le=1)
+    verification_coverage: float = Field(ge=0, le=1)
+
+
+class VerificationEvalIdentity(_EvaluationModel):
+    suite_version: str
+    suite_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    verification_policy_version: str
+    execution_metadata_version: str
+    result_fingerprint_version: str
+    sql_guard_policy_version: str
+    explain_policy_version: str
+    catalog_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    generated_schema_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    semantic_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class VerificationEvalReport(_EvaluationModel):
+    version: Literal["v0.1"] = "v0.1"
+    identity: VerificationEvalIdentity
+    metrics: VerificationEvalMetrics
+    cases: tuple[VerificationEvalCaseResult, ...]
+    passed: bool
+    epistemic_boundary: Literal[
+        "encoded-applicable-invariants-only; no global business-correctness claim"
+    ] = "encoded-applicable-invariants-only; no global business-correctness claim"
+
+
+class _StaticExplainProvider:
+    def explain(self, candidate: GuardedSQL) -> str:
+        table = candidate.physical_tables[0].name
+        return json.dumps(
+            {
+                "query_block": {
+                    "table": {
+                        "table_name": table,
+                        "access_type": "ALL",
+                        "rows_examined_per_scan": 10,
+                    }
+                }
+            }
+        )
+
+
+@dataclass(frozen=True)
+class _EvidenceBundle:
+    planning_trace: PlanningTrace
+    guarded_query: GuardedQuery
+    execution_metadata: ExecutionMetadata
+    execution_result: ExecutionResult
+
+
+def load_verification_eval_suite(
+    path: Path = VERIFICATION_EVAL_PATH,
+) -> tuple[VerificationEvalSuite, str]:
+    try:
+        payload = yaml.load(path.read_text(encoding="utf-8"), Loader=_UniqueKeySafeLoader)
+        suite = VerificationEvalSuite.model_validate(payload)
+    except (OSError, TypeError, yaml.YAMLError, ValidationError) as error:
+        raise VerificationEvaluationError(
+            "verification evaluation suite is missing or invalid"
+        ) from error
+    canonical = json.dumps(payload, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+    return suite, hashlib.sha256(canonical.encode("utf-8")).hexdigest()
+
+
+def _requirement(
+    *,
+    metric: str | None = "paid_amount",
+    dimension: str | None = "province",
+    grain: str | None = "day",
+    include_time: bool = True,
+) -> RequirementState:
+    metrics = []
+    if metric is not None:
+        metrics.append(
+            MetricRequirement(
+                term=metric.replace("_", " "),
+                resolved_name=metric,
+                status=ResolutionStatus.CONFIRMED,
+            )
+        )
+    dimensions = []
+    if dimension is not None:
+        dimensions.append(
+            DimensionRequirement(
+                term=dimension,
+                resolved_name=dimension,
+                status=ResolutionStatus.CONFIRMED,
+            )
+        )
+    return RequirementState(
+        version="v0.1",
+        goal="Constructed deterministic M12 evaluation requirement",
+        metrics=metrics,
+        dimensions=dimensions,
+        time_range=TimeRange(kind="RELATIVE", value="last_30_days") if include_time else None,
+        grain=grain,
+        status=RequirementStatus.READY,
+    )
+
+
+def _plan(
+    *,
+    sql: str = _VALID_SQL,
+    tables: tuple[str, ...] = ("fact_order", "dim_user", "dim_region"),
+    columns: tuple[str, ...] = ("period", "province", "paid_amount"),
+) -> QueryPlan:
+    return QueryPlan(
+        version="v0.1",
+        intent="Constructed deterministic M12 evaluation plan",
+        tables=list(tables),
+        assumptions=[],
+        sql=sql,
+        expected_columns=[ExpectedColumn(name=name) for name in columns],
+        explanation="Frozen constructed verification evidence",
+    )
+
+
+def _result(
+    *,
+    columns: tuple[str, ...] = ("period", "province", "paid_amount"),
+    rows: list[list[object]] | None = None,
+    truncated: bool = False,
+) -> ExecutionResult:
+    actual_rows = rows
+    if actual_rows is None:
+        actual_rows = [
+            [date(2026, 8, 1), "广东", Decimal("100.00")],
+            [date(2026, 8, 2), "广东", Decimal("80.00")],
+        ]
+    return ExecutionResult(
+        version="v0.1",
+        columns=list(columns),
+        rows=actual_rows,
+        returned_row_count=len(actual_rows),
+        duration_ms=1,
+        truncated=truncated,
+    )
+
+
+def _catalog_slice(
+    catalog: AssembledSemanticCatalog,
+    tables: tuple[str, ...],
+) -> tuple[tuple[CatalogDocument, ...], tuple[Relationship, ...]]:
+    by_table = {str(document.table): document for document in catalog.documents}
+    try:
+        documents = tuple(by_table[table] for table in tables)
+    except KeyError as error:
+        raise VerificationEvaluationError("M12 eval table is absent from M6 catalog") from error
+    selected = set(tables)
+    relationships = tuple(
+        relationship
+        for relationship in catalog.relationships
+        if str(relationship.from_table) in selected and str(relationship.to_table) in selected
+    )
+    return documents, relationships
+
+
+def _admit(plan: QueryPlan) -> GuardedQuery:
+    outcome = SQLAdmissionService(
+        guard=SQLGuard(analytics_schema="data_agent"),
+        explain_provider=_StaticExplainProvider(),
+        explain_policy=ExplainPolicy(max_estimated_rows_per_access=100),
+    ).admit(plan)
+    if outcome.guarded_query is None:
+        raise VerificationEvaluationError("constructed M12 eval plan failed M10 admission")
+    return outcome.guarded_query
+
+
+def _bundle(
+    catalog: AssembledSemanticCatalog,
+    *,
+    requirement: RequirementState,
+    plan: QueryPlan,
+    result: ExecutionResult,
+) -> _EvidenceBundle:
+    table_order = tuple(str(table) for table in plan.tables)
+    documents, relationships = _catalog_slice(catalog, table_order)
+    context = PlannerContext(
+        requirement=requirement,
+        allowed_tables=table_order,
+        documents=documents,
+        relationships=relationships,
+        identity=PlannerCatalogIdentity(
+            catalog_fingerprint=catalog.catalog_fingerprint,
+            generated_schema_fingerprint=catalog.generated_metadata_fingerprint,
+            semantic_revision=catalog.semantic_revision,
+            retrieval_index_fingerprint="0" * 64,
+        ),
+    )
+    trace = PlanningTrace(
+        context=context,
+        plan=plan,
+        prompt_version=PLANNER_PROMPT_VERSION,
+        model_fingerprint=None,
+        runtime_version=None,
+        retrieval_index_fingerprint=context.identity.retrieval_index_fingerprint,
+        allowed_tables=table_order,
+    )
+    guarded_query = _admit(plan)
+    timestamp = datetime(2026, 8, 26, tzinfo=UTC)
+    metadata = ExecutionMetadata(
+        version=EXECUTION_METADATA_VERSION,
+        execution_id="m12-eval-execution",
+        guarded_query_fingerprint=guarded_query.capability_fingerprint,
+        sql_digest=guarded_query.sql_digest,
+        query_plan_fingerprint=guarded_query.query_plan_fingerprint,
+        execution_namespace=guarded_query.execution_namespace,
+        guard_policy_version=guarded_query.guard_policy_version,
+        explain_policy_version=guarded_query.explain_policy_version,
+        physical_tables=tuple(table.qualified_name for table in guarded_query.physical_tables),
+        database_schema=guarded_query.execution_namespace,
+        database_principal_class="ANALYTICS_READONLY",
+        max_execution_time_ms=5_000,
+        client_read_timeout_seconds=10,
+        max_result_rows=1_000,
+        max_result_bytes=8_388_608,
+        result_byte_accounting_version=RESULT_BYTE_ACCOUNTING_VERSION,
+        result_fingerprint_version=RESULT_FINGERPRINT_VERSION,
+        result_fingerprint=execution_result_fingerprint(result),
+        started_at=timestamp,
+        completed_at=timestamp,
+        duration_ms=result.duration_ms,
+        execution_attempt_count=1,
+        returned_row_count=result.returned_row_count,
+        returned_result_bytes=100,
+        truncated=result.truncated,
+        outcome=ExecutionOutcome.SUCCEEDED,
+    )
+    return _EvidenceBundle(
+        planning_trace=trace,
+        guarded_query=guarded_query,
+        execution_metadata=metadata,
+        execution_result=result,
+    )
+
+
+def _case_bundle(
+    catalog: AssembledSemanticCatalog,
+    mutation: VerificationMutation,
+) -> _EvidenceBundle:
+    if mutation == "MISSING_METRIC":
+        return _bundle(
+            catalog,
+            requirement=_requirement(dimension=None, grain=None, include_time=False),
+            plan=_plan(
+                sql="SELECT id AS order_id FROM fact_order WHERE id = 1",
+                tables=("fact_order",),
+                columns=("order_id",),
+            ),
+            result=_result(columns=("order_id",), rows=[[1]]),
+        )
+    if mutation == "MISSING_DIMENSION":
+        return _bundle(
+            catalog,
+            requirement=_requirement(metric=None, grain=None, include_time=False),
+            plan=_plan(
+                sql="SELECT id AS order_id FROM fact_order WHERE id = 1",
+                tables=("fact_order",),
+                columns=("order_id",),
+            ),
+            result=_result(columns=("order_id",), rows=[[1]]),
+        )
+    if mutation == "MISSING_PERIOD":
+        return _bundle(
+            catalog,
+            requirement=_requirement(dimension=None),
+            plan=_plan(
+                sql="SELECT SUM(paid_amount) AS paid_amount FROM fact_order",
+                tables=("fact_order",),
+                columns=("paid_amount",),
+            ),
+            result=_result(columns=("paid_amount",), rows=[[Decimal("180.00")]]),
+        )
+    if mutation == "WRONG_METRIC_SOURCE":
+        return _bundle(
+            catalog,
+            requirement=_requirement(),
+            plan=_plan(sql=_VALID_SQL.replace("SUM(o.paid_amount)", "SUM(o.total_amount)")),
+            result=_result(),
+        )
+    if mutation == "INVALID_JOIN":
+        return _bundle(
+            catalog,
+            requirement=_requirement(),
+            plan=_plan(sql=_VALID_SQL.replace("o.user_id = u.id", "o.id = u.id")),
+            result=_result(),
+        )
+    if mutation == "NEGATIVE_COUNT":
+        return _bundle(
+            catalog,
+            requirement=_requirement(
+                metric="order_count", dimension=None, grain=None, include_time=False
+            ),
+            plan=_plan(
+                sql="SELECT COUNT(*) AS order_count FROM fact_order",
+                tables=("fact_order",),
+                columns=("order_count",),
+            ),
+            result=_result(columns=("order_count",), rows=[[-1]]),
+        )
+
+    bundle = _bundle(
+        catalog,
+        requirement=_requirement(),
+        plan=_plan(),
+        result=(
+            _result(
+                rows=[
+                    [date(2026, 8, 1), "广东", Decimal("100.00")],
+                    [date(2026, 8, 1), "广东", Decimal("80.00")],
+                ]
+            )
+            if mutation == "DUPLICATE_GROUP_KEYS"
+            else _result(truncated=mutation == "TRUNCATED")
+        ),
+    )
+    if mutation == "COLUMN_MISMATCH":
+        return _bundle(
+            catalog,
+            requirement=_requirement(),
+            plan=_plan(),
+            result=_result(
+                columns=("province", "period", "paid_amount"),
+                rows=[
+                    ["广东", date(2026, 8, 1), Decimal("100.00")],
+                    ["广东", date(2026, 8, 2), Decimal("80.00")],
+                ],
+            ),
+        )
+    if mutation == "PLAN_IDENTITY_MISMATCH":
+        changed_plan = bundle.planning_trace.plan.model_copy(update={"intent": "tampered plan"})
+        return replace(
+            bundle,
+            planning_trace=replace(bundle.planning_trace, plan=changed_plan),
+        )
+    if mutation == "CAPABILITY_METADATA_MISMATCH":
+        return replace(
+            bundle,
+            execution_metadata=replace(
+                bundle.execution_metadata,
+                guarded_query_fingerprint="f" * 64,
+            ),
+        )
+    if mutation == "RESULT_FINGERPRINT_MISMATCH":
+        different_result = _result(
+            rows=[
+                [date(2026, 8, 1), "广东", Decimal("999.00")],
+                [date(2026, 8, 2), "广东", Decimal("80.00")],
+            ]
+        )
+        return replace(bundle, execution_result=different_result)
+    return bundle
+
+
+def _actual_decision(trace: VerificationTrace) -> ExpectedVerificationDecision:
+    failures = {check.category for check in trace.result.checks if not check.passed}
+    if not failures:
+        return "PASS"
+    if "STRUCTURAL" in failures:
+        return "STRUCTURAL_FAILURE"
+    if "SEMANTIC" in failures:
+        return "SEMANTIC_FAILURE"
+    return "EMPIRICAL_FAILURE"
+
+
+def _evaluate_case(
+    catalog: AssembledSemanticCatalog,
+    case: VerificationEvalCase,
+) -> VerificationEvalCaseResult:
+    bundle = _case_bundle(catalog, case.mutation)
+    try:
+        context = build_verification_context(
+            planning_trace=bundle.planning_trace,
+            guarded_query=bundle.guarded_query,
+            execution_metadata=bundle.execution_metadata,
+            execution_result=bundle.execution_result,
+        )
+        trace = DeterministicVerifier().verify(context)
+    except VerificationIntegrityError:
+        actual: ExpectedVerificationDecision = "INTEGRITY_ERROR"
+        failed_categories: tuple[str, ...] = ()
+        applied = 0
+        not_applicable = 0
+        unsupported = 0
+    else:
+        actual = _actual_decision(trace)
+        failed_categories = tuple(
+            sorted({check.category for check in trace.result.checks if not check.passed})
+        )
+        applied = len(trace.applied_checks)
+        not_applicable = sum(
+            gap.disposition is CoverageDisposition.NOT_APPLICABLE for gap in trace.coverage_gaps
+        )
+        unsupported = sum(
+            gap.disposition is CoverageDisposition.UNSUPPORTED for gap in trace.coverage_gaps
+        )
+    return VerificationEvalCaseResult(
+        id=case.id,
+        mutation=case.mutation,
+        expected=case.expected,
+        actual=actual,
+        failed_categories=failed_categories,
+        applied_check_count=applied,
+        not_applicable_gap_count=not_applicable,
+        unsupported_gap_count=unsupported,
+        passed=actual == case.expected,
+    )
+
+
+def _category_accuracy(
+    results: tuple[VerificationEvalCaseResult, ...],
+    expected_failure: ExpectedVerificationDecision,
+) -> float:
+    applicable = [result for result in results if result.expected in {"PASS", expected_failure}]
+    return sum(result.actual == result.expected for result in applicable) / len(applicable)
+
+
+def run_verification_evaluation(
+    *,
+    suite: VerificationEvalSuite,
+    suite_fingerprint: str,
+    catalog: AssembledSemanticCatalog,
+) -> VerificationEvalReport:
+    results = tuple(_evaluate_case(catalog, case) for case in suite.cases)
+    negative = [result for result in results if result.expected != "PASS"]
+    positive = [result for result in results if result.expected == "PASS"]
+    integrity = [result for result in results if result.expected == "INTEGRITY_ERROR"]
+    truncation = [result for result in results if result.mutation == "TRUNCATED"]
+    applied = sum(result.applied_check_count for result in results)
+    unsupported = sum(result.unsupported_gap_count for result in results)
+    metrics = VerificationEvalMetrics(
+        case_count=len(results),
+        structural_decision_accuracy=_category_accuracy(results, "STRUCTURAL_FAILURE"),
+        semantic_decision_accuracy=_category_accuracy(results, "SEMANTIC_FAILURE"),
+        empirical_decision_accuracy=_category_accuracy(results, "EMPIRICAL_FAILURE"),
+        false_accept_rate=sum(result.actual == "PASS" for result in negative) / len(negative),
+        false_reject_rate=sum(result.actual != "PASS" for result in positive) / len(positive),
+        identity_mismatch_rejection=sum(result.actual == "INTEGRITY_ERROR" for result in integrity)
+        / len(integrity),
+        truncation_rejection=sum(result.actual == "STRUCTURAL_FAILURE" for result in truncation)
+        / len(truncation),
+        verification_coverage=applied / (applied + unsupported),
+    )
+    return VerificationEvalReport(
+        identity=VerificationEvalIdentity(
+            suite_version=suite.version,
+            suite_fingerprint=suite_fingerprint,
+            verification_policy_version=VERIFICATION_POLICY_VERSION,
+            execution_metadata_version=EXECUTION_METADATA_VERSION,
+            result_fingerprint_version=RESULT_FINGERPRINT_VERSION,
+            sql_guard_policy_version=SQL_GUARD_POLICY_VERSION,
+            explain_policy_version=EXPLAIN_POLICY_VERSION,
+            catalog_fingerprint=catalog.catalog_fingerprint,
+            generated_schema_fingerprint=catalog.generated_metadata_fingerprint,
+            semantic_revision=catalog.semantic_revision,
+        ),
+        metrics=metrics,
+        cases=results,
+        passed=all(result.passed for result in results)
+        and metrics.structural_decision_accuracy == 1.0
+        and metrics.semantic_decision_accuracy == 1.0
+        and metrics.empirical_decision_accuracy == 1.0
+        and metrics.false_accept_rate == 0.0
+        and metrics.false_reject_rate == 0.0
+        and metrics.identity_mismatch_rejection == 1.0
+        and metrics.truncation_rejection == 1.0,
+    )
+
+
+def write_verification_eval_report(
+    report: VerificationEvalReport,
+    *,
+    output_path: Path = VERIFICATION_REPORT_PATH,
+) -> Path:
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    serialized = (
+        json.dumps(report.model_dump(mode="json"), ensure_ascii=False, indent=2, sort_keys=True)
+        + "\n"
+    )
+    temporary_path = output_path.with_name(f".{output_path.name}.tmp")
+    try:
+        temporary_path.write_text(serialized, encoding="utf-8")
+        temporary_path.replace(output_path)
+    finally:
+        temporary_path.unlink(missing_ok=True)
+    return output_path
+
+
+def evaluate_current_verification() -> VerificationEvalReport:
+    suite, suite_fingerprint = load_verification_eval_suite()
+    report = run_verification_evaluation(
+        suite=suite,
+        suite_fingerprint=suite_fingerprint,
+        catalog=load_assembled_catalog(),
+    )
+    write_verification_eval_report(report)
+    return report
+
+
+def format_verification_eval_summary(report: VerificationEvalReport) -> str:
+    metrics = report.metrics
+    status = "PASS" if report.passed else "FAIL"
+    return (
+        f"Verification eval {status}: cases={metrics.case_count}, "
+        f"structural={metrics.structural_decision_accuracy:.3f}, "
+        f"semantic={metrics.semantic_decision_accuracy:.3f}, "
+        f"empirical={metrics.empirical_decision_accuracy:.3f}, "
+        f"false_accept={metrics.false_accept_rate:.3f}, "
+        f"false_reject={metrics.false_reject_rate:.3f}, "
+        f"identity={metrics.identity_mismatch_rejection:.3f}, "
+        f"truncation={metrics.truncation_rejection:.3f}, "
+        f"coverage={metrics.verification_coverage:.3f}"
+    )

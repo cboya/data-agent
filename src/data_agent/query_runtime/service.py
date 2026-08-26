@@ -30,10 +30,12 @@ from data_agent.query_runtime.errors import (
 from data_agent.query_runtime.evidence import (
     EXECUTION_METADATA_VERSION,
     RESULT_BYTE_ACCOUNTING_VERSION,
+    RESULT_FINGERPRINT_VERSION,
     ExecutionMetadata,
     ExecutionMetadataSink,
     ExecutionOutcome,
     NullExecutionMetadataSink,
+    execution_result_fingerprint,
 )
 from data_agent.query_runtime.mysql import (
     ANALYTICS_READONLY_PRINCIPAL,
@@ -161,6 +163,7 @@ class ReadOnlyQueryRuntime:
             self._configure_and_verify_session(connection)
             attempt_count = 1
             result, result_bytes = self._execute_once(connection, query)
+            result_fingerprint = execution_result_fingerprint(result)
         except RuntimeExecutionError as error:
             self._record_failure(
                 query=query,
@@ -199,6 +202,7 @@ class ReadOnlyQueryRuntime:
                 returned_row_count=result.returned_row_count,
                 returned_result_bytes=result_bytes,
                 truncated=result.truncated,
+                result_fingerprint=result_fingerprint,
                 outcome=ExecutionOutcome.SUCCEEDED,
             )
         )
@@ -330,6 +334,7 @@ class ReadOnlyQueryRuntime:
                 returned_row_count=0,
                 returned_result_bytes=0,
                 truncated=False,
+                result_fingerprint=None,
                 outcome=ExecutionOutcome.FAILED,
                 error_code=error.code,
                 error_detail=error.safe_detail,
@@ -348,6 +353,7 @@ class ReadOnlyQueryRuntime:
         returned_row_count: int,
         returned_result_bytes: int,
         truncated: bool,
+        result_fingerprint: str | None,
         outcome: ExecutionOutcome,
         error_code: str | None = None,
         error_detail: str | None = None,
@@ -369,6 +375,8 @@ class ReadOnlyQueryRuntime:
             max_result_rows=self._limits.max_result_rows,
             max_result_bytes=self._limits.max_result_bytes,
             result_byte_accounting_version=RESULT_BYTE_ACCOUNTING_VERSION,
+            result_fingerprint_version=RESULT_FINGERPRINT_VERSION,
+            result_fingerprint=result_fingerprint,
             started_at=started_at,
             completed_at=completed_at,
             duration_ms=duration_ms,

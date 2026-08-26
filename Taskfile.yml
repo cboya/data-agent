@@ -48,6 +48,12 @@ tasks:
     cmds:
       - uv run data-agent runtime-eval
 
+  m12-eval:
+    desc: Run the standalone M12 deterministic verification evaluation
+    deps: [sync]
+    cmds:
+      - uv run data-agent verification-eval
+
   reset:
     desc: Reset generated local state
     deps: [sync]

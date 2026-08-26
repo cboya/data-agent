@@ -1,0 +1,55 @@
+version: v0.1
+
+cases:
+  - id: valid-governed-evidence
+    mutation: VALID
+    expected: PASS
+
+  - id: actual-column-order-mismatch
+    mutation: COLUMN_MISMATCH
+    expected: STRUCTURAL_FAILURE
+
+  - id: runtime-truncation
+    mutation: TRUNCATED
+    expected: STRUCTURAL_FAILURE
+
+  - id: missing-required-metric
+    mutation: MISSING_METRIC
+    expected: SEMANTIC_FAILURE
+
+  - id: missing-required-dimension
+    mutation: MISSING_DIMENSION
+    expected: SEMANTIC_FAILURE
+
+  - id: missing-period-for-grain
+    mutation: MISSING_PERIOD
+    expected: SEMANTIC_FAILURE
+
+  - id: wrong-unique-metric-source
+    mutation: WRONG_METRIC_SOURCE
+    expected: SEMANTIC_FAILURE
+
+  - id: invalid-governed-join
+    mutation: INVALID_JOIN
+    expected: SEMANTIC_FAILURE
+
+  - id: negative-count
+    mutation: NEGATIVE_COUNT
+    expected: EMPIRICAL_FAILURE
+
+  - id: duplicate-grouping-keys
+    mutation: DUPLICATE_GROUP_KEYS
+    expected: EMPIRICAL_FAILURE
+
+  - id: planning-capability-mismatch
+    mutation: PLAN_IDENTITY_MISMATCH
+    expected: INTEGRITY_ERROR
+
+  - id: capability-metadata-mismatch
+    mutation: CAPABILITY_METADATA_MISMATCH
+    expected: INTEGRITY_ERROR
+
+  - id: result-fingerprint-mismatch
+    mutation: RESULT_FINGERPRINT_MISMATCH
+    expected: INTEGRITY_ERROR
+
