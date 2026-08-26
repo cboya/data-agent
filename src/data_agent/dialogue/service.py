@@ -81,6 +81,15 @@ class DialogueTurnResult:
     stored: StoredDialogueTurn
 
 
+@dataclass(frozen=True)
+class PreparedDialogueTurn:
+    outcome: DialogueOutcome
+    session: Session
+    expected_revision: int
+    user_message: Message
+    assistant_message: Message | None
+
+
 class DialogueService:
     def __init__(
         self,
@@ -96,6 +105,18 @@ class DialogueService:
         self._id_factory = id_factory
 
     async def process_turn(self, *, session_id: str, user_content: str) -> DialogueTurnResult:
+        prepared = await self.prepare_turn(session_id=session_id, user_content=user_content)
+        stored = self._store.commit(
+            session=prepared.session,
+            expected_revision=prepared.expected_revision,
+            user_message=prepared.user_message,
+            assistant_message=prepared.assistant_message,
+        )
+        return DialogueTurnResult(outcome=prepared.outcome, stored=stored)
+
+    async def prepare_turn(self, *, session_id: str, user_content: str) -> PreparedDialogueTurn:
+        """Understand one turn without persisting it; M14 owns the atomic Run commit."""
+
         snapshot = self._store.load(session_id)
         if snapshot.session.session.status is not SessionStatus.ACTIVE:
             raise ValueError("dialogue turns require an ACTIVE Session")
@@ -136,10 +157,10 @@ class DialogueService:
             if outcome.decision.action is DialogueAction.ASK_CLARIFICATION
             else None
         )
-        stored = self._store.commit(
+        return PreparedDialogueTurn(
+            outcome=outcome,
             session=updated_session,
             expected_revision=snapshot.session.revision,
             user_message=user_message,
             assistant_message=assistant_message,
         )
-        return DialogueTurnResult(outcome=outcome, stored=stored)
