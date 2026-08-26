@@ -130,6 +130,18 @@ retrieval, planning, or SQL.
 - semantic correctness;
 - repair rate.
 
+The standalone M11 runtime gate uses frozen deterministic queries admitted through M10 and reports:
+
+- execution success rate;
+- server timeout enforcement and single-attempt behavior;
+- row and normalized-byte bound enforcement;
+- capability-only admission and analytics-reader privilege enforcement;
+- actual cursor-column/positional-row fidelity;
+- exact `Decimal` fidelity.
+
+It does not invoke an LLM and does not claim that an executed result semantically answers a user
+requirement. That claim remains deferred to M12.
+
 ### 5.5 Result
 
 - expected result assertion pass;
@@ -214,6 +226,12 @@ optimizer rejection proves M10 failed closed and identifies input for future bou
 it is not silently reclassified as an M10 guard failure. M10 submits only `EXPLAIN FORMAT=JSON`
 after proving the approved EXPLAIN-safe function surface, never submits the candidate as a normal
 query, and makes no result or semantic-correctness claim.
+
+The standalone deterministic M11 gate additionally requires every reported runtime metric to be
+`1.00` on the frozen controlled-world suite. Its report binds the suite fingerprint, M10 guard and
+EXPLAIN policy versions, M11 runtime policy version, PyMySQL/MySQL versions, analytics schema,
+reader principal class, and all active execution/result bounds. Reports contain shape/count/timing
+metadata only, never full result rows.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 

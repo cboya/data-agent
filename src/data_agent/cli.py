@@ -10,6 +10,8 @@ from data_agent.dialogue.runtime import evaluate_current_dialogue
 from data_agent.infrastructure.mysql_world import bootstrap_mysql, reset_mysql
 from data_agent.planning.evaluation import format_planner_eval_summary
 from data_agent.planning.runtime import evaluate_current_planner
+from data_agent.query_runtime.evaluation import format_runtime_eval_summary
+from data_agent.query_runtime.runtime import evaluate_current_runtime
 from data_agent.retrieval.evaluation import format_retrieval_eval_summary
 from data_agent.retrieval.runtime import (
     evaluate_current_retrieval,
@@ -23,7 +25,14 @@ def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="data-agent")
     parser.add_argument(
         "command",
-        choices=("bootstrap", "eval", "planner-eval", "reset", "sql-guard-eval"),
+        choices=(
+            "bootstrap",
+            "eval",
+            "planner-eval",
+            "reset",
+            "runtime-eval",
+            "sql-guard-eval",
+        ),
     )
     return parser
 
@@ -48,16 +57,19 @@ def main(argv: Sequence[str] | None = None) -> int:
         dialogue_report = asyncio.run(evaluate_current_dialogue(settings))
         planner_report = asyncio.run(evaluate_current_planner(settings))
         sql_guard_report = evaluate_current_sql_guard(settings)
+        runtime_report = evaluate_current_runtime(settings)
         print(format_retrieval_eval_summary(retrieval_report))
         print(format_dialogue_eval_summary(dialogue_report))
         print(format_planner_eval_summary(planner_report))
         print(format_sql_guard_eval_summary(sql_guard_report))
+        print(format_runtime_eval_summary(runtime_report))
         return (
             0
             if retrieval_report.passed
             and dialogue_report.passed
             and planner_report.passed
             and sql_guard_report.passed
+            and runtime_report.passed
             else 1
         )
     if args.command == "planner-eval":
@@ -70,6 +82,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         sql_guard_report = evaluate_current_sql_guard(settings)
         print(format_sql_guard_eval_summary(sql_guard_report))
         return 0 if sql_guard_report.passed else 1
+    if args.command == "runtime-eval":
+        settings = Settings()  # type: ignore[call-arg]
+        runtime_report = evaluate_current_runtime(settings)
+        print(format_runtime_eval_summary(runtime_report))
+        return 0 if runtime_report.passed else 1
     if args.command == "reset":
         reset_mysql()
         print("MySQL generated state removed; curated catalog files were preserved.")

@@ -42,6 +42,12 @@ tasks:
     cmds:
       - uv run data-agent sql-guard-eval
 
+  m11-eval:
+    desc: Run the standalone M11 read-only runtime evaluation
+    deps: [sync]
+    cmds:
+      - uv run data-agent runtime-eval
+
   reset:
     desc: Reset generated local state
     deps: [sync]

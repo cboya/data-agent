@@ -442,6 +442,16 @@ Never put an unbounded result into model context.
 to be the database's total pre-truncation result size, which may be unknown. Every row must match
 the declared column count.
 
+M11 derives `columns` from database cursor metadata and retains positional rows, including
+duplicate column names. It preserves `Decimal`, integer, finite float, date/datetime, string, and
+null values without lossy conversion; unsupported values fail closed. Row truncation and the
+separate deterministic normalized-byte budget both set `truncated=true` without claiming the
+unread result cardinality.
+
+Execution metadata is an internal versioned evidence record, not a replacement for this public
+result contract. It carries capability/policy identities, physical tables, database principal
+class, bounds, timings, counts, truncation, and typed outcome, but never contains `rows`.
+
 ---
 
 ## 14. VerificationResult

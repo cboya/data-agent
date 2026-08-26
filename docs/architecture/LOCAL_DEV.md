@@ -80,6 +80,18 @@ task m10-eval
 `MAX_EXPLAIN_ESTIMATED_ROWS` bounds each MySQL JSON EXPLAIN table-access estimate (default
 100,000 rows).
 
+M11 adds a standalone deterministic runtime evaluation that uses only M10-issued capabilities and
+the local MySQL world—never Ollama:
+
+```bash
+task m11-eval
+```
+
+`MAX_RESULT_ROWS` defaults to 1,000 and `MAX_RESULT_BYTES` defaults to 8 MiB. Runtime queries use a
+dedicated reader connection with `MYSQL_QUERY_READ_TIMEOUT_SECONDS` (default 10 seconds), which
+configuration validation requires to exceed `MAX_QUERY_TIME_MS` (default 5,000 milliseconds).
+The evaluation writes metadata-only case evidence to `evals/reports/runtime-latest.json`.
+
 M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
 The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub for bootstrap
 identity and index plumbing; substantive embedding quality evidence comes from the explicitly
@@ -167,10 +179,13 @@ task quality
 task eval
 ```
 
-`task eval` runs the standalone retrieval, dialogue, planner, and SQL-guard evaluations. M10 writes
+`task eval` runs the standalone retrieval, dialogue, planner, SQL-guard, and runtime evaluations. M10 writes
 its machine-readable report under `evals/reports/`, binds SQLGlot/policy configuration and the
 accepted M9 snapshot fingerprint, runs only Harness-owned JSON EXPLAIN, and does not execute normal
 SQL. Plain EXPLAIN is protected by the pre-provider approved-function policy rather than assumed to
 be inherently side-effect free.
+
+M11 then executes only its own frozen M10-admitted runtime queries and may claim execution plus
+returned database values, but not semantic correctness against the originating requirement.
 
 apart from installing Ollama and the configured local models.

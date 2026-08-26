@@ -8,7 +8,7 @@ from data_agent.contracts.execution import ExplainResult
 from data_agent.contracts.query import QueryPlan
 from data_agent.sql_guard.capability import GuardedQuery, issue_guarded_query
 from data_agent.sql_guard.errors import ExplainProviderError
-from data_agent.sql_guard.explain import ExplainPlanProvider, ExplainPolicy
+from data_agent.sql_guard.explain import EXPLAIN_POLICY_VERSION, ExplainPlanProvider, ExplainPolicy
 from data_agent.sql_guard.guard import SQLGuard, SQLGuardEvaluation
 
 
@@ -49,7 +49,11 @@ class SQLAdmissionService:
         explain_result = self._explain_policy.evaluate(guard.candidate, raw_explain)
         if not explain_result.accepted:
             return SQLAdmissionOutcome(guard=guard, explain_result=explain_result)
-        guarded_query = issue_guarded_query(guard.candidate, explain_result)
+        guarded_query = issue_guarded_query(
+            guard.candidate,
+            explain_result,
+            explain_policy_version=EXPLAIN_POLICY_VERSION,
+        )
         return SQLAdmissionOutcome(
             guard=guard,
             explain_result=explain_result,

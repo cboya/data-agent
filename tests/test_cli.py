@@ -1,3 +1,5 @@
+from types import SimpleNamespace
+
 import pytest
 
 import data_agent.cli
@@ -11,6 +13,11 @@ from data_agent.planning.evaluation import (
     PlannerEvalIdentity,
     PlannerEvalMetrics,
     PlannerEvalReport,
+)
+from data_agent.query_runtime.evaluation import (
+    RuntimeEvalIdentity,
+    RuntimeEvalMetrics,
+    RuntimeEvalReport,
 )
 from data_agent.retrieval.evaluation import RetrievalEvalMetrics, RetrievalEvalReport
 
@@ -94,6 +101,40 @@ def _passing_planner_report() -> PlannerEvalReport:
     )
 
 
+def _passing_runtime_report() -> RuntimeEvalReport:
+    return RuntimeEvalReport(
+        identity=RuntimeEvalIdentity(
+            suite_version="v0.1",
+            suite_fingerprint="a" * 64,
+            runtime_policy_version="query-runtime-v0.1",
+            sql_guard_policy_version="sql-guard-v0.2",
+            explain_policy_version="explain-policy-v0.1",
+            pymysql_version="1.1.2",
+            mysql_version="8.4-test",
+            analytics_schema="data_agent",
+            database_principal_class="ANALYTICS_READONLY",
+            default_max_execution_time_ms=5_000,
+            client_read_timeout_seconds=10,
+            default_max_result_rows=1_000,
+            default_max_result_bytes=8_388_608,
+        ),
+        metrics=RuntimeEvalMetrics(
+            case_count=6,
+            execution_success_rate=1.0,
+            timeout_enforcement=1.0,
+            row_bound_enforcement=1.0,
+            byte_bound_enforcement=1.0,
+            result_shape_fidelity=1.0,
+            numeric_fidelity=1.0,
+            capability_only_admission=1.0,
+            readonly_enforcement=1.0,
+            no_hidden_retry=1.0,
+        ),
+        cases=(),
+        passed=True,
+    )
+
+
 def test_eval_runs_standalone_retrieval_gate(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -107,9 +148,23 @@ def test_eval_runs_standalone_retrieval_gate(
     async def evaluate_planner(_: object) -> PlannerEvalReport:
         return _passing_planner_report()
 
+    def evaluate_runtime(_: object) -> RuntimeEvalReport:
+        return _passing_runtime_report()
+
     monkeypatch.setattr(data_agent.cli, "evaluate_current_retrieval", evaluate)
     monkeypatch.setattr(data_agent.cli, "evaluate_current_dialogue", evaluate_dialogue)
     monkeypatch.setattr(data_agent.cli, "evaluate_current_planner", evaluate_planner)
+    monkeypatch.setattr(data_agent.cli, "evaluate_current_runtime", evaluate_runtime)
+    monkeypatch.setattr(
+        data_agent.cli,
+        "evaluate_current_sql_guard",
+        lambda _: SimpleNamespace(passed=True),
+    )
+    monkeypatch.setattr(
+        data_agent.cli,
+        "format_sql_guard_eval_summary",
+        lambda _: "SQL guard eval PASS",
+    )
 
     assert main(["eval"]) == 0
 
@@ -120,6 +175,8 @@ def test_eval_runs_standalone_retrieval_gate(
     assert "unnecessary_clarification=0.000" in output
     assert "Planner eval PASS" in output
     assert "table_precision=1.000" in output
+    assert "Runtime eval PASS" in output
+    assert "capability_only=1.000" in output
 
 
 def test_planner_eval_command_is_independent(
@@ -135,3 +192,19 @@ def test_planner_eval_command_is_independent(
     output = capsys.readouterr().out
     assert "Planner eval PASS" in output
     assert "cases=20" in output
+
+
+def test_runtime_eval_command_is_independent(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        data_agent.cli,
+        "evaluate_current_runtime",
+        lambda _: _passing_runtime_report(),
+    )
+
+    assert main(["runtime-eval"]) == 0
+    output = capsys.readouterr().out
+    assert "Runtime eval PASS" in output
+    assert "cases=6" in output
