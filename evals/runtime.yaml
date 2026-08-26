@@ -1,0 +1,54 @@
+version: v0.1
+
+cases:
+  - id: exact-decimal-value
+    category: success
+    sql: SELECT paid_amount FROM fact_order WHERE id = 1
+    tables: [fact_order]
+    expected_columns: [paid_amount]
+    expected_returned_rows: 1
+    expected_truncated: false
+    expected_decimal: "100.00"
+
+  - id: duplicate-column-names
+    category: success
+    sql: SELECT paid_amount AS value, id AS value FROM fact_order WHERE id = 1
+    tables: [fact_order]
+    expected_columns: [value, value]
+    expected_returned_rows: 1
+    expected_truncated: false
+
+  - id: actual-datetime-and-null-shape
+    category: success
+    sql: SELECT paid_at, completed_at FROM fact_order WHERE id = 1
+    tables: [fact_order]
+    expected_columns: [paid_at, completed_at]
+    expected_returned_rows: 1
+    expected_truncated: false
+
+  - id: streaming-row-bound
+    category: row_bound
+    sql: SELECT a.id AS left_id, b.id AS right_id FROM fact_order AS a CROSS JOIN fact_order AS b ORDER BY a.id, b.id
+    tables: [fact_order]
+    max_result_rows: 3
+    expected_columns: [left_id, right_id]
+    expected_returned_rows: 3
+    expected_truncated: true
+
+  - id: deterministic-byte-bound
+    category: byte_bound
+    sql: SELECT status FROM fact_order ORDER BY id
+    tables: [fact_order]
+    max_result_bytes: 5
+    expected_columns: [status]
+    expected_returned_rows: 0
+    expected_truncated: true
+
+  - id: server-select-timeout
+    category: timeout
+    sql: SELECT SUM(t0.id + t1.id + t2.id + t3.id + t4.id + t5.id + t6.id + t7.id) AS workload FROM fact_order AS t0 CROSS JOIN fact_order AS t1 CROSS JOIN fact_order AS t2 CROSS JOIN fact_order AS t3 CROSS JOIN fact_order AS t4 CROSS JOIN fact_order AS t5 CROSS JOIN fact_order AS t6 CROSS JOIN fact_order AS t7
+    tables: [fact_order]
+    max_execution_time_ms: 1
+    expected_columns: [workload]
+    expected_returned_rows: 0
+    expected_truncated: false

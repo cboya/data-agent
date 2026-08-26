@@ -89,6 +89,13 @@ def test_passed_guard_and_explain_issue_exact_sql_capability() -> None:
     assert outcome.guarded_query.sql == sql
     assert outcome.guarded_query.sql == provider.candidates[0].sql
     assert outcome.guarded_query.sql_digest == provider.candidates[0].sql_digest
+    assert outcome.guarded_query.execution_namespace == "data_agent"
+    assert provider.candidates[0].execution_namespace == "data_agent"
+    assert len(outcome.guarded_query.capability_fingerprint) == 64
+    assert (
+        outcome.guarded_query.capability_fingerprint
+        != provider.candidates[0].capability_fingerprint
+    )
     assert outcome.guarded_query.explain_result.accepted is True
 
 
@@ -98,6 +105,9 @@ def test_capability_cannot_be_constructed_without_issuer_token() -> None:
             sql="SELECT 1",
             sql_digest="invalid",
             query_plan_fingerprint="invalid",
+            execution_namespace="data_agent",
+            guard_policy_version="sql-guard-test",
+            capability_fingerprint="invalid",
             physical_tables=(),
             guard_result=SQLGuardResult(
                 status=GuardStatus.PASSED,

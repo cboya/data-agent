@@ -42,6 +42,8 @@ class Settings(BaseSettings):
 
     max_query_time_ms: int = Field(default=5000, gt=0)
     max_result_rows: int = Field(default=1000, gt=0)
+    max_result_bytes: int = Field(default=8_388_608, ge=1_024, le=104_857_600)
+    mysql_query_read_timeout_seconds: int = Field(default=10, ge=1, le=300)
     max_sql_characters: int = Field(default=64_000, ge=1_024, le=1_000_000)
     max_explain_estimated_rows: int = Field(default=100_000, gt=0)
     max_sql_repair_attempts: int = Field(default=1, ge=0, le=3)
@@ -84,4 +86,8 @@ class Settings(BaseSettings):
             raise ValueError("control and analytics runtime users must be distinct")
         if self.retrieval_seed_tables > self.max_retrieved_tables:
             raise ValueError("retrieval seed table bound cannot exceed total retrieved table bound")
+        if self.mysql_query_read_timeout_seconds * 1000 <= self.max_query_time_ms:
+            raise ValueError(
+                "MySQL query read timeout must be greater than the server query-time bound"
+            )
         return self

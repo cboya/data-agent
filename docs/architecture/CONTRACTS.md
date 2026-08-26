@@ -399,9 +399,10 @@ Only `PASSED` may reach EXPLAIN/execution.
 `PASSED` has no violations; `REJECTED` has at least one violation.
 
 M10 additionally owns an internal immutable `GuardedQuery` capability that binds the exact
-validated SQL payload and digest, QueryPlan identity/reference, passed guard evidence, and accepted
-EXPLAIN evidence. It is not a public domain contract or a replacement for `SQLGuardResult`.
-Future M11 code consumes this capability rather than accepting arbitrary raw SQL.
+validated SQL payload and digest, QueryPlan identity/reference, M10 analytics execution namespace,
+passed guard evidence, and accepted EXPLAIN evidence. It is not a public domain contract or a
+replacement for `SQLGuardResult`. Future M11 code consumes this capability rather than accepting
+arbitrary raw SQL.
 
 ---
 
@@ -441,6 +442,16 @@ Never put an unbounded result into model context.
 `returned_row_count` is exactly the number of bounded rows present in `rows`. It does not claim
 to be the database's total pre-truncation result size, which may be unknown. Every row must match
 the declared column count.
+
+M11 derives `columns` from database cursor metadata and retains positional rows, including
+duplicate column names. It preserves `Decimal`, integer, finite float, date/datetime, string, and
+null values without lossy conversion; unsupported values fail closed. Row truncation and the
+separate deterministic normalized-byte budget both set `truncated=true` without claiming the
+unread result cardinality.
+
+Execution metadata is an internal versioned evidence record, not a replacement for this public
+result contract. It carries capability/policy identities, physical tables, database principal
+class, bounds, timings, counts, truncation, and typed outcome, but never contains `rows`.
 
 ---
 

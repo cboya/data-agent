@@ -93,6 +93,11 @@ Raw SQL is data; GuardedQuery is capability.
 
 Future normal-query execution consumes the exact immutable payload admitted by M10, not a new SQL
 string. The SQL guard runs before EXPLAIN; EXPLAIN success is never treated as statement safety.
+M11 revalidates that payload's SHA-256, the M10 analytics execution namespace, and current
+guard/EXPLAIN policy identities immediately before execution. The capability namespace must equal
+the runtime connection factory's default database before any connection is opened. M11 must not
+inject a `LIMIT`, re-render the AST, add a hint, wrap the query, or otherwise execute SQL text
+different from the admitted capability.
 
 Every candidate SQL query must:
 
@@ -186,12 +191,20 @@ Enforce in deterministic code/configuration:
 
 - max execution time;
 - max returned rows;
+- max deterministic normalized result bytes;
 - max repair attempts;
 - max candidate/retrieved tables;
 - max relationship expansion depth;
 - reasonable API request/body limits.
 
 Result caps must be enforced application-side even if SQL includes `LIMIT`.
+
+M11 uses a dedicated analytics-reader connection for each query, enables and verifies session
+transaction read-only mode, and sets MySQL `max_execution_time`. The client read timeout is bounded
+and strictly greater than the server execution bound. Execution uses an unbuffered cursor and
+fetches no more than the row bound plus one. When row or byte truncation leaves unread data, the
+connection is closed directly without closing the unbuffered cursor, so driver cleanup cannot
+drain an arbitrary remainder. Timeout, disconnect, and database errors are not retried.
 
 ## 10. EXPLAIN gate
 
@@ -282,6 +295,8 @@ Do not execute if:
 - rejected out-of-scope table;
 - enforced timeout;
 - enforced result cap;
+- enforced result-byte cap and non-draining truncation cleanup;
+- capability-only execution with exact-payload integrity revalidation;
 - verified read-only principal.
 
 Security tests require 100% pass rate for MVP completion.

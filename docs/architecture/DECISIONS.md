@@ -312,3 +312,26 @@ privileges.
 where one SQL string is checked and another is explained or executed. EXPLAIN is optimizer
 inspection after deterministic guard admission, not a substitute for statement or function
 safety. See the MySQL 8.4 [derived-table EXPLAIN side-effect example](https://dev.mysql.com/doc/refman/8.4/en/derived-tables.html).
+
+---
+
+## D-026 — M11 execution is capability-only, streaming, and connection-discarding
+
+**Decision:** M11 accepts only the current immutable `GuardedQuery`, revalidates its SQL digest,
+M10 analytics execution namespace, and M10 policy identities, and executes the admitted SQL
+unchanged. The namespace against which M10 admitted unqualified tables is fingerprinted into both
+guarded capabilities and must equal the runtime default database before connection. Each execution
+receives a new analytics-reader connection, verifies session read-only mode, and sets MySQL
+`max_execution_time`; the client read timeout is separately bounded above that server limit.
+
+Results use PyMySQL `SSCursor` with row-bound-plus-one detection and a deterministic type-tagged
+normalized-byte budget (`result-byte-budget-v0.1`). Actual column metadata and positional values
+are retained. Unsupported types fail closed. If unread rows remain after either cap, M11 closes the
+dedicated connection without closing the unbuffered cursor, because PyMySQL cursor close exhausts
+the remaining result. Errors are typed and never retried. Metadata-only execution evidence is
+separate from `ExecutionResult` rows.
+
+**Reason:** A normal string execution API would reopen the M10 authority boundary. Buffered
+fetching and cursor-draining cleanup would make the configured row cap cosmetic rather than a
+client resource bound, while row count alone cannot bound wide values. Dedicated connections are
+the smallest deterministic MVP design that makes early termination safe without a pool protocol.

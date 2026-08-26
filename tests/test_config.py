@@ -8,6 +8,8 @@ def test_settings_validate_runtime_limits(settings: Settings) -> None:
     assert settings.max_query_time_ms == 5000
     assert settings.max_sql_characters == 64_000
     assert settings.max_explain_estimated_rows == 100_000
+    assert settings.max_result_bytes == 8_388_608
+    assert settings.mysql_query_read_timeout_seconds == 10
     assert settings.ollama_request_timeout_seconds == 60
     assert settings.planner_eval_request_timeout_seconds == 180
     assert settings.mysql_root_password.get_secret_value() == "change-me-local-only"
@@ -74,4 +76,17 @@ def test_retrieval_seed_bound_cannot_exceed_total_table_bound() -> None:
             mysql_control_password=SecretStr("control-test-password"),
             retrieval_seed_tables=4,
             max_retrieved_tables=3,
+        )
+
+
+def test_query_read_timeout_must_exceed_server_bound() -> None:
+    with pytest.raises(ValidationError, match="read timeout"):
+        Settings(
+            ollama_chat_model="chat-model",
+            ollama_embed_model="embedding-model",
+            mysql_root_password=SecretStr("root-test-password"),
+            mysql_readonly_password=SecretStr("reader-test-password"),
+            mysql_control_password=SecretStr("control-test-password"),
+            max_query_time_ms=5_000,
+            mysql_query_read_timeout_seconds=5,
         )

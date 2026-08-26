@@ -296,11 +296,26 @@ Implement bounded query execution.
 
 Acceptance:
 
-- timeout enforced;
-- result cap enforced;
-- `ExecutionResult` returned;
-- before persisting execution artifacts, define a metadata-only contract/reference so result rows
-  are not automatically written to control-plane storage;
+- the only public query-execution input is the immutable M10 `GuardedQuery` capability; raw SQL,
+  `QueryPlan`, and pre-EXPLAIN `GuardedSQL` have no runtime route;
+- capability SQL digest and issuing guard/EXPLAIN policy identities are revalidated immediately
+  before execution; M10's analytics execution namespace is fingerprinted and must match the M11
+  runtime database before connection; the exact admitted SQL is then sent unchanged to MySQL;
+- a dedicated analytics-reader connection enables and verifies session read-only mode and a
+  server `max_execution_time`; a bounded client read timeout is greater than the server bound;
+- execution uses an unbuffered cursor, never `fetchall`, reads at most the configured row bound
+  plus one, and abandons the dedicated connection without draining the remaining result when
+  truncation is detected;
+- row and deterministic normalized-byte budgets are both authoritative and visible in metadata;
+- `ExecutionResult` columns come from cursor metadata, positional rows preserve duplicate names,
+  exact `Decimal` values survive, and unsupported result values fail closed;
+- typed errors distinguish capability integrity, query timeout, database availability/execution,
+  and result decoding, with no hidden retry and bounded sanitized provider detail;
+- execution metadata carries capability/policy/database/bound/outcome identity separately from
+  the `ExecutionResult`; full raw rows are not automatically written to control-plane storage;
+- an independent deterministic runtime eval proves capability-only admission, read-only authority,
+  timeout, row/byte bounds, actual shape, and numeric fidelity without claiming semantic
+  correctness;
 - no direct planner-to-database bypass.
 
 ---
@@ -375,8 +390,8 @@ Codex must update this section as milestones complete.
 [x] M7 Hybrid retrieval — complete and frozen via PR #7
 [x] M8 RequirementState and clarification loop — complete and frozen via PR #8
 [x] M9 Query planner — complete and frozen via PR #9
-[ ] M10 SQL guard + EXPLAIN gate — active
-[ ] M11 Read-only runtime
+[x] M10 SQL guard + EXPLAIN gate — complete and frozen via PR #10
+[ ] M11 Read-only runtime — active
 [ ] M12 Verification
 [ ] M13 Bounded repair
 [ ] M14 Answer synthesis + API
@@ -606,6 +621,53 @@ proves `RecordingProvider.candidates` remains empty. Positive regressions cover 
 `CURRENT_DATE`, `SUM`, `COUNT`, `COALESCE`, `CAST`, and CASE; all 21 accepted M9 proposals retain
 guard admission `1.000`. No QueryPlan, M9 prompt, EXPLAIN policy, or M11 behavior changed.
 
+M10 closure evidence (2026-08-26): implementation and acceptance PR #10; accepted head
+`e44e283494da00e9245995df10c7c461a29dd9a7`; substantive re-review approved; final remote
+`Delivery / Quality` passed; squash-merged to `main` as
+`92e2ae91e71067feec900ad18d0a0ff7055fcce5`. The pre-EXPLAIN function-authority remediation
+retains adversarial and accepted-M9 guard admission `1.000`, with focused and complete local
+quality evidence recorded above. M10 is complete/frozen and M11 is authorized/active; M12 remains
+unauthorized.
+
+M11 implementation note (2026-08-26): runtime policy `query-runtime-v0.1` accepts only the current
+M10 `GuardedQuery`, revalidates its SQL digest plus complete capability/plan/guard/EXPLAIN identity,
+and sends the admitted SQL unchanged. One dedicated `ANALYTICS_READONLY` connection per execution
+enables and verifies session transaction read-only mode and MySQL `max_execution_time`; the
+configured client read timeout must be strictly larger. PyMySQL `SSCursor` reads at most the row
+bound plus one and applies the deterministic type-tagged `result-byte-budget-v0.1`. A truncated or
+failed stream abandons the connection without closing the cursor, preventing PyMySQL cleanup from
+draining the unread result. Cursor columns and positional rows preserve duplicate names and exact
+`Decimal` values; unsupported values and provider failures surface as typed errors with no retry.
+Metadata-only execution evidence carries capability, database, bound, timing, count, truncation,
+and outcome facts without raw rows.
+
+The frozen six-case no-LLM runtime suite fingerprint is
+`fdd59397c027a33203f9f703eb3f9e409a3861255010132e166a1315697fa33c` under MySQL
+`8.4.11` and PyMySQL `1.2.0`. Execution success, server timeout, row bound, byte bound, actual
+shape, numeric fidelity, capability-only admission, read-only enforcement, and no-hidden-retry
+each score `1.000`. Focused M11/M10/config/CLI coverage passes 43 tests; `task bootstrap` passes
+with unchanged retrieval index fingerprint
+`e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
+`task quality` passes 314 tests with 6 explicit host-only Ollama tests skipped. PR #11 implementation
+head `e6cb1ba` passes remote `Delivery / Quality` in run `32924666433`. M11 remains active pending
+substantive review; M12 remains unauthorized.
+
+M11 execution-namespace remediation note (2026-08-26): substantive review identified that exact
+SQL identity alone did not bind the default database used to resolve unqualified tables. M10 now
+copies `SQLGuard.analytics_schema` into `GuardedSQL.execution_namespace`, propagates it unchanged
+to `GuardedQuery`, and covers it with both stage capability fingerprints. M11 verifies the complete
+capability and then requires `query.execution_namespace == connection_factory.database_schema`
+before generating execution state or calling `connect()`. Focused regressions prove a capability
+issued for `analytics_a` cannot reach a runtime configured for `analytics_b`, namespace tampering
+invalidates the fingerprint, both failures keep `connect_count == 0`, and the matching namespace
+path retains normal execution. M11 remains active pending substantive re-review; M12 remains
+unauthorized. The remediation bumps the runtime policy to
+`query-runtime-v0.2`; focused M11/M10/config/CLI coverage passes 45 tests, `task bootstrap` passes
+with the unchanged retrieval index fingerprint, complete `task quality` passes 316 tests with 6
+explicit host-only Ollama tests skipped, and the six-case runtime eval retains every metric at
+`1.000`. PR #11 remediation head `875eac9` passes remote `Delivery / Quality` in run
+`32925478092`. M11 remains active pending substantive re-review; M12 remains unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -829,6 +891,23 @@ world is far below the initial obviously-unreasonable threshold.
 Consequences: M11 can consume the exact validated SQL payload and digest rather than accept a new
 string. The row threshold is a configurable synthetic-world admission rule, not a general cost
 model; changes require recorded calibration evidence.
+
+2026-08-26 — M11 capability-only streaming runtime
+Decision: Execute only the current fully fingerprinted M10 `GuardedQuery` through a synchronous
+PyMySQL service. Bind M10's analytics execution namespace into the capability and reject a runtime
+database mismatch before connection. Use one non-pooled analytics-reader connection, verified
+session read-only mode, MySQL `max_execution_time`, and a larger bounded client read timeout.
+Stream with `SSCursor`, use row-bound-plus-one detection plus an 8 MiB default type-tagged
+normalized-byte budget, and close the connection without closing the cursor whenever unread rows
+remain. Emit metadata through a separate sink and never retry.
+Evidence: MySQL documents session transaction access mode and millisecond read-only SELECT
+timeouts; PyMySQL documents that `SSCursor` reads on demand and cursor close exhausts remaining
+data. The real controlled-world suite proves server timeout code 3024, row/byte truncation,
+duplicate cursor columns, exact `Decimal`, read-only/control-schema denial, and one attempt.
+Consequences: The sync MVP path relies on server and socket bounds rather than an asyncio-only
+cancellation illusion. Truncated results are successful but incomplete evidence; M12 must decide
+whether they satisfy a requirement. Supporting connection pooling would require an explicit
+discard protocol and is deferred.
 
 ## 7. Deviation rule
 
