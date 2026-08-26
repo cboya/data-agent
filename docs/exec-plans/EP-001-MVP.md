@@ -322,17 +322,27 @@ Acceptance:
 
 ### M12 — Verification
 
-Implement:
-
-- structural checks;
-- initial semantic checks;
-- initial empirical checks.
+Implement deterministic verification over one coherent M9 planning, M10 capability, M11 metadata,
+and exact bounded-result context. The verifier judges existing evidence only; it has no database,
+model, mutation, synthesis, or repair authority.
 
 Acceptance:
 
-- result shape mismatch detected;
-- representative metric/time/grain mismatch caught where deterministically possible;
-- empirical bounds cases tested.
+- evidence identity binds plan, capability, SQL, policies, namespace, successful execution, and a
+  versioned fingerprint of the exact bounded result; mismatch raises `VerificationIntegrityError`;
+- structural checks reject runtime truncation and shape/count/metadata inconsistency while allowing
+  a coherent empty result;
+- semantic checks require READY state, required metric/dimension outputs, `period` for grain,
+  unique governed column sources where provable, and direct joins authorized by bounded M6
+  relationships;
+- unsupported/ambiguous time, formula, or SQL semantics become explicit coverage gaps rather than
+  successful checks or heuristic/model judgments;
+- empirical checks enforce generic COUNT, finite-numeric, and grouping-key invariants without a
+  second business-semantics registry;
+- internal trace separates applied checks from not-applicable/unsupported coverage; public
+  `VerificationResult v0.1` remains unchanged;
+- standalone deterministic eval reports layer accuracy, false accept/reject, identity/truncation
+  rejection, and coverage without claiming complete business correctness.
 
 ---
 
@@ -391,8 +401,8 @@ Codex must update this section as milestones complete.
 [x] M8 RequirementState and clarification loop — complete and frozen via PR #8
 [x] M9 Query planner — complete and frozen via PR #9
 [x] M10 SQL guard + EXPLAIN gate — complete and frozen via PR #10
-[ ] M11 Read-only runtime — active
-[ ] M12 Verification
+[x] M11 Read-only runtime — complete and frozen via PR #11
+[ ] M12 Verification — active
 [ ] M13 Bounded repair
 [ ] M14 Answer synthesis + API
 [ ] M15 Trace + Golden Dataset eval
@@ -668,6 +678,25 @@ explicit host-only Ollama tests skipped, and the six-case runtime eval retains e
 `1.000`. PR #11 remediation head `875eac9` passes remote `Delivery / Quality` in run
 `32925478092`. M11 remains active pending substantive re-review; M12 remains unauthorized.
 
+M11 closure evidence (2026-08-26): implementation and acceptance PR #11; execution-namespace
+remediation commit `875eac9`; accepted final head `c6dea2c`; substantive re-review approved; final
+remote `Delivery / Quality` passed in run `32925593899`; squash-merged to `main` as
+`c83763b223edc5958677545d8d9499e0664ae31b`. Focused M11/M10/config/CLI coverage passed 45
+tests, complete `task quality` passed 316 tests with 6 explicit host-only Ollama tests skipped,
+and every frozen six-case runtime-eval metric remained `1.000`. M11 is complete/frozen and M12 is
+authorized/active; M13 remains unauthorized.
+
+M12 activation note (2026-08-26): deterministic verification consumes one coherent evidence
+context spanning M9 `PlanningTrace`, M10 `GuardedQuery`, M11 `ExecutionMetadata`, and the exact
+bounded `ExecutionResult`. Verification never queries MySQL, calls a model, mutates upstream
+state, generates evidence, or repairs SQL. Evidence-chain mismatch raises a typed integrity error
+before checks. Public `VerificationResult v0.1` remains unchanged; an internal trace records
+applied checks and explicit not-applicable/unsupported coverage gaps, so not checked is never
+represented as passed. M11 metadata will evolve narrowly to v0.2 by binding a versioned canonical
+fingerprint of ordered columns, typed positional rows, bounded row count, and truncation state.
+Structural, semantic, then empirical checks are deterministic and coverage-bounded. A PASS means
+only that every applicable encoded invariant passed; M13 remains unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -908,6 +937,23 @@ Consequences: The sync MVP path relies on server and socket bounds rather than a
 cancellation illusion. Truncated results are successful but incomplete evidence; M12 must decide
 whether they satisfy a requirement. Supporting connection pooling would require an explicit
 discard protocol and is deferred.
+
+2026-08-26 — M12 deterministic, coverage-bounded verification
+Decision: Verify one integrity-checked M9→M10→M11 evidence context in structural, semantic, then
+empirical order. Verification only judges existing evidence: it performs no database/model call,
+does not mutate upstream objects, and does not repair. Bind the exact bounded `ExecutionResult`
+into `ExecutionMetadata v0.2` through a versioned canonical typed fingerprint. Keep public
+`VerificationResult v0.1`; record applied checks and not-applicable/unsupported gaps separately in
+an internal trace. PASS means every applicable encoded invariant passed, not that every possible
+semantic error was disproven.
+Evidence: M11 previously bound SQL, plan, policy, namespace, and result-size facts but could not
+prove that separately transported rows belonged to that execution. Current catalog contracts can
+prove unique governed column sources and direct single-column relationship joins, while time and
+formula semantics remain partly natural-language and therefore must stay explicit coverage gaps.
+Consequences: Evidence-chain mismatch is a typed integrity error rather than an ordinary failed
+check. Runtime truncation fails structural verification. Ambiguous/unencoded semantics cannot be
+silently marked passed or replaced by an LLM judge or a second business-semantics registry. M13
+alone may consume verification failure for bounded repair.
 
 ## 7. Deviation rule
 

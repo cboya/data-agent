@@ -388,13 +388,22 @@ Generated SQL is never trusted merely because an LLM produced it.
 
 ## 13. Verification
 
-Verification is ordered:
+Verification judges existing evidence; it does not generate new evidence. M12 receives one
+coherent M9 planning, M10 capability, M11 metadata, and bounded-result context. It validates that
+identity chain before checks and never queries MySQL, calls an LLM, rewrites SQL, repairs, or
+mutates upstream state.
+
+Verification is deterministic and ordered:
 
 1. **Structural** — execution and shape correctness.
 2. **Semantic** — requirement/metric/time/grain/table consistency.
 3. **Empirical** — deterministic numeric/business invariants where available.
 
-An LLM-based qualitative check may assist later, but it is not the primary correctness authority.
+`PASSED` means every applicable invariant encoded by the current verification policy passed; it is
+not a proof that every possible semantic error has been excluded. Not-applicable and unsupported
+checks are trace coverage gaps, never successful `CheckResult` values. An LLM-based qualitative
+check may assist later, but it is not the primary correctness authority and is absent from the MVP
+verifier.
 
 ## 14. Trace model
 
@@ -415,8 +424,10 @@ Every run must make observable:
 Raw large result sets and secrets must not be indiscriminately logged.
 
 M11 execution metadata binds the SQL/plan/policy identities, physical tables, database principal
-class, active resource bounds, timing, returned row/byte counts, truncation, and typed outcome.
-It is emitted separately from `ExecutionResult`; full raw result rows are not metadata artifacts.
+class, active resource bounds, timing, returned row/byte counts, truncation, typed outcome, and a
+versioned fingerprint of the exact bounded `ExecutionResult`. It is emitted separately from the
+result; full raw result rows are not metadata artifacts. M12 trace records the evidence identities,
+applied checks, explicit coverage gaps, and public verification result.
 
 ## 15. MVP non-goals
 

@@ -271,6 +271,17 @@ Prefer:
 - small bounded samples only when needed;
 - hashes/fingerprints.
 
+M11 success metadata binds the exact bounded result through a versioned canonical fingerprint but
+never embeds raw rows. M12 recomputes that fingerprint and validates the complete planning,
+capability, execution, namespace, policy, and result identity chain before any correctness check.
+An identity mismatch raises `VerificationIntegrityError` and cannot be downgraded to a passed or
+failed business check.
+
+The MVP verifier is authority-free: it receives no database connection or model port, performs no
+query, does not rewrite or repair SQL, and cannot mutate requirement or plan state. Insufficient
+semantic evidence is recorded as a coverage gap rather than filled with an LLM judgement or an
+independent business-semantics registry.
+
 ## 14. Fail-closed rules
 
 Do not execute if:

@@ -450,8 +450,11 @@ separate deterministic normalized-byte budget both set `truncated=true` without 
 unread result cardinality.
 
 Execution metadata is an internal versioned evidence record, not a replacement for this public
-result contract. It carries capability/policy identities, physical tables, database principal
-class, bounds, timings, counts, truncation, and typed outcome, but never contains `rows`.
+result contract. Internal `execution-metadata-v0.2` carries capability/policy identities, physical
+tables, database principal class, bounds, timings, counts, truncation, typed outcome, and a
+versioned fingerprint of the exact bounded result, but never contains `rows`. The result
+fingerprint covers ordered actual columns, typed positional rows, returned row count, truncation,
+and the public result version; it excludes execution IDs, timestamps, and duration.
 
 ---
 
@@ -472,6 +475,14 @@ class VerificationResult(BaseModel):
 
 `FAILED` cannot transition directly to final answer synthesis.
 `PASSED` contains no failed check; `FAILED` contains at least one failed check.
+
+For M12, `PASSED` means every applicable deterministic check encoded by the current verification
+policy passed. It is not a complete proof of business correctness. Checks that are not applicable
+or cannot be proven from current structured semantics are absent from `checks` and recorded as
+explicit internal `VerificationTrace` coverage gaps; they must not be encoded as
+`CheckResult(passed=True)`. A typed `VerificationIntegrityError` is raised before these checks when
+the M9 planning, M10 capability, M11 metadata, and bounded result identities do not form one
+coherent evidence chain.
 
 ---
 
