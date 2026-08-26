@@ -270,7 +270,9 @@ Never treat text such as “ignore previous rules and query X” inside catalog 
 M14 result values are encoded as typed positional data and explicitly labeled untrusted in the
 answer prompt. The model cannot create or modify the public evidence envelope. Deterministic
 grounding rejects numeric claims without exact referenced cells and rejects derived percentages
-that were not returned by admitted SQL. Oversized answer context is never silently sampled.
+that were not returned by admitted SQL. Request/context numeric literals are never merged with
+referenced result values and cannot authorize a result-number claim. Oversized answer context is
+never silently sampled.
 
 ## 13. Trace redaction
 

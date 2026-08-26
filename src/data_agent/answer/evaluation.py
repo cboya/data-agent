@@ -64,8 +64,8 @@ class AnswerEvalCase(_EvalModel):
 
 
 class AnswerEvalSuite(_EvalModel):
-    version: Literal["v0.1"]
-    cases: tuple[AnswerEvalCase, ...] = Field(min_length=6)
+    version: Literal["v0.2"]
+    cases: tuple[AnswerEvalCase, ...] = Field(min_length=7)
 
     @model_validator(mode="after")
     def has_unique_required_cases(self) -> Self:
@@ -73,6 +73,7 @@ class AnswerEvalSuite(_EvalModel):
         required = {
             "grounded-decimal-first-row",
             "hallucinated-number",
+            "request-literal-authority-crossover",
             "derived-percentage",
             "invalid-cell-reference",
             "missing-cell-reference",
@@ -90,9 +91,10 @@ class AnswerEvalCaseResult(_EvalModel):
 
 
 class AnswerEvalMetrics(_EvalModel):
-    case_count: int = Field(ge=6)
+    case_count: int = Field(ge=7)
     grounding_decision_accuracy: float = Field(ge=0, le=1)
     ungrounded_numeric_rejection: float = Field(ge=0, le=1)
+    request_numeric_authority_separation: float = Field(ge=0, le=1)
     derived_arithmetic_rejection: float = Field(ge=0, le=1)
     invalid_reference_rejection: float = Field(ge=0, le=1)
     decimal_api_fidelity: float = Field(ge=0, le=1)
@@ -201,6 +203,9 @@ def evaluate_current_answer() -> AnswerEvalReport:
         case_count=len(results),
         grounding_decision_accuracy=accuracy,
         ungrounded_numeric_rejection=float(by_id["hallucinated-number"].passed),
+        request_numeric_authority_separation=float(
+            by_id["request-literal-authority-crossover"].passed
+        ),
         derived_arithmetic_rejection=float(by_id["derived-percentage"].passed),
         invalid_reference_rejection=float(
             by_id["invalid-cell-reference"].passed and by_id["missing-cell-reference"].passed
@@ -222,6 +227,7 @@ def evaluate_current_answer() -> AnswerEvalReport:
             for value in (
                 metrics.grounding_decision_accuracy,
                 metrics.ungrounded_numeric_rejection,
+                metrics.request_numeric_authority_separation,
                 metrics.derived_arithmetic_rejection,
                 metrics.invalid_reference_rejection,
                 metrics.decimal_api_fidelity,
@@ -258,6 +264,7 @@ def format_answer_eval_summary(report: AnswerEvalReport) -> str:
         f"Answer eval {'PASS' if report.passed else 'FAIL'}: "
         f"cases={metrics.case_count}, grounding={metrics.grounding_decision_accuracy:.3f}, "
         f"numeric_reject={metrics.ungrounded_numeric_rejection:.3f}, "
+        f"request_numeric_separation={metrics.request_numeric_authority_separation:.3f}, "
         f"arithmetic_reject={metrics.derived_arithmetic_rejection:.3f}, "
         f"references={metrics.invalid_reference_rejection:.3f}, "
         f"decimal={metrics.decimal_api_fidelity:.3f}, "

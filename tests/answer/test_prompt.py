@@ -71,6 +71,7 @@ def test_prompt_marks_cell_content_untrusted_and_keeps_it_in_json() -> None:
 
     assert "untrusted data" in messages[0]["content"]
     assert "Do not calculate" in messages[0]["content"]
+    assert "context numbers are never evidence" in messages[0]["content"]
     decoded = json.loads(messages[1]["content"])
     assert decoded["result"]["rows"][0][1]["value"] == injection
     assert decoded["result"]["rows"][0][2]["value"] == "100.00"

@@ -31,6 +31,16 @@ def test_ungrounded_number_fails_closed() -> None:
         AnswerGroundingPolicy().validate(context=valid_answer_context(), proposal=proposal)
 
 
+def test_request_scope_number_cannot_be_reused_as_result_fact() -> None:
+    proposal = AnswerProposal(
+        answer="实际支付金额是 30。",
+        evidence_refs=[CellReference(row_index=0, column_index=2)],
+    )
+
+    with pytest.raises(AnswerGroundingError, match="referenced result evidence"):
+        AnswerGroundingPolicy().validate(context=valid_answer_context(), proposal=proposal)
+
+
 def test_derived_percentage_is_not_authorized_by_source_cells() -> None:
     proposal = AnswerProposal(
         answer="实付金额下降了 20%。",
@@ -61,7 +71,7 @@ def test_non_empty_result_requires_evidence_even_without_numeric_claim() -> None
         AnswerGroundingPolicy().validate(context=valid_answer_context(), proposal=proposal)
 
 
-def test_empty_result_may_repeat_numeric_scope_literal_without_cell_reference() -> None:
+def test_empty_result_cannot_repeat_numeric_scope_literal_without_cell_reference() -> None:
     empty = ExecutionResult(
         version="v0.1",
         columns=["period", "province", "paid_amount"],
@@ -73,6 +83,25 @@ def test_empty_result_may_repeat_numeric_scope_literal_without_cell_reference() 
     context = valid_answer_context(bundle=evidence_bundle(result=empty))
     proposal = AnswerProposal(
         answer="The verified query for the last 30 days returned no matching rows.",
+        evidence_refs=[],
+    )
+
+    with pytest.raises(AnswerGroundingError, match="referenced result evidence"):
+        AnswerGroundingPolicy().validate(context=context, proposal=proposal)
+
+
+def test_empty_result_answer_without_numeric_literal_is_allowed() -> None:
+    empty = ExecutionResult(
+        version="v0.1",
+        columns=["period", "province", "paid_amount"],
+        rows=[],
+        returned_row_count=0,
+        duration_ms=1,
+        truncated=False,
+    )
+    context = valid_answer_context(bundle=evidence_bundle(result=empty))
+    proposal = AnswerProposal(
+        answer="The verified query returned no matching rows.",
         evidence_refs=[],
     )
 

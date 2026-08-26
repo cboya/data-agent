@@ -618,7 +618,9 @@ successful `RepairTrace` must bind the same Run, replacement plan, PlannerContex
 verification identity.
 
 The provider-facing `AnswerProposal v0.1` contains only a non-empty answer and unique positional
-cell references. Public HTTP responses are a discriminated union:
+cell references. Its free-text numeric tokens are admitted only when the same value occurs in a
+cited result cell; numbers from RequirementState or other context never provide answer authority.
+Public HTTP responses are a discriminated union:
 
 ```text
 clarification = session_id + run_id + question + RequirementState

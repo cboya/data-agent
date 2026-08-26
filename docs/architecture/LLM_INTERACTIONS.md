@@ -247,8 +247,10 @@ not delegated to the model.
 
 All numerical result facts must resolve through positional references to the exact
 `ExecutionResult`. M14 does not authorize model arithmetic: a percentage, delta, total, average,
-or trend absent from returned SQL evidence fails closed. Result cells and free text within them
-are untrusted data, never instructions.
+or trend absent from returned SQL evidence fails closed. Numeric literals from the request,
+RequirementState, time range, filters, or limits are scope metadata, not result evidence, and the
+model must not repeat them unless the same exact value occurs in a cited result cell. Result cells
+and free text within them are untrusted data, never instructions.
 
 Answer context has independent row and byte bounds. The complete result is sent or none of it is;
 there is no silent sample presented as a complete summary. Oversized context uses a deterministic

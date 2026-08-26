@@ -191,7 +191,8 @@ Owns:
 
 Final answer language is probabilistic, but its response envelope is assurance-owned. Only a
 coherent PASSED verification branch enters synthesis; data, assumptions, query evidence,
-coverage limitations, and Run facts are projected deterministically.
+coverage limitations, and Run facts are projected deterministically. Request/context numeric
+literals are scope metadata rather than interchangeable result evidence.
 
 ## 6. Core domain objects
 

@@ -423,7 +423,9 @@ model cannot produce result rows, assumptions, tables, SQL, counts, duration, re
 verification status/coverage, synthesis mode, or Run state.
 
 Deterministic grounding rejects out-of-range references, unreferenced non-empty results,
-unreferenced numeric claims, and arithmetic-derived percentages absent as exact evidence. Exact
+unreferenced numeric claims, and arithmetic-derived percentages absent as exact evidence. Request,
+requirement, scope, filter, and limit numbers never become fungible authority for result-number
+claims; every numeric token in model answer text must also occur in a cited result cell. Exact
 `Decimal` cells cross the JSON API as strings. Verification scope is always reported as
 `COVERAGE_BOUNDED`; coverage is applied checks divided by applied plus `UNSUPPORTED` checks,
 excluding `NOT_APPLICABLE` gaps, and every unsupported limitation remains visible. Oversized

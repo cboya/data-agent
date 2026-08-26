@@ -1,4 +1,4 @@
-version: v0.1
+version: v0.2
 cases:
   - id: grounded-decimal-first-row
     answer: "首日实付金额为 100.00。"
@@ -12,6 +12,11 @@ cases:
     expected: ACCEPT
   - id: hallucinated-number
     answer: "首日实付金额为 999.00。"
+    references:
+      - [0, 2]
+    expected: REJECT
+  - id: request-literal-authority-crossover
+    answer: "实际支付金额为 30。"
     references:
       - [0, 2]
     expected: REJECT

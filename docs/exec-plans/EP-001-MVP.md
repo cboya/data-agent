@@ -889,8 +889,8 @@ Surface unsupported verification coverage and assumption provenance mechanically
 control-plane unit of work for dialogue/Run outcome and final assistant-message/Run completion
 consistency. Full M15 trace persistence and 50+ Golden Dataset expansion remain out of scope.
 
-M14 implementation note (2026-08-26): `answer-synthesis-v0.1` uses an internal strict
-`AnswerProposal v0.1` with positional cell references and `answer-grounding-v0.1`. Coverage is
+M14 implementation note (2026-08-26): `answer-synthesis-v0.2` uses an internal strict
+`AnswerProposal v0.1` with positional cell references and `answer-grounding-v0.2`. Coverage is
 reported as applied divided by applied plus unsupported checks; not-applicable gaps do not become
 passes or denominator entries, and public scope remains `COVERAGE_BOUNDED`. Exact Decimal values
 serialize as strings. Context larger than `MAX_ANSWER_CONTEXT_ROWS` or
@@ -921,6 +921,22 @@ M14 PR evidence (2026-08-26): focused PR #14 was opened from implementation head
 `32946182680` (55 seconds). Required reviewer `cboya` remains requested. M14 is ready for
 substantive review; it remains active rather than complete, PR #14 must not be merged without
 approval, and M15 remains unauthorized.
+
+M14 P1 remediation note (2026-08-26): substantive review found that
+`answer-synthesis-v0.1` instructed scope-only use but `answer-grounding-v0.1` still merged numbers
+extracted from RequirementState with numbers from cited result cells, so the `30` in
+`last_30_days` could incorrectly authorize “paid amount is 30” while the cited result was
+`100.00`. `answer-grounding-v0.2` removes all request/context numeric
+authority: every numeric token in model answer text must occur in a cited `ExecutionResult` cell,
+including empty-result answers. Scope remains deterministic RequirementState/API data rather than
+free-text evidence. The focused 18-test answer suite passes, and the expanded seven-case eval
+rejects this crossover while retaining exact cited Decimal acceptance; grounding decision,
+ungrounded-number rejection, request/result numeric authority separation, arithmetic rejection,
+reference rejection, Decimal fidelity, and coverage visibility are each `1.000`. Complete
+`task quality` passes 435 tests with 7 explicit host-only skips. The three-case real-Ollama answer
+smoke remains fully green, and the real FastAPI→Ollama→MySQL path passes in 37.59 seconds. Remote
+remediation evidence remains pending; M14 stays active, PR #14 must not merge, and M15 remains
+unauthorized.
 
 ## 6. Decision log
 
@@ -1184,17 +1200,18 @@ equivalent coverage evidence and preserve this bounded claim in answer synthesis
 
 2026-08-26 — M14 deterministic response authority and atomic conversation completion
 Decision: Allow the answer model to propose only natural-language text and unique positional
-ExecutionResult cell references under `answer-synthesis-v0.1`. Revalidate one final PASSED
-M9→M12 branch, apply `answer-grounding-v0.1`, expose assumptions/query evidence/coverage/Run state
+ExecutionResult cell references under `answer-synthesis-v0.2`. Revalidate one final PASSED
+M9→M12 branch, apply `answer-grounding-v0.2`, expose assumptions/query evidence/coverage/Run state
 from deterministic sources, serialize Decimal as an exact string, and use independent 100-row /
 128-KiB synthesis defaults. Report verification scope as `COVERAGE_BOUNDED`; compute coverage as
 applied checks divided by applied plus unsupported checks and exclude not-applicable gaps. Extend
 the existing dialogue store with a minimal UoW for atomic dialogue/Run and final-message/completion
 transactions. Keep the orchestrator a sequencing layer over unchanged M8–M13 services.
 Evidence: Positional references remain unambiguous when cursor column labels duplicate. The frozen
-six-case provider-free answer corpus rejects hallucinated numbers, arithmetic-derived percentage,
-invalid references, and missing references while retaining exact Decimal and unsupported coverage
-at the API. In-process HTTP smoke covers one-turn, multi-turn, repaired, and policy-terminal paths.
+seven-case provider-free answer corpus rejects hallucinated numbers, request-to-result numeric
+authority crossover, arithmetic-derived percentage, invalid references, and missing references
+while retaining exact Decimal and unsupported coverage at the API. In-process HTTP smoke covers
+one-turn, multi-turn, repaired, and policy-terminal paths.
 Consequences: The model cannot rewrite database truth or epistemic status at the final boundary.
 Oversized answer context receives a typed zero-call no-new-facts fallback, not a sampled summary.
 Control-plane records cannot persist a final assistant answer without Run completion or a dialogue

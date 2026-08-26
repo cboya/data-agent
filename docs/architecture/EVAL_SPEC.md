@@ -281,6 +281,7 @@ The standalone deterministic M14 answer gate additionally requires every metric 
 
 - grounding decision accuracy;
 - hallucinated numeric-fact rejection;
+- request/context-to-result numeric-authority separation;
 - arithmetic-derived percentage rejection;
 - invalid/missing positional-reference rejection;
 - exact Decimal API fidelity;
