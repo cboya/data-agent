@@ -697,6 +697,29 @@ fingerprint of ordered columns, typed positional rows, bounded row count, and tr
 Structural, semantic, then empirical checks are deterministic and coverage-bounded. A PASS means
 only that every applicable encoded invariant passed; M13 remains unauthorized.
 
+M12 implementation note (2026-08-26): internal `VerificationContext` is the only verifier input
+and revalidates the M9 plan/bounded-table/retrieval identities, M10 capability/SQL/policy/physical
+table identities, M11 namespace/metadata/success identities, and exact bounded-result fingerprint
+before checks. `execution-metadata-v0.2` binds ordered columns, typed positional rows, returned row
+count, truncation, and public result version through `execution-result-fingerprint-v0.1`, excluding
+duration, IDs, and timestamps. Policy `verification-policy-v0.1` runs exact structural shape and
+completeness checks, required-output/grain checks, output-alias-specific unique governed-column
+lineage, conservative direct relationship JOIN validation, nonnegative integral COUNT checks,
+finite-number checks, and grouping-key uniqueness. CTE/subquery lineage and unstructured
+time/formula semantics remain explicit unsupported gaps; not-applicable checks also remain outside
+public `CheckResult`.
+
+The frozen 13-case no-LLM/no-database verification suite fingerprint is
+`54e11f0f67cb1811442ca6dcbb8743d9bcfc6b32c3c0dacf67e350f042b732ab` against catalog
+fingerprint `b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f`. Structural,
+semantic, empirical, identity-mismatch, and truncation decisions each score `1.000`; false accept
+and false reject are `0.000`; applied-versus-unsupported coverage is honestly reported as `0.904`.
+Focused M12/M11 integration coverage passes 51 tests, `task bootstrap` preserves the deterministic
+ten-table world and retrieval index fingerprint
+`e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`, and complete
+`task quality` passes 346 tests with 6 explicit host-only Ollama tests skipped. M12 remains active
+pending remote quality and substantive review; M13 remains unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.

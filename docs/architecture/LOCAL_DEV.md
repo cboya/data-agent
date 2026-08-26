@@ -92,6 +92,14 @@ dedicated reader connection with `MYSQL_QUERY_READ_TIMEOUT_SECONDS` (default 10 
 configuration validation requires to exceed `MAX_QUERY_TIME_MS` (default 5,000 milliseconds).
 The evaluation writes metadata-only case evidence to `evals/reports/runtime-latest.json`.
 
+M12 adds a standalone deterministic verification evaluation over constructed coherent M9–M11
+evidence and controlled mutations. It performs no database or model call, reports coverage gaps
+separately from passed checks, and writes `evals/reports/verification-latest.json`:
+
+```bash
+task m12-eval
+```
+
 M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
 The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub for bootstrap
 identity and index plumbing; substantive embedding quality evidence comes from the explicitly
@@ -179,13 +187,15 @@ task quality
 task eval
 ```
 
-`task eval` runs the standalone retrieval, dialogue, planner, SQL-guard, and runtime evaluations. M10 writes
-its machine-readable report under `evals/reports/`, binds SQLGlot/policy configuration and the
-accepted M9 snapshot fingerprint, runs only Harness-owned JSON EXPLAIN, and does not execute normal
-SQL. Plain EXPLAIN is protected by the pre-provider approved-function policy rather than assumed to
-be inherently side-effect free.
+`task eval` runs the standalone retrieval, dialogue, planner, SQL-guard, runtime, and verification
+evaluations. M10 writes its machine-readable report under `evals/reports/`, binds SQLGlot/policy
+configuration and the accepted M9 snapshot fingerprint, runs only Harness-owned JSON EXPLAIN, and
+does not execute normal SQL. Plain EXPLAIN is protected by the pre-provider approved-function
+policy rather than assumed to be inherently side-effect free.
 
 M11 then executes only its own frozen M10-admitted runtime queries and may claim execution plus
 returned database values, but not semantic correctness against the originating requirement.
+M12 may claim only that all applicable invariants encoded by its current policy passed; unsupported
+time/formula semantics remain explicit coverage gaps rather than global correctness claims.
 
 apart from installing Ollama and the configured local models.
