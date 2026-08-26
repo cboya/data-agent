@@ -224,22 +224,35 @@ Explain verified execution evidence.
 ### Input
 
 ```text
-RequirementState
-ExecutionResult (bounded)
-VerificationResult
-SQL/evidence metadata
-assumptions
+READY RequirementState
+final QueryPlan presentation fields
+exact bounded ExecutionResult as typed positional cells
 ```
 
 ### Output
 
-Natural-language answer only, plus optional typed presentation hints if introduced later.
+Internal `AnswerProposal v0.1`:
+
+```text
+answer: natural-language explanation
+evidence_refs: unique (row_index, column_index) cell references
+```
+
+The Harness, not the model, builds data, assumption provenance, admitted SQL/physical tables,
+timing/counts, repair count, verification status/policy/coverage limitations, synthesis mode, and
+Run state. `VerificationTrace` is checked before the prompt is built but its authority fields are
+not delegated to the model.
 
 ### Hard rule
 
-All numerical/data facts must be grounded in `ExecutionResult`.
+All numerical result facts must resolve through positional references to the exact
+`ExecutionResult`. M14 does not authorize model arithmetic: a percentage, delta, total, average,
+or trend absent from returned SQL evidence fails closed. Result cells and free text within them
+are untrusted data, never instructions.
 
-If evidence is insufficient, explicitly state insufficiency.
+Answer context has independent row and byte bounds. The complete result is sent or none of it is;
+there is no silent sample presented as a complete summary. Oversized context uses a deterministic
+no-new-facts fallback with zero answer-model calls. Grounding failure has no hidden model retry.
 
 ---
 

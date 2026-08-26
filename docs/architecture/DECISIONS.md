@@ -410,3 +410,32 @@ executed and M12 correctly rejected the missing output-shape evidence. M13 there
 internal `RepairPlanProposal` with `expected_columns` constrained to at least one item and
 immediately normalizes it to public `QueryPlan v0.1`. The DTO adds no field or semantic authority
 and does not bypass M9 policy or any downstream check.
+
+---
+
+## D-029 — Answer language is proposed; the response envelope is deterministic
+
+**Decision:** M14 accepts only an integrity-checked final M9→M12 branch whose public
+`VerificationTrace` result is `PASSED`. A successful repair may substitute only its newly planned,
+admitted, executed, and verified branch. The provider-facing `AnswerProposal v0.1` contains
+natural-language answer text and unique positional `(row_index, column_index)` references. The
+model cannot produce result rows, assumptions, tables, SQL, counts, duration, repair status,
+verification status/coverage, synthesis mode, or Run state.
+
+Deterministic grounding rejects out-of-range references, unreferenced non-empty results,
+unreferenced numeric claims, and arithmetic-derived percentages absent as exact evidence. Exact
+`Decimal` cells cross the JSON API as strings. Verification scope is always reported as
+`COVERAGE_BOUNDED`; coverage is applied checks divided by applied plus `UNSUPPORTED` checks,
+excluding `NOT_APPLICABLE` gaps, and every unsupported limitation remains visible. Oversized
+answer context makes zero model calls and returns a typed deterministic no-new-facts fallback
+while preserving the exact bounded result in the response.
+
+The conversation orchestrator owns only sequencing and Run transitions over M8–M14 services. A
+minimal control-plane unit of work atomically commits the M8 Session/user/optional-clarification
+turn with its Run outcome, and separately atomically appends the final assistant answer with
+`SYNTHESIZING → COMPLETED`.
+
+**Reason:** Letting answer inference regenerate evidence would undo the M9–M12 authority chain at
+the user boundary. Positional references remain unambiguous with duplicate column labels, while
+atomic completion prevents conversation history and Run state from reporting contradictory
+durable outcomes.

@@ -386,12 +386,24 @@ Implement final verified-result synthesis and conversation API.
 
 Acceptance:
 
-- clarification and result response contracts work;
-- numerical facts are tied to `ExecutionResult`;
-- evidence and assumptions returned;
-- synthesis consumes verification coverage evidence, not a bare `VerificationResult`, and must not
-  present a coverage-bounded PASS as exhaustive verification;
-- no synthesis on failed verification.
+- only one coherent final branch ending in M12 `VerificationTrace.result.status == PASSED` may
+  enter synthesis; a successful M13 replacement branch supersedes its failed original for answer
+  data without erasing historical repair provenance;
+- the provider-facing `AnswerProposal` contains answer language plus positional result-cell
+  references only; deterministic code owns data, assumptions, SQL/tables, timing/counts, repair
+  count, verification status/coverage, synthesis mode, and Run state;
+- every result numeric fact must be grounded in a referenced exact `ExecutionResult` value;
+  model-side arithmetic-derived percentages/deltas absent from verified SQL output fail closed;
+- `VerificationTrace` unsupported coverage is user-visible, not-applicable checks are not presented
+  as passed, and a policy/coverage-bounded PASS is never described as exhaustive proof;
+- answer context has independent row/byte bounds; oversized verified results use an explicit
+  deterministic no-new-facts fallback rather than a partial model summary;
+- clarification atomically commits Session/Message state with Run `CLARIFYING`; final assistant
+  answer persistence and `SYNTHESIZING → COMPLETED` are one control-plane transaction;
+- `POST /sessions`, `POST /sessions/{id}/messages`, `GET /sessions/{id}`, and `GET /runs/{id}`
+  return typed clarification/result/safe-failure envelopes with exact Decimal serialization;
+- clarification and failed/terminal verification paths make zero downstream/answer-model calls;
+- focused deterministic, bound real-Ollama answer, and end-to-end API/MySQL/Ollama evidence pass.
 
 ---
 
@@ -426,8 +438,8 @@ Codex must update this section as milestones complete.
 [x] M10 SQL guard + EXPLAIN gate — complete and frozen via PR #10
 [x] M11 Read-only runtime — complete and frozen via PR #11
 [x] M12 Verification — complete and frozen via PR #12
-[ ] M13 Bounded repair — active
-[ ] M14 Answer synthesis + API
+[x] M13 Bounded repair — complete and frozen via PR #13
+[ ] M14 Answer synthesis + API — active
 [ ] M15 Trace + Golden Dataset eval
 ```
 
@@ -860,6 +872,50 @@ PR #13 P1 remediation commit `ac2648ed90df46fe221cf8b11419f63cb649b1af` passes r
 re-review; M13 is not complete, the PR must not be merged, and M14 must not start without explicit
 authorization.
 
+M13 closure evidence (2026-08-26): acceptance PR #13; accepted final head
+`0653c9f86a837804fa1530e5349a2b0fe52b3f80`; squash-merged to `main` as
+`e4a3c4249c21334c2986d597f2321f31476eba7d`; substantive re-review approved; final remote
+`Delivery / Quality` passed in run `32938661354` (52 seconds). Focused remediation coverage passed
+53 tests, complete `task quality` passed 399 tests with 6 explicit host-only Ollama tests skipped,
+the frozen 19-case deterministic repair eval and three-case real repair smoke remained fully green.
+M13 is complete/frozen; M14 is authorized/active. M15 remains unauthorized.
+
+M14 activation note (2026-08-26): the model may explain evidence but cannot define the result
+envelope, data, assumptions, evidence, verification/policy status, coverage, or Run state. Build an
+internal integrity-checked `AnswerSynthesisContext` from exactly the final M9–M12 branch and
+optional successful M13 trace. Use a narrow structured `AnswerProposal` with positional cell
+references, an independent deterministic grounding policy, and separate synthesis row/byte bounds.
+Surface unsupported verification coverage and assumption provenance mechanically. Use the smallest
+control-plane unit of work for dialogue/Run outcome and final assistant-message/Run completion
+consistency. Full M15 trace persistence and 50+ Golden Dataset expansion remain out of scope.
+
+M14 implementation note (2026-08-26): `answer-synthesis-v0.1` uses an internal strict
+`AnswerProposal v0.1` with positional cell references and `answer-grounding-v0.1`. Coverage is
+reported as applied divided by applied plus unsupported checks; not-applicable gaps do not become
+passes or denominator entries, and public scope remains `COVERAGE_BOUNDED`. Exact Decimal values
+serialize as strings. Context larger than `MAX_ANSWER_CONTEXT_ROWS` or
+`MAX_ANSWER_CONTEXT_BYTES` returns a deterministic `RESULT_TOO_LARGE` fallback with zero model
+calls and no new result facts. The minimal conversation UoW extends the existing M8 store so
+dialogue/Run outcomes and final-message/Run completion cannot partially commit. The orchestrator
+only sequences existing M8–M14 authorities. Deterministic M14 eval currently passes all six
+frozen cases and every grounding/Decimal/coverage metric at `1.000`; host acceptance evidence is
+recorded below and remote evidence remains pending.
+
+M14 local acceptance evidence (2026-08-26): `task bootstrap` rebuilt the ten-table controlled
+world and retrieval index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`;
+the focused answer/conversation/API/MySQL-UoW suite passes 40 tests; final `task quality` passes
+433 tests with 7 explicit host-only skips. `task m14-eval` passes six frozen cases with grounding,
+ungrounded-number rejection, arithmetic rejection, reference rejection, Decimal fidelity, and
+coverage visibility each `1.000`. Initial real-model evidence showed Ollama omitted a
+default-valued reference list, so `AnswerProposal v0.1` now makes `evidence_refs` provider-required
+(empty only for an empty result); the final three-case real-Ollama smoke reports structured
+grounding, non-empty usefulness, reference validity, injection resistance, and one-call bound each
+`1.000`. The real FastAPI→Ollama→MySQL M8–M14 result path passes in 35.98 seconds. Full `task eval`
+also remains green: M7 seed/final recall `0.990/1.000`, M8 action/state `1.000`, M9 parse/allowed
+`1.000`, M10 guard/table-scope `1.000`, and every M11–M14 deterministic gate passes. M14 is ready
+for focused PR and substantive review; it is not complete or authorized for merge, and M15 remains
+unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -1119,6 +1175,24 @@ check. Runtime truncation fails structural verification. Ambiguous/unencoded sem
 silently marked passed or replaced by an LLM judge or a second business-semantics registry. M13
 alone may consume verification failure for bounded repair. M14 must consume the internal trace or
 equivalent coverage evidence and preserve this bounded claim in answer synthesis.
+
+2026-08-26 — M14 deterministic response authority and atomic conversation completion
+Decision: Allow the answer model to propose only natural-language text and unique positional
+ExecutionResult cell references under `answer-synthesis-v0.1`. Revalidate one final PASSED
+M9→M12 branch, apply `answer-grounding-v0.1`, expose assumptions/query evidence/coverage/Run state
+from deterministic sources, serialize Decimal as an exact string, and use independent 100-row /
+128-KiB synthesis defaults. Report verification scope as `COVERAGE_BOUNDED`; compute coverage as
+applied checks divided by applied plus unsupported checks and exclude not-applicable gaps. Extend
+the existing dialogue store with a minimal UoW for atomic dialogue/Run and final-message/completion
+transactions. Keep the orchestrator a sequencing layer over unchanged M8–M13 services.
+Evidence: Positional references remain unambiguous when cursor column labels duplicate. The frozen
+six-case provider-free answer corpus rejects hallucinated numbers, arithmetic-derived percentage,
+invalid references, and missing references while retaining exact Decimal and unsupported coverage
+at the API. In-process HTTP smoke covers one-turn, multi-turn, repaired, and policy-terminal paths.
+Consequences: The model cannot rewrite database truth or epistemic status at the final boundary.
+Oversized answer context receives a typed zero-call no-new-facts fallback, not a sampled summary.
+Control-plane records cannot persist a final assistant answer without Run completion or a dialogue
+outcome without its matching Run state. M15 trace persistence remains intentionally deferred.
 
 ## 7. Deviation rule
 
