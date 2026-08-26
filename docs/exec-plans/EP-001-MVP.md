@@ -935,8 +935,9 @@ ungrounded-number rejection, request/result numeric authority separation, arithm
 reference rejection, Decimal fidelity, and coverage visibility are each `1.000`. Complete
 `task quality` passes 435 tests with 7 explicit host-only skips. The three-case real-Ollama answer
 smoke remains fully green, and the real FastAPI→Ollama→MySQL path passes in 37.59 seconds. Remote
-remediation evidence remains pending; M14 stays active, PR #14 must not merge, and M15 remains
-unauthorized.
+`Delivery / Quality` passes on remediation head
+`56685dc2bdefb67b0a40aef478610d5a1d00fe80` in run `32947600298` (50 seconds). M14 is ready for
+substantive re-review; it stays active, PR #14 must not merge, and M15 remains unauthorized.
 
 ## 6. Decision log
 
