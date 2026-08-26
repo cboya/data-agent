@@ -717,8 +717,9 @@ and false reject are `0.000`; applied-versus-unsupported coverage is honestly re
 Focused M12/M11 integration coverage passes 51 tests, `task bootstrap` preserves the deterministic
 ten-table world and retrieval index fingerprint
 `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`, and complete
-`task quality` passes 346 tests with 6 explicit host-only Ollama tests skipped. M12 remains active
-pending remote quality and substantive review; M13 remains unauthorized.
+`task quality` passes 346 tests with 6 explicit host-only Ollama tests skipped. PR #12
+implementation head `592cd70` passes remote `Delivery / Quality` in run `32928350734`. M12
+remains active pending substantive review; M13 remains unauthorized.
 
 ## 6. Decision log
 
