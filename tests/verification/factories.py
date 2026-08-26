@@ -24,7 +24,11 @@ from data_agent.contracts.requirement import (
     ResolutionStatus,
     TimeRange,
 )
-from data_agent.planning.context import PlannerCatalogIdentity, PlannerContext
+from data_agent.planning.context import (
+    PlannerCatalogIdentity,
+    PlannerContext,
+    planner_context_fingerprint,
+)
 from data_agent.planning.prompt import PLANNER_PROMPT_VERSION
 from data_agent.planning.service import PlanningTrace
 from data_agent.query_runtime.evidence import (
@@ -186,12 +190,12 @@ def valid_result() -> ExecutionResult:
     )
 
 
-def _guarded_query(plan: QueryPlan) -> GuardedQuery:
+def _guarded_query(plan: QueryPlan, *, context_fingerprint: str) -> GuardedQuery:
     outcome = SQLAdmissionService(
         guard=SQLGuard(analytics_schema="data_agent"),
         explain_provider=_StaticExplainProvider(),
         explain_policy=ExplainPolicy(max_estimated_rows_per_access=100),
-    ).admit(plan)
+    ).admit(plan, planner_context_fingerprint=context_fingerprint)
     assert outcome.guarded_query is not None
     return outcome.guarded_query
 
@@ -230,6 +234,7 @@ def evidence_bundle(
     )
     trace = PlanningTrace(
         context=context,
+        planner_context_fingerprint=planner_context_fingerprint(context),
         plan=actual_plan,
         prompt_version=PLANNER_PROMPT_VERSION,
         model_fingerprint="5" * 64,
@@ -237,7 +242,10 @@ def evidence_bundle(
         retrieval_index_fingerprint=_RETRIEVAL_FINGERPRINT,
         allowed_tables=tuple(str(document.table) for document in documents),
     )
-    query = _guarded_query(actual_plan)
+    query = _guarded_query(
+        actual_plan,
+        context_fingerprint=trace.planner_context_fingerprint,
+    )
     timestamp = datetime(2026, 8, 26, tzinfo=UTC)
     values: dict[str, Any] = {
         "version": EXECUTION_METADATA_VERSION,
@@ -245,6 +253,7 @@ def evidence_bundle(
         "guarded_query_fingerprint": query.capability_fingerprint,
         "sql_digest": query.sql_digest,
         "query_plan_fingerprint": query.query_plan_fingerprint,
+        "planner_context_fingerprint": query.planner_context_fingerprint,
         "execution_namespace": query.execution_namespace,
         "guard_policy_version": query.guard_policy_version,
         "explain_policy_version": query.explain_policy_version,

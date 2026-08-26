@@ -364,6 +364,7 @@ class ReadOnlyQueryRuntime:
             guarded_query_fingerprint=query.capability_fingerprint,
             sql_digest=query.sql_digest,
             query_plan_fingerprint=query.query_plan_fingerprint,
+            planner_context_fingerprint=query.planner_context_fingerprint,
             execution_namespace=query.execution_namespace,
             guard_policy_version=query.guard_policy_version,
             explain_policy_version=query.explain_policy_version,

@@ -18,6 +18,7 @@ from data_agent.query_runtime.evidence import ExecutionMetadata, execution_resul
 from data_agent.query_runtime.mysql import MySQLQueryConnectionFactory
 from data_agent.sql_guard import ExplainPolicy, MySQLExplainProvider, SQLAdmissionService, SQLGuard
 from data_agent.sql_guard.capability import GuardedQuery
+from tests.sql_guard.factories import TEST_PLANNER_CONTEXT_FINGERPRINT
 
 
 class RecordingMetadataSink:
@@ -47,7 +48,8 @@ def _admit(settings: Settings, sql: str, tables: list[str]) -> GuardedQuery:
             sql=sql,
             expected_columns=[],
             explanation="M10-admitted M11 integration query",
-        )
+        ),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
     )
     assert outcome.guarded_query is not None
     return outcome.guarded_query

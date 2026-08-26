@@ -399,10 +399,11 @@ Only `PASSED` may reach EXPLAIN/execution.
 `PASSED` has no violations; `REJECTED` has at least one violation.
 
 M10 additionally owns an internal immutable `GuardedQuery` capability that binds the exact
-validated SQL payload and digest, QueryPlan identity/reference, M10 analytics execution namespace,
-passed guard evidence, and accepted EXPLAIN evidence. It is not a public domain contract or a
-replacement for `SQLGuardResult`. Future M11 code consumes this capability rather than accepting
-arbitrary raw SQL.
+validated SQL payload and digest, QueryPlan identity/reference, the versioned fingerprint of the
+exact bounded M9 `PlannerContext`, M10 analytics execution namespace, passed guard evidence, and
+accepted EXPLAIN evidence. It is not a public domain contract or a replacement for
+`SQLGuardResult`. Future M11 code consumes this capability rather than accepting arbitrary raw
+SQL.
 
 ---
 
@@ -450,11 +451,12 @@ separate deterministic normalized-byte budget both set `truncated=true` without 
 unread result cardinality.
 
 Execution metadata is an internal versioned evidence record, not a replacement for this public
-result contract. Internal `execution-metadata-v0.2` carries capability/policy identities, physical
-tables, database principal class, bounds, timings, counts, truncation, typed outcome, and a
-versioned fingerprint of the exact bounded result, but never contains `rows`. The result
-fingerprint covers ordered actual columns, typed positional rows, returned row count, truncation,
-and the public result version; it excludes execution IDs, timestamps, and duration.
+result contract. Internal `execution-metadata-v0.2` carries capability, QueryPlan,
+PlannerContext, and policy identities, physical tables, database principal class, bounds, timings,
+counts, truncation, typed outcome, and a versioned fingerprint of the exact bounded result, but
+never contains `rows`. The result fingerprint covers ordered actual columns, typed positional
+rows, returned row count, truncation, and the public result version; it excludes execution IDs,
+timestamps, and duration.
 
 ---
 
@@ -483,6 +485,13 @@ explicit internal `VerificationTrace` coverage gaps; they must not be encoded as
 `CheckResult(passed=True)`. A typed `VerificationIntegrityError` is raised before these checks when
 the M9 planning, M10 capability, M11 metadata, and bounded result identities do not form one
 coherent evidence chain.
+
+The internal `planner-context-fingerprint-v0.1` is SHA-256 over canonical JSON containing its
+fingerprint version and the complete `PlannerContext`: context version, authoritative
+`RequirementState`, ordered allowed tables, bounded M6 `CatalogDocument` semantic contents,
+bounded M6 `Relationship` values, and all `PlannerCatalogIdentity` fields. M9 records it when the
+plan is accepted; M10 includes it in capability identity; M11 copies it into execution metadata;
+M12 recomputes and compares every link before semantic verification.
 
 ---
 

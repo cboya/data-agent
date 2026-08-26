@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import hashlib
 import json
 from collections.abc import Sequence
 from typing import Literal, Self
@@ -15,6 +16,8 @@ from data_agent.contracts.requirement import RequirementState, RequirementStatus
 from data_agent.contracts.retrieval import RetrievalResult
 from data_agent.planning.errors import PlannerInputError
 from data_agent.planning.prompt import PLANNER_SYSTEM_PROMPT
+
+PLANNER_CONTEXT_FINGERPRINT_VERSION = "planner-context-fingerprint-v0.1"
 
 
 class _PlannerModel(BaseModel):
@@ -54,6 +57,17 @@ class PlannerContext(_PlannerModel):
             ):
                 raise ValueError("planner relationship endpoint is outside allowed tables")
         return self
+
+
+def planner_context_fingerprint(context: PlannerContext) -> str:
+    """Bind the exact bounded semantic world presented to the M9 model."""
+
+    payload = {
+        "fingerprint_version": PLANNER_CONTEXT_FINGERPRINT_VERSION,
+        "planner_context": context.model_dump(mode="json"),
+    }
+    canonical = json.dumps(payload, ensure_ascii=True, separators=(",", ":"), sort_keys=True)
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()
 
 
 def _relationship_key(relationship: Relationship) -> tuple[str, str, str, str]:

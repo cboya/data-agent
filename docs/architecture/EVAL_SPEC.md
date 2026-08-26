@@ -248,6 +248,7 @@ The standalone deterministic M12 gate additionally requires:
 - false accept rate = 0;
 - false reject rate = 0;
 - evidence identity mismatch rejection = 1.00;
+- PlannerContext semantic-content substitution rejection = 1.00;
 - runtime truncation rejection = 1.00.
 
 Verification coverage is reported, not optimized into a false pass. A green M12 report means all

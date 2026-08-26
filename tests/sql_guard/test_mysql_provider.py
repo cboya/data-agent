@@ -7,7 +7,7 @@ import pytest
 
 from data_agent.config import Settings
 from data_agent.sql_guard import ExplainProviderError, GuardedSQL, MySQLExplainProvider, SQLGuard
-from tests.sql_guard.factories import query_plan
+from tests.sql_guard.factories import TEST_PLANNER_CONTEXT_FINGERPRINT, query_plan
 
 
 class FakeCursor:
@@ -51,7 +51,12 @@ def test_provider_constructs_format_json_not_analyze(
     sql = "SELECT id FROM fact_order"
     candidate = cast(
         GuardedSQL,
-        SQLGuard(analytics_schema=settings.mysql_database).evaluate(query_plan(sql)).candidate,
+        SQLGuard(analytics_schema=settings.mysql_database)
+        .evaluate(
+            query_plan(sql),
+            planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+        )
+        .candidate,
     )
 
     result = MySQLExplainProvider(settings).explain(candidate)
@@ -73,7 +78,10 @@ def test_connection_failure_is_redacted_and_fail_closed(
     candidate = cast(
         GuardedSQL,
         SQLGuard(analytics_schema=settings.mysql_database)
-        .evaluate(query_plan("SELECT 1"))
+        .evaluate(
+            query_plan("SELECT 1"),
+            planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+        )
         .candidate,
     )
 

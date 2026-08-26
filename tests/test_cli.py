@@ -148,6 +148,7 @@ def _passing_verification_report() -> VerificationEvalReport:
             verification_policy_version="verification-policy-v0.1",
             execution_metadata_version="execution-metadata-v0.2",
             result_fingerprint_version="execution-result-fingerprint-v0.1",
+            planner_context_fingerprint_version="planner-context-fingerprint-v0.1",
             sql_guard_policy_version="sql-guard-v0.2",
             explain_policy_version="explain-policy-v0.1",
             catalog_fingerprint="b" * 64,
@@ -155,13 +156,14 @@ def _passing_verification_report() -> VerificationEvalReport:
             semantic_revision="d" * 64,
         ),
         metrics=VerificationEvalMetrics(
-            case_count=13,
+            case_count=15,
             structural_decision_accuracy=1.0,
             semantic_decision_accuracy=1.0,
             empirical_decision_accuracy=1.0,
             false_accept_rate=0.0,
             false_reject_rate=0.0,
             identity_mismatch_rejection=1.0,
+            planner_context_substitution_rejection=1.0,
             truncation_rejection=1.0,
             verification_coverage=0.8,
         ),
@@ -265,4 +267,4 @@ def test_verification_eval_command_is_independent(
     assert main(["verification-eval"]) == 0
     output = capsys.readouterr().out
     assert "Verification eval PASS" in output
-    assert "cases=13" in output
+    assert "cases=15" in output

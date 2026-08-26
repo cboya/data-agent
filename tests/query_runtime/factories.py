@@ -20,6 +20,8 @@ from data_agent.sql_guard.explain import ExplainPolicy
 from data_agent.sql_guard.guard import SQLGuard
 from data_agent.sql_guard.service import SQLAdmissionService
 
+_TEST_PLANNER_CONTEXT_FINGERPRINT = "9" * 64
+
 
 class StaticExplainProvider:
     def explain(self, candidate: GuardedSQL) -> str:
@@ -53,7 +55,10 @@ def guarded_query(
         guard=SQLGuard(analytics_schema=analytics_schema),
         explain_provider=StaticExplainProvider(),
         explain_policy=ExplainPolicy(max_estimated_rows_per_access=100),
-    ).admit(plan)
+    ).admit(
+        plan,
+        planner_context_fingerprint=_TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
     assert outcome.guarded_query is not None
     return outcome.guarded_query
 

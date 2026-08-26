@@ -5,6 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 
 from data_agent.contracts.execution import ExecutionResult
+from data_agent.planning.context import planner_context_fingerprint
 from data_agent.planning.service import PlanningTrace
 from data_agent.query_runtime.evidence import (
     EXECUTION_METADATA_VERSION,
@@ -65,6 +66,15 @@ class VerificationContext:
         plan_fingerprint = query_plan_fingerprint(self.planning_trace.plan)
         if plan_fingerprint != query.query_plan_fingerprint:
             raise VerificationIntegrityError("PlanningTrace plan does not match GuardedQuery")
+        actual_context_fingerprint = planner_context_fingerprint(self.planning_trace.context)
+        if actual_context_fingerprint != self.planning_trace.planner_context_fingerprint:
+            raise VerificationIntegrityError(
+                "PlanningTrace PlannerContext fingerprint does not match semantic evidence"
+            )
+        if self.planning_trace.planner_context_fingerprint != query.planner_context_fingerprint:
+            raise VerificationIntegrityError(
+                "PlanningTrace PlannerContext does not match GuardedQuery"
+            )
         context_tables = tuple(str(table) for table in self.planning_trace.context.allowed_tables)
         if self.planning_trace.allowed_tables != context_tables:
             raise VerificationIntegrityError("PlanningTrace allowed-table evidence is inconsistent")
@@ -90,6 +100,10 @@ class VerificationContext:
             )
         if metadata.query_plan_fingerprint != query.query_plan_fingerprint:
             raise VerificationIntegrityError("execution metadata plan identity does not match")
+        if metadata.planner_context_fingerprint != query.planner_context_fingerprint:
+            raise VerificationIntegrityError(
+                "execution metadata PlannerContext identity does not match"
+            )
         if metadata.guarded_query_fingerprint != query.capability_fingerprint:
             raise VerificationIntegrityError(
                 "execution metadata capability identity does not match"

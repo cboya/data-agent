@@ -45,6 +45,14 @@ cases:
     mutation: PLAN_IDENTITY_MISMATCH
     expected: INTEGRITY_ERROR
 
+  - id: governed-relationship-context-substitution
+    mutation: RELATIONSHIP_CONTEXT_MISMATCH
+    expected: INTEGRITY_ERROR
+
+  - id: governed-document-context-substitution
+    mutation: DOCUMENT_CONTEXT_MISMATCH
+    expected: INTEGRITY_ERROR
+
   - id: capability-metadata-mismatch
     mutation: CAPABILITY_METADATA_MISMATCH
     expected: INTEGRITY_ERROR
@@ -52,4 +60,3 @@ cases:
   - id: result-fingerprint-mismatch
     mutation: RESULT_FINGERPRINT_MISMATCH
     expected: INTEGRITY_ERROR
-

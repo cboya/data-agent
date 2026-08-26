@@ -328,8 +328,9 @@ model, mutation, synthesis, or repair authority.
 
 Acceptance:
 
-- evidence identity binds plan, capability, SQL, policies, namespace, successful execution, and a
-  versioned fingerprint of the exact bounded result; mismatch raises `VerificationIntegrityError`;
+- evidence identity binds the exact M9 bounded PlannerContext, plan, capability, SQL, policies,
+  namespace, successful execution, and a versioned fingerprint of the exact bounded result;
+  mismatch raises `VerificationIntegrityError`;
 - structural checks reject runtime truncation and shape/count/metadata inconsistency while allowing
   a coherent empty result;
 - semantic checks require READY state, required metric/dimension outputs, `period` for grain,
@@ -368,6 +369,8 @@ Acceptance:
 - clarification and result response contracts work;
 - numerical facts are tied to `ExecutionResult`;
 - evidence and assumptions returned;
+- synthesis consumes verification coverage evidence, not a bare `VerificationResult`, and must not
+  present a coverage-bounded PASS as exhaustive verification;
 - no synthesis on failed verification.
 
 ---
@@ -721,6 +724,31 @@ ten-table world and retrieval index fingerprint
 implementation head `592cd70` passes remote `Delivery / Quality` in run `32928350734`. M12
 remains active pending substantive review; M13 remains unauthorized.
 
+M12 PlannerContext-identity remediation note (2026-08-26): substantive review identified that M12
+used bounded M6 CatalogDocument/Relationship values from `PlanningTrace.context` as semantic
+authority even though only the associated QueryPlan was bound into the downstream capability.
+`planner-context-fingerprint-v0.1` now hashes canonical JSON for the complete bounded
+`PlannerContext`: version, RequirementState, ordered allowed tables, full document and relationship
+semantics, and catalog/generated-schema/semantic-revision/retrieval identities. M9 records that
+identity at plan acceptance; M10 requires and covers it in both guarded capability fingerprints;
+M11 propagates it into execution metadata; M12 recomputes it and requires exact agreement across
+the trace, capability, and metadata before checks. Focused regressions preserve QueryPlan,
+GuardedQuery, ExecutionMetadata, and ExecutionResult while swapping only a governed relationship
+or catalog semantic alias; both fail as `VerificationIntegrityError` before semantic verification.
+No public contract, M13 behavior, model call, database call, or repair path changed. M14 is now
+explicitly required to consume `VerificationTrace` or equivalent coverage evidence so a
+coverage-bounded PASS cannot be presented as exhaustive verification.
+
+The remediation supersedes the initial 13-case suite with a frozen 15-case suite fingerprint
+`3be8b6e22367efb6eca7c827a8ad38443e3f1e0a0e26150f720eeaf8c7291f74`. Structural,
+semantic, empirical, general identity, PlannerContext-substitution, and truncation decisions each
+score `1.000`; false accept and false reject remain `0.000`; coverage remains `0.904`. Focused
+M9→M12 identity-chain coverage passes 63 tests. `task bootstrap` preserves the deterministic
+ten-table world and retrieval index fingerprint
+`e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
+`task quality` passes 350 tests with 6 explicit host-only Ollama tests skipped. M12 remains active
+pending substantive re-review; M13 remains unauthorized.
+
 ## 6. Decision log
 
 Record implementation choices that resolve `OPEN_QUESTIONS.md`.
@@ -965,11 +993,12 @@ discard protocol and is deferred.
 2026-08-26 — M12 deterministic, coverage-bounded verification
 Decision: Verify one integrity-checked M9→M10→M11 evidence context in structural, semantic, then
 empirical order. Verification only judges existing evidence: it performs no database/model call,
-does not mutate upstream objects, and does not repair. Bind the exact bounded `ExecutionResult`
-into `ExecutionMetadata v0.2` through a versioned canonical typed fingerprint. Keep public
-`VerificationResult v0.1`; record applied checks and not-applicable/unsupported gaps separately in
-an internal trace. PASS means every applicable encoded invariant passed, not that every possible
-semantic error was disproven.
+does not mutate upstream objects, and does not repair. Bind the exact bounded M9 semantic world
+through `planner-context-fingerprint-v0.1` carried by PlanningTrace, M10 capability, and M11
+metadata. Bind the exact bounded `ExecutionResult` into `ExecutionMetadata v0.2` through a
+versioned canonical typed fingerprint. Keep public `VerificationResult v0.1`; record applied
+checks and not-applicable/unsupported gaps separately in an internal trace. PASS means every
+applicable encoded invariant passed, not that every possible semantic error was disproven.
 Evidence: M11 previously bound SQL, plan, policy, namespace, and result-size facts but could not
 prove that separately transported rows belonged to that execution. Current catalog contracts can
 prove unique governed column sources and direct single-column relationship joins, while time and
@@ -977,7 +1006,8 @@ formula semantics remain partly natural-language and therefore must stay explici
 Consequences: Evidence-chain mismatch is a typed integrity error rather than an ordinary failed
 check. Runtime truncation fails structural verification. Ambiguous/unencoded semantics cannot be
 silently marked passed or replaced by an LLM judge or a second business-semantics registry. M13
-alone may consume verification failure for bounded repair.
+alone may consume verification failure for bounded repair. M14 must consume the internal trace or
+equivalent coverage evidence and preserve this bounded claim in answer synthesis.
 
 ## 7. Deviation rule
 

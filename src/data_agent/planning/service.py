@@ -9,7 +9,11 @@ from data_agent.contracts.query import QueryPlan
 from data_agent.contracts.requirement import RequirementState
 from data_agent.contracts.retrieval import RetrievalResult
 from data_agent.model_runtime.ports import ChatModel
-from data_agent.planning.context import PlannerContext, PlannerContextBuilder
+from data_agent.planning.context import (
+    PlannerContext,
+    PlannerContextBuilder,
+    planner_context_fingerprint,
+)
 from data_agent.planning.policy import PlannerPolicy
 from data_agent.planning.prompt import PLANNER_PROMPT_VERSION
 
@@ -17,6 +21,7 @@ from data_agent.planning.prompt import PLANNER_PROMPT_VERSION
 @dataclass(frozen=True)
 class PlanningTrace:
     context: PlannerContext
+    planner_context_fingerprint: str
     plan: QueryPlan
     prompt_version: str
     model_fingerprint: str | None
@@ -89,6 +94,7 @@ class QueryPlanner:
         plan = self._policy.validate(proposal, context=context)
         return PlanningTrace(
             context=context,
+            planner_context_fingerprint=planner_context_fingerprint(context),
             plan=plan,
             prompt_version=PLANNER_PROMPT_VERSION,
             model_fingerprint=self._model_fingerprint,

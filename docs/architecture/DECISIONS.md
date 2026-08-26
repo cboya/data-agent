@@ -298,7 +298,8 @@ physical tables with SQLGlot scopes, applies namespace/table/construct policy, t
 then—proves every function belongs to a conservative approved analytics surface before allowing a
 Harness-owned `EXPLAIN FORMAT=JSON`. Unknown/`Anonymous` functions fail closed. An internal
 immutable `GuardedQuery` binds the exact SQL payload, its SHA-256 digest, QueryPlan identity,
-`SQLGuardResult`, and accepted `ExplainResult` for future M11 consumption.
+the versioned fingerprint of the exact bounded M9 `PlannerContext`, `SQLGuardResult`, and accepted
+`ExplainResult` for future M11 consumption.
 
 Neither the EXPLAIN adapter nor future execution code should accept arbitrary SQL when the internal
 guarded capability can express the required authority. M10 never constructs `EXPLAIN ANALYZE` and
@@ -345,6 +346,12 @@ the smallest deterministic MVP design that makes early termination safe without 
 `ExecutionResult`. It verifies evidence identity before running deterministic structural,
 semantic, and empirical checks. It never queries MySQL, calls a model, generates or repairs SQL,
 or mutates upstream state.
+
+M9 computes `planner-context-fingerprint-v0.1` over canonical JSON for the complete bounded
+`PlannerContext`, including requirement state, ordered allowed tables, full bounded M6 documents
+and relationships, and catalog/retrieval identities. M10 binds that fingerprint beside the
+QueryPlan fingerprint in its capability; M11 propagates it in execution metadata; M12 recomputes
+the current trace context and requires all three stored identities to match before any check.
 
 M11 metadata evolves internally to `execution-metadata-v0.2` and binds the exact bounded result
 through a versioned canonical fingerprint over ordered columns, typed positional rows, returned

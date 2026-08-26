@@ -6,8 +6,10 @@ from decimal import Decimal
 
 import pytest
 
+from data_agent.contracts.catalog import CatalogColumn
 from data_agent.contracts.execution import ExecutionResult
 from data_agent.contracts.query import QueryPlan
+from data_agent.planning.context import PlannerContext
 from data_agent.query_runtime.evidence import execution_result_fingerprint
 from data_agent.verification import (
     VerificationContext,
@@ -76,6 +78,7 @@ def test_coherent_context_builds_and_revalidates() -> None:
     ("field", "value", "match"),
     [
         ("query_plan_fingerprint", "0" * 64, "plan identity"),
+        ("planner_context_fingerprint", "0" * 64, "PlannerContext identity"),
         ("guarded_query_fingerprint", "0" * 64, "capability identity"),
         ("execution_namespace", "other", "namespace"),
         ("guard_policy_version", "stale", "guard policy"),
@@ -120,6 +123,69 @@ def test_planning_trace_plan_mismatch_fails_closed() -> None:
     with pytest.raises(VerificationIntegrityError, match="PlanningTrace"):
         build_verification_context(
             planning_trace=altered_trace,
+            guarded_query=bundle.guarded_query,
+            execution_metadata=bundle.execution_metadata,
+            execution_result=bundle.execution_result,
+        )
+
+
+def test_swapped_relationship_context_fails_before_semantic_checks() -> None:
+    bundle = evidence_bundle()
+    original = bundle.planning_trace.context
+    changed_relationship = original.relationships[0].model_copy(update={"from_column": "id"})
+    changed_context = PlannerContext.model_validate(
+        {
+            **original.model_dump(mode="json"),
+            "relationships": [
+                changed_relationship.model_dump(mode="json"),
+                *[
+                    relationship.model_dump(mode="json")
+                    for relationship in original.relationships[1:]
+                ],
+            ],
+        }
+    )
+    changed_trace = replace(bundle.planning_trace, context=changed_context)
+
+    with pytest.raises(VerificationIntegrityError, match="PlannerContext fingerprint"):
+        build_verification_context(
+            planning_trace=changed_trace,
+            guarded_query=bundle.guarded_query,
+            execution_metadata=bundle.execution_metadata,
+            execution_result=bundle.execution_result,
+        )
+
+
+def test_swapped_catalog_document_context_fails_before_semantic_checks() -> None:
+    bundle = evidence_bundle()
+    original = bundle.planning_trace.context
+    order_document = original.documents[0]
+    changed_columns = [
+        CatalogColumn.model_validate(
+            {
+                **column.model_dump(mode="json"),
+                "aliases": [*column.aliases, "tampered-semantic-alias"],
+            }
+        )
+        if str(column.name) == "paid_amount"
+        else column
+        for column in order_document.columns
+    ]
+    changed_document = order_document.model_copy(update={"columns": changed_columns})
+    changed_context = PlannerContext.model_validate(
+        {
+            **original.model_dump(mode="json"),
+            "documents": [
+                changed_document.model_dump(mode="json"),
+                *[document.model_dump(mode="json") for document in original.documents[1:]],
+            ],
+        }
+    )
+    changed_trace = replace(bundle.planning_trace, context=changed_context)
+
+    with pytest.raises(VerificationIntegrityError, match="PlannerContext fingerprint"):
+        build_verification_context(
+            planning_trace=changed_trace,
             guarded_query=bundle.guarded_query,
             execution_metadata=bundle.execution_metadata,
             execution_result=bundle.execution_result,

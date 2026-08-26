@@ -25,7 +25,12 @@ from data_agent.contracts.requirement import (
     ResolutionStatus,
     TimeRange,
 )
-from data_agent.planning.context import PlannerCatalogIdentity, PlannerContext
+from data_agent.planning.context import (
+    PLANNER_CONTEXT_FINGERPRINT_VERSION,
+    PlannerCatalogIdentity,
+    PlannerContext,
+    planner_context_fingerprint,
+)
 from data_agent.planning.prompt import PLANNER_PROMPT_VERSION
 from data_agent.planning.service import PlanningTrace
 from data_agent.query_runtime.evidence import (
@@ -65,6 +70,8 @@ type VerificationMutation = Literal[
     "NEGATIVE_COUNT",
     "DUPLICATE_GROUP_KEYS",
     "PLAN_IDENTITY_MISMATCH",
+    "RELATIONSHIP_CONTEXT_MISMATCH",
+    "DOCUMENT_CONTEXT_MISMATCH",
     "CAPABILITY_METADATA_MISMATCH",
     "RESULT_FINGERPRINT_MISMATCH",
 ]
@@ -158,6 +165,7 @@ class VerificationEvalMetrics(_EvaluationModel):
     false_accept_rate: float = Field(ge=0, le=1)
     false_reject_rate: float = Field(ge=0, le=1)
     identity_mismatch_rejection: float = Field(ge=0, le=1)
+    planner_context_substitution_rejection: float = Field(ge=0, le=1)
     truncation_rejection: float = Field(ge=0, le=1)
     verification_coverage: float = Field(ge=0, le=1)
 
@@ -168,6 +176,7 @@ class VerificationEvalIdentity(_EvaluationModel):
     verification_policy_version: str
     execution_metadata_version: str
     result_fingerprint_version: str
+    planner_context_fingerprint_version: str
     sql_guard_policy_version: str
     explain_policy_version: str
     catalog_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
@@ -317,12 +326,12 @@ def _catalog_slice(
     return documents, relationships
 
 
-def _admit(plan: QueryPlan) -> GuardedQuery:
+def _admit(plan: QueryPlan, *, context_fingerprint: str) -> GuardedQuery:
     outcome = SQLAdmissionService(
         guard=SQLGuard(analytics_schema="data_agent"),
         explain_provider=_StaticExplainProvider(),
         explain_policy=ExplainPolicy(max_estimated_rows_per_access=100),
-    ).admit(plan)
+    ).admit(plan, planner_context_fingerprint=context_fingerprint)
     if outcome.guarded_query is None:
         raise VerificationEvaluationError("constructed M12 eval plan failed M10 admission")
     return outcome.guarded_query
@@ -351,6 +360,7 @@ def _bundle(
     )
     trace = PlanningTrace(
         context=context,
+        planner_context_fingerprint=planner_context_fingerprint(context),
         plan=plan,
         prompt_version=PLANNER_PROMPT_VERSION,
         model_fingerprint=None,
@@ -358,7 +368,10 @@ def _bundle(
         retrieval_index_fingerprint=context.identity.retrieval_index_fingerprint,
         allowed_tables=table_order,
     )
-    guarded_query = _admit(plan)
+    guarded_query = _admit(
+        plan,
+        context_fingerprint=trace.planner_context_fingerprint,
+    )
     timestamp = datetime(2026, 8, 26, tzinfo=UTC)
     metadata = ExecutionMetadata(
         version=EXECUTION_METADATA_VERSION,
@@ -366,6 +379,7 @@ def _bundle(
         guarded_query_fingerprint=guarded_query.capability_fingerprint,
         sql_digest=guarded_query.sql_digest,
         query_plan_fingerprint=guarded_query.query_plan_fingerprint,
+        planner_context_fingerprint=guarded_query.planner_context_fingerprint,
         execution_namespace=guarded_query.execution_namespace,
         guard_policy_version=guarded_query.guard_policy_version,
         explain_policy_version=guarded_query.explain_policy_version,
@@ -495,6 +509,38 @@ def _case_bundle(
             bundle,
             planning_trace=replace(bundle.planning_trace, plan=changed_plan),
         )
+    if mutation == "RELATIONSHIP_CONTEXT_MISMATCH":
+        original = bundle.planning_trace.context
+        changed_relationship = original.relationships[0].model_copy(update={"from_column": "id"})
+        changed_context = original.model_copy(
+            update={
+                "relationships": (
+                    changed_relationship,
+                    *original.relationships[1:],
+                )
+            }
+        )
+        return replace(
+            bundle,
+            planning_trace=replace(bundle.planning_trace, context=changed_context),
+        )
+    if mutation == "DOCUMENT_CONTEXT_MISMATCH":
+        original = bundle.planning_trace.context
+        order_document = original.documents[0]
+        changed_columns = [
+            column.model_copy(update={"aliases": [*column.aliases, "tampered-alias"]})
+            if str(column.name) == "paid_amount"
+            else column
+            for column in order_document.columns
+        ]
+        changed_document = order_document.model_copy(update={"columns": changed_columns})
+        changed_context = original.model_copy(
+            update={"documents": (changed_document, *original.documents[1:])}
+        )
+        return replace(
+            bundle,
+            planning_trace=replace(bundle.planning_trace, context=changed_context),
+        )
     if mutation == "CAPABILITY_METADATA_MISMATCH":
         return replace(
             bundle,
@@ -587,6 +633,11 @@ def run_verification_evaluation(
     negative = [result for result in results if result.expected != "PASS"]
     positive = [result for result in results if result.expected == "PASS"]
     integrity = [result for result in results if result.expected == "INTEGRITY_ERROR"]
+    context_substitution = [
+        result
+        for result in results
+        if result.mutation in {"RELATIONSHIP_CONTEXT_MISMATCH", "DOCUMENT_CONTEXT_MISMATCH"}
+    ]
     truncation = [result for result in results if result.mutation == "TRUNCATED"]
     applied = sum(result.applied_check_count for result in results)
     unsupported = sum(result.unsupported_gap_count for result in results)
@@ -599,6 +650,10 @@ def run_verification_evaluation(
         false_reject_rate=sum(result.actual != "PASS" for result in positive) / len(positive),
         identity_mismatch_rejection=sum(result.actual == "INTEGRITY_ERROR" for result in integrity)
         / len(integrity),
+        planner_context_substitution_rejection=sum(
+            result.actual == "INTEGRITY_ERROR" for result in context_substitution
+        )
+        / len(context_substitution),
         truncation_rejection=sum(result.actual == "STRUCTURAL_FAILURE" for result in truncation)
         / len(truncation),
         verification_coverage=applied / (applied + unsupported),
@@ -610,6 +665,7 @@ def run_verification_evaluation(
             verification_policy_version=VERIFICATION_POLICY_VERSION,
             execution_metadata_version=EXECUTION_METADATA_VERSION,
             result_fingerprint_version=RESULT_FINGERPRINT_VERSION,
+            planner_context_fingerprint_version=PLANNER_CONTEXT_FINGERPRINT_VERSION,
             sql_guard_policy_version=SQL_GUARD_POLICY_VERSION,
             explain_policy_version=EXPLAIN_POLICY_VERSION,
             catalog_fingerprint=catalog.catalog_fingerprint,
@@ -625,6 +681,7 @@ def run_verification_evaluation(
         and metrics.false_accept_rate == 0.0
         and metrics.false_reject_rate == 0.0
         and metrics.identity_mismatch_rejection == 1.0
+        and metrics.planner_context_substitution_rejection == 1.0
         and metrics.truncation_rejection == 1.0,
     )
 
@@ -670,6 +727,7 @@ def format_verification_eval_summary(report: VerificationEvalReport) -> str:
         f"false_accept={metrics.false_accept_rate:.3f}, "
         f"false_reject={metrics.false_reject_rate:.3f}, "
         f"identity={metrics.identity_mismatch_rejection:.3f}, "
+        f"context_identity={metrics.planner_context_substitution_rejection:.3f}, "
         f"truncation={metrics.truncation_rejection:.3f}, "
         f"coverage={metrics.verification_coverage:.3f}"
     )

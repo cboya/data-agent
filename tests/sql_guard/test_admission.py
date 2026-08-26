@@ -14,7 +14,7 @@ from data_agent.sql_guard import (
     SQLAdmissionService,
     SQLGuard,
 )
-from tests.sql_guard.factories import query_plan
+from tests.sql_guard.factories import TEST_PLANNER_CONTEXT_FINGERPRINT, query_plan
 
 
 def explain_json(*, rows: int = 10, table: str = "fact_order") -> str:
@@ -58,7 +58,10 @@ def service(provider: RecordingProvider | FailingProvider) -> SQLAdmissionServic
 def test_guard_rejection_prevents_explain() -> None:
     provider = RecordingProvider(explain_json())
 
-    outcome = service(provider).admit(query_plan("DELETE FROM fact_order"))
+    outcome = service(provider).admit(
+        query_plan("DELETE FROM fact_order"),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guard.result.status is GuardStatus.REJECTED
     assert outcome.explain_result is None
@@ -70,7 +73,10 @@ def test_unapproved_function_never_reaches_explain() -> None:
     provider = RecordingProvider(explain_json())
     plan = query_plan("SELECT * FROM fact_order WHERE id IN (SELECT unsafe_business_function(1))")
 
-    outcome = service(provider).admit(plan)
+    outcome = service(provider).admit(
+        plan,
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guard.result.violations == ["UNAPPROVED_FUNCTION:UNSAFE_BUSINESS_FUNCTION"]
     assert outcome.guard.candidate is None
@@ -83,12 +89,16 @@ def test_passed_guard_and_explain_issue_exact_sql_capability() -> None:
     provider = RecordingProvider(explain_json())
     sql = " SELECT id FROM fact_order "
 
-    outcome = service(provider).admit(query_plan(sql))
+    outcome = service(provider).admit(
+        query_plan(sql),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guarded_query is not None
     assert outcome.guarded_query.sql == sql
     assert outcome.guarded_query.sql == provider.candidates[0].sql
     assert outcome.guarded_query.sql_digest == provider.candidates[0].sql_digest
+    assert outcome.guarded_query.planner_context_fingerprint == TEST_PLANNER_CONTEXT_FINGERPRINT
     assert outcome.guarded_query.execution_namespace == "data_agent"
     assert provider.candidates[0].execution_namespace == "data_agent"
     assert len(outcome.guarded_query.capability_fingerprint) == 64
@@ -99,12 +109,29 @@ def test_passed_guard_and_explain_issue_exact_sql_capability() -> None:
     assert outcome.guarded_query.explain_result.accepted is True
 
 
+def test_capability_fingerprint_binds_planner_context_identity() -> None:
+    first = service(RecordingProvider(explain_json())).admit(
+        query_plan("SELECT id FROM fact_order"),
+        planner_context_fingerprint="1" * 64,
+    )
+    second = service(RecordingProvider(explain_json())).admit(
+        query_plan("SELECT id FROM fact_order"),
+        planner_context_fingerprint="2" * 64,
+    )
+
+    assert first.guarded_query is not None
+    assert second.guarded_query is not None
+    assert first.guarded_query.query_plan_fingerprint == second.guarded_query.query_plan_fingerprint
+    assert first.guarded_query.capability_fingerprint != second.guarded_query.capability_fingerprint
+
+
 def test_capability_cannot_be_constructed_without_issuer_token() -> None:
     with pytest.raises(ValueError, match="only be issued"):
         GuardedSQL(
             sql="SELECT 1",
             sql_digest="invalid",
             query_plan_fingerprint="invalid",
+            planner_context_fingerprint="invalid",
             execution_namespace="data_agent",
             guard_policy_version="sql-guard-test",
             capability_fingerprint="invalid",
@@ -134,7 +161,10 @@ def test_capability_cannot_be_constructed_without_issuer_token() -> None:
     ],
 )
 def test_explain_policy_fails_closed(raw_explain: str, reason: str) -> None:
-    guard = SQLGuard(analytics_schema="data_agent").evaluate(query_plan("SELECT * FROM fact_order"))
+    guard = SQLGuard(analytics_schema="data_agent").evaluate(
+        query_plan("SELECT * FROM fact_order"),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
     candidate = cast(GuardedSQL, guard.candidate)
 
     result = ExplainPolicy(max_estimated_rows_per_access=100).evaluate(candidate, raw_explain)
@@ -144,7 +174,10 @@ def test_explain_policy_fails_closed(raw_explain: str, reason: str) -> None:
 
 
 def test_provider_failure_is_fail_closed() -> None:
-    outcome = service(FailingProvider()).admit(query_plan("SELECT * FROM fact_order"))
+    outcome = service(FailingProvider()).admit(
+        query_plan("SELECT * FROM fact_order"),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guard.result.status is GuardStatus.PASSED
     assert outcome.explain_result == ExplainResult(
@@ -158,7 +191,10 @@ def test_provider_failure_is_fail_closed() -> None:
 def test_constant_select_can_pass_without_table_accesses() -> None:
     provider = RecordingProvider(json.dumps({"query_block": {"select_id": 1}}))
 
-    outcome = service(provider).admit(query_plan("SELECT 1"))
+    outcome = service(provider).admit(
+        query_plan("SELECT 1"),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guarded_query is not None
     assert outcome.guarded_query.physical_tables == ()
@@ -167,7 +203,10 @@ def test_constant_select_can_pass_without_table_accesses() -> None:
 def test_explain_access_provenance_is_preserved() -> None:
     provider = RecordingProvider(explain_json(rows=99, table="orders_alias"))
 
-    outcome = service(provider).admit(query_plan("SELECT * FROM fact_order AS orders_alias"))
+    outcome = service(provider).admit(
+        query_plan("SELECT * FROM fact_order AS orders_alias"),
+        planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+    )
 
     assert outcome.guarded_query is not None
     access = outcome.guarded_query.explain_result.accesses[0]
@@ -181,7 +220,10 @@ def test_explain_size_and_structure_are_bounded() -> None:
     candidate = cast(
         GuardedSQL,
         SQLGuard(analytics_schema="data_agent")
-        .evaluate(query_plan("SELECT * FROM fact_order"))
+        .evaluate(
+            query_plan("SELECT * FROM fact_order"),
+            planner_context_fingerprint=TEST_PLANNER_CONTEXT_FINGERPRINT,
+        )
         .candidate,
     )
     policy = ExplainPolicy(
