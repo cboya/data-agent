@@ -10,6 +10,7 @@ from pathlib import Path
 
 from data_agent.answer.grounding import ANSWER_GROUNDING_POLICY_VERSION
 from data_agent.answer.prompt import ANSWER_PROMPT_VERSION
+from data_agent.config import Settings
 from data_agent.dialogue.prompt import DIALOGUE_PROMPT_VERSION
 from data_agent.model_runtime.ports import ModelRuntimeDiagnostics
 from data_agent.planning.prompt import PLANNER_PROMPT_VERSION
@@ -58,6 +59,7 @@ def build_environment(
     authority: CurrentCatalogAuthority,
     index: RetrievalIndex,
     diagnostics: ModelRuntimeDiagnostics,
+    settings: Settings,
 ) -> EvaluationEnvironment:
     payload = {
         "version": "evaluation-environment-v0.1",
@@ -71,6 +73,8 @@ def build_environment(
         "chat_model_fingerprint": diagnostics.chat.value,
         "embedding_model_fingerprint": diagnostics.embedding.value,
         "ollama_runtime_version": diagnostics.runtime_version,
+        "ollama_request_timeout_seconds": settings.ollama_request_timeout_seconds,
+        "ollama_max_output_tokens": settings.ollama_max_output_tokens,
         "dialogue_prompt_version": DIALOGUE_PROMPT_VERSION,
         "planning_prompt_version": PLANNER_PROMPT_VERSION,
         "repair_prompt_version": QUERY_REPAIR_PROMPT_VERSION,

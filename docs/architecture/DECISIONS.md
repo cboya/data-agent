@@ -495,6 +495,12 @@ behavioral acceptance may use a stronger local Ollama chat model, but its immuta
 suite rerun. Small-model failure is permitted only within the probabilistic behavior thresholds;
 deterministic safety and trace gates remain exact.
 
+All structured chat calls retain temperature zero, disable thinking where supported, and apply
+the configured 2,048-token generation ceiling. Final evaluation identity binds both this ceiling
+and the request timeout. This resource bound is model-family neutral: it prevents a capable larger
+model from turning a bounded JSON contract into an unbounded generation without changing any
+prompt, Oracle, or behavioral truth.
+
 **Reason:** Golden truth describes intended product semantics, while an environment-bound score
 describes one model's capability. Optimizing case selection around an 8B model would reverse that
 authority relationship and overstate generalization. A stronger model may improve behavior, but

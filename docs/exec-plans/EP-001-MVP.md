@@ -994,6 +994,14 @@ but it must rerun the unchanged suite under a new complete environment fingerpri
 fingerprint `53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7`
 binds the exact suite.
 
+M15 large-model execution note (2026-08-27): final acceptance uses a configured local
+Qwen3-30B-A3B-Instruct-2507 Q4 model rather than treating the 8B diagnostic as a release gate.
+Initial observation exposed repeated 17–18 minute unbounded-generation tails even with structured
+JSON and thinking disabled. The provider-neutral adapter now sends the frozen configurable
+2,048-token `num_predict` ceiling for every structured call; EvaluationEnvironment binds this
+ceiling and the request timeout. This is a resource-safety amendment only: prompts, Golden cases,
+Oracles, stage policies, and M8–M14 semantics remain unchanged.
+
 M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
 APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
 focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag

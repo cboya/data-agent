@@ -183,6 +183,7 @@ class OllamaChatModel:
             required_capability="completion",
         )
         self._transport = _transport(settings, transport)
+        self._max_output_tokens = settings.ollama_max_output_tokens
 
     async def structured(
         self,
@@ -207,7 +208,10 @@ class OllamaChatModel:
                 "stream": False,
                 "think": False,
                 "format": response_type.model_json_schema(),
-                "options": {"temperature": 0},
+                "options": {
+                    "temperature": 0,
+                    "num_predict": self._max_output_tokens,
+                },
             },
         )
         if response.get("done") is not True:

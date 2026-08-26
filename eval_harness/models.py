@@ -76,6 +76,8 @@ class EvaluationEnvironment(_EvalModel):
     chat_model_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     embedding_model_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     ollama_runtime_version: str
+    ollama_request_timeout_seconds: float = Field(gt=0)
+    ollama_max_output_tokens: int = Field(ge=256)
     dialogue_prompt_version: str
     planning_prompt_version: str
     repair_prompt_version: str

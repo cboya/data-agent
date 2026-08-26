@@ -112,6 +112,7 @@ def run_final_acceptance(settings: Settings) -> FinalAcceptanceReport:
             authority=authority,
             index=index,
             diagnostics=diagnostics,
+            settings=settings,
         )
         golden = run_golden(
             client=client,

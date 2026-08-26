@@ -25,6 +25,7 @@ class Settings(BaseSettings):
     planner_eval_request_timeout_seconds: float = Field(default=180.0, gt=0, le=300)
     ollama_max_embedding_batch: int = Field(default=32, ge=1, le=256)
     ollama_max_response_bytes: int = Field(default=4_194_304, ge=1024, le=16_777_216)
+    ollama_max_output_tokens: int = Field(default=2_048, ge=256, le=32_768)
 
     app_host: str = "127.0.0.1"
     app_port: int = Field(default=8000, ge=1, le=65535)
