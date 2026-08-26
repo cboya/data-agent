@@ -898,8 +898,8 @@ serialize as strings. Context larger than `MAX_ANSWER_CONTEXT_ROWS` or
 calls and no new result facts. The minimal conversation UoW extends the existing M8 store so
 dialogue/Run outcomes and final-message/Run completion cannot partially commit. The orchestrator
 only sequences existing M8–M14 authorities. Deterministic M14 eval currently passes all six
-frozen cases and every grounding/Decimal/coverage metric at `1.000`; host acceptance evidence is
-recorded below and remote evidence remains pending.
+frozen cases and every grounding/Decimal/coverage metric at `1.000`; host and initial remote
+acceptance evidence are recorded below.
 
 M14 local acceptance evidence (2026-08-26): `task bootstrap` rebuilt the ten-table controlled
 world and retrieval index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`;
@@ -915,6 +915,12 @@ also remains green: M7 seed/final recall `0.990/1.000`, M8 action/state `1.000`,
 `1.000`, M10 guard/table-scope `1.000`, and every M11–M14 deterministic gate passes. M14 is ready
 for focused PR and substantive review; it is not complete or authorized for merge, and M15 remains
 unauthorized.
+
+M14 PR evidence (2026-08-26): focused PR #14 was opened from implementation head
+`7a7f886930d7083b7f598d523545712711d10156`; remote `Delivery / Quality` passed in run
+`32946182680` (55 seconds). Required reviewer `cboya` remains requested. M14 is ready for
+substantive review; it remains active rather than complete, PR #14 must not be merged without
+approval, and M15 remains unauthorized.
 
 ## 6. Decision log
 
