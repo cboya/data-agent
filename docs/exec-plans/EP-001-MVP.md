@@ -747,7 +747,9 @@ M9→M12 identity-chain coverage passes 63 tests. `task bootstrap` preserves the
 ten-table world and retrieval index fingerprint
 `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
 `task quality` passes 350 tests with 6 explicit host-only Ollama tests skipped. M12 remains active
-pending substantive re-review; M13 remains unauthorized.
+pending substantive re-review; M13 remains unauthorized. Remediation implementation commit
+`c8e31631fd9a0bf210bae6665e8415c2c388e5ae` passes remote `Delivery / Quality` in run
+`32932751098`.
 
 ## 6. Decision log
 
