@@ -665,7 +665,8 @@ unauthorized. The remediation bumps the runtime policy to
 `query-runtime-v0.2`; focused M11/M10/config/CLI coverage passes 45 tests, `task bootstrap` passes
 with the unchanged retrieval index fingerprint, complete `task quality` passes 316 tests with 6
 explicit host-only Ollama tests skipped, and the six-case runtime eval retains every metric at
-`1.000`. Remote `Delivery / Quality` remains pending for the remediation head.
+`1.000`. PR #11 remediation head `875eac9` passes remote `Delivery / Quality` in run
+`32925478092`. M11 remains active pending substantive re-review; M12 remains unauthorized.
 
 ## 6. Decision log
 
