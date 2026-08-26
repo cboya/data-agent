@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import re
 from collections.abc import Iterator, Mapping
 from typing import Any, Protocol
 
@@ -17,6 +18,32 @@ from data_agent.sql_guard.errors import ExplainProviderError
 EXPLAIN_POLICY_VERSION = "explain-policy-v0.1"
 DEFAULT_MAX_EXPLAIN_CHARACTERS = 1_000_000
 DEFAULT_MAX_EXPLAIN_NODES = 10_000
+_MAX_SAFE_ERROR_CHARACTERS = 512
+
+
+def _mysql_error_code(error: pymysql.MySQLError) -> int | None:
+    if error.args and isinstance(error.args[0], int) and not isinstance(error.args[0], bool):
+        return error.args[0]
+    return None
+
+
+def _mysql_sqlstate(error: pymysql.MySQLError) -> str | None:
+    value = getattr(error, "sqlstate", None)
+    return value if isinstance(value, str) and value.strip() else None
+
+
+def _safe_provider_detail(error: pymysql.MySQLError, settings: Settings) -> str:
+    detail = " ".join(str(error).split())
+    secrets = (
+        settings.mysql_readonly_password.get_secret_value(),
+        settings.mysql_control_password.get_secret_value(),
+        settings.mysql_root_password.get_secret_value(),
+    )
+    for secret in secrets:
+        if secret:
+            detail = detail.replace(secret, "[REDACTED]")
+    detail = re.sub(r"(?i)(password\s*[=:]\s*)[^\s,;]+", r"\1[REDACTED]", detail)
+    return detail[:_MAX_SAFE_ERROR_CHARACTERS]
 
 
 class ExplainPlanProvider(Protocol):
@@ -40,7 +67,12 @@ class MySQLExplainProvider:
                 cursor.execute(statement)
                 row = cursor.fetchone()
         except pymysql.MySQLError as error:
-            raise ExplainProviderError("MySQL EXPLAIN failed") from error
+            raise ExplainProviderError(
+                "MySQL EXPLAIN failed",
+                provider_errno=_mysql_error_code(error),
+                provider_sqlstate=_mysql_sqlstate(error),
+                safe_detail=_safe_provider_detail(error, self._settings),
+            ) from error
         finally:
             if connection is not None:
                 connection.close()

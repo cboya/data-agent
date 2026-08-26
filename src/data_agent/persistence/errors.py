@@ -27,3 +27,7 @@ class PersistenceInvariantError(PersistenceError):
 
 class MigrationDriftError(PersistenceError):
     """Raised when an applied migration no longer matches repository content."""
+
+
+class RepairAttemptsExhaustedError(PersistenceError):
+    """Raised before inference when a Run has no durable repair budget remaining."""

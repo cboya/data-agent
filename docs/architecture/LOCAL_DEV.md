@@ -100,6 +100,15 @@ separately from passed checks, and writes `evals/reports/verification-latest.jso
 task m12-eval
 ```
 
+M13 adds a deterministic typed eligibility/bound evaluation and a separate three-case real-Ollama
+repair smoke. The real smoke uses one frozen PlannerContext per case and requires each replacement
+to pass a fresh M9–M12 chain:
+
+```bash
+task m13-eval
+task m13-ollama-smoke
+```
+
 M7 `task bootstrap` builds a bound embedding index and therefore requires the configured runtime.
 The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub for bootstrap
 identity and index plumbing; substantive embedding quality evidence comes from the explicitly
@@ -187,8 +196,8 @@ task quality
 task eval
 ```
 
-`task eval` runs the standalone retrieval, dialogue, planner, SQL-guard, runtime, and verification
-evaluations. M10 writes its machine-readable report under `evals/reports/`, binds SQLGlot/policy
+`task eval` runs the standalone retrieval, dialogue, planner, SQL-guard, runtime, verification, and
+deterministic repair evaluations. M10 writes its machine-readable report under `evals/reports/`, binds SQLGlot/policy
 configuration and the accepted M9 snapshot fingerprint, runs only Harness-owned JSON EXPLAIN, and
 does not execute normal SQL. Plain EXPLAIN is protected by the pre-provider approved-function
 policy rather than assumed to be inherently side-effect free.
@@ -197,5 +206,7 @@ M11 then executes only its own frozen M10-admitted runtime queries and may claim
 returned database values, but not semantic correctness against the originating requirement.
 M12 may claim only that all applicable invariants encoded by its current policy passed; unsupported
 time/formula semantics remain explicit coverage gaps rather than global correctness claims.
+M13's real-Ollama smoke remains separate and claims only bounded controlled-world repair evidence,
+not general self-healing.
 
 apart from installing Ollama and the configured local models.

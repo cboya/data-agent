@@ -54,6 +54,18 @@ tasks:
     cmds:
       - uv run data-agent verification-eval
 
+  m13-eval:
+    desc: Run the standalone M13 deterministic repair eligibility evaluation
+    deps: [sync]
+    cmds:
+      - uv run data-agent repair-eval
+
+  m13-ollama-smoke:
+    desc: Run the bound three-case real Ollama M13 repair smoke
+    deps: [sync]
+    cmds:
+      - uv run data-agent repair-ollama-eval
+
   reset:
     desc: Reset generated local state
     deps: [sync]

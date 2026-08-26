@@ -16,7 +16,11 @@ from data_agent.query_runtime.evidence import (
     execution_result_fingerprint,
 )
 from data_agent.query_runtime.runtime import build_readonly_query_runtime
-from data_agent.query_runtime.service import ReadOnlyQueryRuntime, RuntimeLimits
+from data_agent.query_runtime.service import (
+    ReadOnlyQueryRuntime,
+    RuntimeExecutionEvidence,
+    RuntimeLimits,
+)
 
 __all__ = [
     "CapabilityIntegrityError",
@@ -29,6 +33,7 @@ __all__ = [
     "ReadOnlyQueryRuntime",
     "ResultDecodingError",
     "RuntimeExecutionError",
+    "RuntimeExecutionEvidence",
     "RuntimeLimits",
     "UnsupportedResultTypeError",
     "build_readonly_query_runtime",

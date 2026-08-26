@@ -149,6 +149,14 @@ ratio of applied checks to applied plus unsupported potential checks. Not-applic
 unsupported coverage are recorded separately from passed checks. The verifier performs no model
 or database call.
 
+The standalone M13 gate has two bounded corpora. A deterministic eligibility/safety corpus covers
+repairable formulation, every nonrepairable policy/integrity/runtime class, verification coverage
+non-triggering, exhausted budget, and concurrent atomic claim. It reports classification accuracy,
+policy/integrity zero-model-call accuracy, and bound enforcement. A separate bounded real-model
+corpus covers syntax, unknown-column, and one selected verification formulation failure through a
+new M9→M12 branch. It reports eligible first-attempt success, post-repair M12 pass, repair/model
+counts, and prompt/model/runtime/failure fingerprints. It makes no general self-healing claim.
+
 ### 5.5 Result
 
 - expected result assertion pass;
@@ -254,6 +262,16 @@ The standalone deterministic M12 gate additionally requires:
 Verification coverage is reported, not optimized into a false pass. A green M12 report means all
 currently encoded applicable invariants classified the controlled mutations correctly; it does
 not claim global SQL equivalence or business-answer correctness.
+
+The standalone M13 deterministic gate additionally requires:
+
+- eligibility classification accuracy = 1.00;
+- policy/integrity zero-model-call accuracy = 1.00;
+- configured repair-bound enforcement = 1.00;
+- concurrent claim does not exceed the durable bound.
+
+The bounded real-model M13 report must separately show eligible first-attempt success and final
+post-repair M12 pass for each frozen case; it does not weaken any M10–M12 gate.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 

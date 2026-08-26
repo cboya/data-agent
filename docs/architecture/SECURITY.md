@@ -227,19 +227,28 @@ Exact thresholds are calibration parameters, but inability to safely inspect a p
 
 ## 11. Repair policy
 
-Only repair errors that are safe to repair, such as:
+M13 classifies only typed failure fields. Free-text detail is bounded, sanitized, treated as
+untrusted prompt data, and never determines eligibility. The initial exact allowlist is:
 
-- unknown column due to planner mistake;
-- alias/syntax issue;
-- selected schema mismatch.
+- SQL parser/formulation syntax failure;
+- MySQL error code `1052` or `1054` from Harness-owned EXPLAIN or execution;
+- selected verification output-shape/alias, unique governed-source, direct governed-JOIN, and
+  grouping-key formulation failures.
 
-Do not allow repair to circumvent:
+Repair must not circumvent or consume an attempt for:
 
 - policy denial;
 - unauthorized table rejection;
 - prohibited statement rejection.
+- EXPLAIN cost/structure rejection;
+- verification identity mismatch or runtime capability/namespace mismatch;
+- timeout, database unavailability, result decoding/type failure, or truncation;
+- a verification coverage gap.
 
-Security rejection is terminal for that candidate.
+An eligible attempt is atomically persisted before the model call. A replacement uses the exact
+same fingerprinted PlannerContext and starts a new M9→M12 evidence chain; it cannot rerun retrieval,
+widen tables, or reuse a previous GuardedQuery, execution, result, or verification. Security
+rejection is terminal for that candidate.
 
 ## 12. Prompt injection boundary
 

@@ -89,3 +89,6 @@ def test_connection_failure_is_redacted_and_fail_closed(
         MySQLExplainProvider(settings).explain(candidate)
 
     assert "sensitive" not in str(error.value)
+    assert error.value.provider_errno == 2003
+    assert error.value.safe_detail is not None
+    assert "sensitive" in error.value.safe_detail

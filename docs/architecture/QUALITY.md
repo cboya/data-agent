@@ -42,6 +42,8 @@ Tests should mechanically enforce at least:
 - query execution cannot bypass SQL guard;
 - answer synthesis requires `VerificationResult.PASSED`;
 - curated catalog and generated catalog paths are not conflated.
+- repair cannot import retrieval/M14 layers, widen its PlannerContext, or exceed the durable
+  attempt bound.
 
 Static dependency rules may be implemented through import tests/custom lints if valuable.
 

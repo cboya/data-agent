@@ -168,6 +168,7 @@ def test_server_timeout_is_typed_recorded_and_never_retried() -> None:
     assert len(cursor.executed) == 1
     assert captured.value.safe_detail is not None
     assert "reader-secret" not in captured.value.safe_detail
+    assert captured.value.provider_errno == 3024
     metadata = sink.records[0]
     assert metadata.execution_attempt_count == 1
     assert metadata.error_code == "QUERY_TIMEOUT"
@@ -189,6 +190,7 @@ def test_connection_and_database_errors_are_typed_without_retry() -> None:
         execute_error=pymysql.ProgrammingError(1054, "unknown column"),
     )
     database_error = FakeFactory(cursor)
-    with pytest.raises(DatabaseExecutionError):
+    with pytest.raises(DatabaseExecutionError) as captured:
         runtime(database_error).execute(guarded_query("SELECT id FROM fact_order"))
+    assert captured.value.provider_errno == 1054
     assert len(cursor.executed) == 1

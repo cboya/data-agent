@@ -269,7 +269,7 @@ RECEIVED       → UNDERSTANDING
 UNDERSTANDING  → CLARIFYING | RETRIEVING | FAILED
 RETRIEVING     → PLANNING | FAILED
 PLANNING       → VALIDATING | FAILED
-VALIDATING     → EXECUTING | POLICY_DENIED | QUERY_TOO_EXPENSIVE | FAILED
+VALIDATING     → EXECUTING | POLICY_DENIED | QUERY_TOO_EXPENSIVE | REPAIR_EXHAUSTED | FAILED
 EXECUTING      → VERIFYING | VALIDATING | REPAIR_EXHAUSTED | FAILED
 VERIFYING      → SYNTHESIZING | VALIDATING | REPAIR_EXHAUSTED | FAILED
 SYNTHESIZING   → COMPLETED | FAILED
@@ -431,6 +431,12 @@ database principal class, active resource bounds, timing, returned row/byte coun
 typed outcome, and a versioned fingerprint of the exact bounded `ExecutionResult`. It is emitted
 separately from the result; full raw result rows are not metadata artifacts. M12 trace records the
 evidence identities, applied checks, explicit coverage gaps, and public verification result.
+
+M13 repair records a separate internal branch: typed bounded failure evidence, durable attempt
+claim, original and replacement plan identities, unchanged PlannerContext fingerprint,
+prompt/model/runtime identities, outcome, and final verification identity on success. It never
+overwrites failed evidence or records raw result rows. Every replacement re-enters M9 policy and
+runs M10 guard/EXPLAIN, M11 execution, and M12 verification from scratch.
 
 ## 15. MVP non-goals
 

@@ -8,7 +8,12 @@ from pydantic import ValidationError
 
 from data_agent.config import Settings
 from data_agent.contracts.run import Run, RunStatus
-from data_agent.persistence.errors import CorruptRecordError, RecordNotFoundError
+from data_agent.persistence.errors import (
+    CorruptRecordError,
+    PersistenceInvariantError,
+    RecordNotFoundError,
+    RepairAttemptsExhaustedError,
+)
 from data_agent.persistence.mysql.common import (
     control_connection,
     corrupt_record,
@@ -139,6 +144,69 @@ class MySQLRunRepository:
             connection.commit()
             return updated
         except (RecordNotFoundError, ValidationError, ValueError):
+            connection.rollback()
+            raise
+        except pymysql.MySQLError as error:
+            connection.rollback()
+            raise_write_error(error, record=f"Run {run_id}")
+        finally:
+            connection.close()
+
+    def claim_repair(self, run_id: str, *, max_attempts: int) -> Run:
+        """Atomically consume one repair attempt before any model call."""
+
+        if max_attempts < 0:
+            raise ValueError("repair-attempt bound cannot be negative")
+        connection = control_connection(self._settings, autocommit=False)
+        try:
+            with connection.cursor() as cursor:
+                cursor.execute(
+                    "SELECT id, session_id, status, repair_count, started_at, "
+                    "completed_at, error_code FROM agent_run WHERE id = %s FOR UPDATE",
+                    (run_id,),
+                )
+                row = cursor.fetchone()
+                if row is None:
+                    raise RecordNotFoundError(f"Run {run_id} does not exist")
+                current = _run_from_row(cast(tuple[object, ...], row))
+                if current.repair_count >= max_attempts:
+                    raise RepairAttemptsExhaustedError(
+                        f"Run {run_id} exhausted its repair-attempt bound"
+                    )
+                if current.status not in {
+                    RunStatus.VALIDATING,
+                    RunStatus.EXECUTING,
+                    RunStatus.VERIFYING,
+                }:
+                    raise PersistenceInvariantError(
+                        f"Run status cannot claim repair: {current.status.value}"
+                    )
+                if current.status is not RunStatus.VALIDATING:
+                    RunStateMachine.transition(current.status, RunStatus.VALIDATING)
+                updated = Run.model_validate(
+                    {
+                        **current.model_dump(),
+                        "status": RunStatus.VALIDATING,
+                        "repair_count": current.repair_count + 1,
+                        "completed_at": None,
+                        "error_code": None,
+                    }
+                )
+                RunStateMachine.require_consistent(updated)
+                cursor.execute(
+                    "UPDATE agent_run SET status = %s, repair_count = %s, "
+                    "completed_at = NULL, error_code = NULL WHERE id = %s",
+                    (RunStatus.VALIDATING.value, updated.repair_count, run_id),
+                )
+            connection.commit()
+            return updated
+        except (
+            RecordNotFoundError,
+            RepairAttemptsExhaustedError,
+            PersistenceInvariantError,
+            ValidationError,
+            ValueError,
+        ):
             connection.rollback()
             raise
         except pymysql.MySQLError as error:

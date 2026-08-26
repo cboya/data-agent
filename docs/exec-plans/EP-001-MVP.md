@@ -349,14 +349,31 @@ Acceptance:
 
 ### M13 — Bounded repair
 
-Implement maximum configured repair loop.
+Implement one typed, persisted, maximum-configured repair branch over the same frozen M9
+`PlannerContext`.
 
 Acceptance:
 
-- representative unknown-column/syntax error can be repaired;
-- repair count is visible;
-- policy rejection cannot be repaired around;
-- bound cannot be exceeded.
+- repair eligibility is a default-deny typed allowlist and never depends on free-text matching;
+- eligible SQL syntax, approved MySQL unknown/ambiguous-column, and selected M12 formulation
+  failures may propose one replacement full `QueryPlan` under exactly the original
+  `PlannerContext`;
+- policy/cost/integrity/capability/namespace/availability/timeout/decoding/truncation failures and
+  verification coverage gaps make zero repair-model calls and do not increment `repair_count`;
+- an attempt is atomically claimed in the control database before the model call; model failure
+  consumes the attempt and concurrent callers cannot exceed the configured bound;
+- replacement evidence is a new branch and must run M9 policy, full M10 guard plus EXPLAIN, M11
+  execution, and M12 verification from scratch; failed evidence is never overwritten or reused;
+- the repair prompt treats bounded diagnostic detail as untrusted data and cannot widen retrieval,
+  catalog, tables, RequirementState, or the PlannerContext;
+- internal `RepairFailure` and `RepairTrace` bind the failure, original/replacement plan,
+  unchanged PlannerContext, prompt/model/runtime, attempt, outcome, and successful final
+  verification identities without retaining raw result rows;
+- deterministic standalone evaluation reports eligibility accuracy, policy/integrity zero-call
+  accuracy, and bound enforcement; the separate real-model report covers eligible first-attempt
+  success and post-repair M12 pass;
+- a bounded real-Ollama corpus covers syntax, unknown-column, and one selected semantic
+  verification formulation failure through a final M12 PASS.
 
 ---
 
@@ -405,8 +422,8 @@ Codex must update this section as milestones complete.
 [x] M9 Query planner — complete and frozen via PR #9
 [x] M10 SQL guard + EXPLAIN gate — complete and frozen via PR #10
 [x] M11 Read-only runtime — complete and frozen via PR #11
-[ ] M12 Verification — active
-[ ] M13 Bounded repair
+[x] M12 Verification — complete and frozen via PR #12
+[ ] M13 Bounded repair — active
 [ ] M14 Answer synthesis + API
 [ ] M15 Trace + Golden Dataset eval
 ```
@@ -750,6 +767,59 @@ ten-table world and retrieval index fingerprint
 pending substantive re-review; M13 remains unauthorized. Remediation implementation commit
 `c8e31631fd9a0bf210bae6665e8415c2c388e5ae` passes remote `Delivery / Quality` in run
 `32932751098`.
+
+M12 closure note (2026-08-26): PR #12 was approved and squash-merged to `main` at
+`962dcf1798057bd5f026765c722234b8e729a426`. The accepted remediation head was `f2a51b8`; the
+accepted M9→M12 identity-chain suite passed 63 focused tests, the frozen 15-case verification eval
+fingerprint remained `3be8b6e22367efb6eca7c827a8ad38443e3f1e0a0e26150f720eeaf8c7291f74`,
+`task quality` passed 350 tests with 6 explicit host-only Ollama tests skipped, and remote
+`Delivery / Quality` passed. M12 is complete/frozen; M13 is active. M14 remains unauthorized.
+
+M13 activation note (2026-08-26): use `repair-policy-v0.1`, `query-repair-v0.1`,
+`repair-failure-fingerprint-v0.1`, and `repair-trace-v0.1`. Repair returns a replacement public
+`QueryPlan v0.1`. Eligibility is an exact typed allowlist. The only initial provider codes are
+MySQL `1052` (ambiguous column) and `1054` (unknown column), whether
+raised by Harness-owned EXPLAIN or runtime execution. Selected M12 repairable check names are
+limited to output shape/alias, unique governed output source, direct governed relationship JOIN,
+and grouping-key formulation. Coverage gaps never trigger repair. The original PlannerContext is
+reused by value and fingerprint, retrieval is not rerun, and replacement plans pass the existing
+M9 PlannerPolicy and the complete M10→M12 evidence chain. The existing
+`max_sql_repair_attempts` setting remains the configured bound and defaults to one. An atomic
+control-plane claim increments durable `Run.repair_count` before inference; a claimed model
+failure consumes the attempt. `VALIDATING → REPAIR_EXHAUSTED` is added as the smallest lifecycle
+amendment needed for a failed/exhausted M10-stage repair without inventing a `REPAIRING` status.
+
+M13 provider-grammar evidence note (2026-08-26): the first bound real-Ollama smoke repaired the
+unknown-column case through M12 but produced an empty `expected_columns` list for both syntax and
+verification-alias cases. Their replacement SQL executed, then M12 correctly failed
+`expected_columns_present`, output-shape, required-metric, and grain-period checks. Because public
+`QueryPlan v0.1` intentionally defaults that list to empty, prompt text alone could not make the
+provider schema require the M12-essential output shape. Introduce a narrow internal
+`RepairPlanProposal` whose only material restriction is `expected_columns min_length=1`, then
+normalize it immediately into public `QueryPlan v0.1` and apply the unchanged M9 policy/M10–M12
+chain. This measured adapter workaround does not revise the frozen public contract or make the DTO
+semantic authority.
+
+M13 implementation evidence (2026-08-26): `repair-policy-v0.1` classifies a frozen 19-case suite
+with eligibility accuracy `1.000`, policy/integrity zero-model-call accuracy `1.000`, durable-bound
+enforcement `1.000`, and concurrent-claim bound enforcement `1.000`; suite fingerprint
+`c087d5e8d3c9dc9c33244b61ebe4fd0334460a062eea05b62db03ae5fbf1474f`. The real
+control database proves one of two concurrent claims succeeds and durable `repair_count` remains
+one; a separate cross-service regression proves an exhausted competing caller cannot terminalize
+the in-flight owner's Run. The focused M13/M9–M12/persistence suite passes 157 tests. `task
+bootstrap` preserves the ten-table controlled world and retrieval index fingerprint
+`e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete
+`task quality` passes 392 tests with 6 explicit host-only Ollama tests skipped.
+
+The final three-case real-Ollama report binds chat model fingerprint
+`3abd0ade8368742786e7464c1ff3b7ffbdb048bbfb303820725ac724f01bdfe6`, Ollama
+`0.32.15`, the unchanged retrieval index/catalog/generated-schema/semantic identities, prompt
+`query-repair-v0.1`, per-case failure and replacement-plan fingerprints, one model call, and
+durable `repair_count=1`. Syntax, MySQL unknown-column `1054`, and M12 verification-alias cases all
+produce new evidence branches ending in M12 PASS: eligible first-attempt success `1.000`,
+post-repair M12 pass `1.000`, and bound enforcement `1.000`. This is controlled-world evidence
+only, not a general self-healing claim. M13 remains active pending PR and substantive review; M14
+remains unauthorized.
 
 ## 6. Decision log
 

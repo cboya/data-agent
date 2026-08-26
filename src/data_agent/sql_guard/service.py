@@ -17,6 +17,7 @@ class SQLAdmissionOutcome:
     guard: SQLGuardEvaluation
     explain_result: ExplainResult | None = None
     guarded_query: GuardedQuery | None = None
+    provider_error: ExplainProviderError | None = None
 
 
 class SQLAdmissionService:
@@ -47,13 +48,17 @@ class SQLAdmissionService:
             return SQLAdmissionOutcome(guard=guard)
         try:
             raw_explain = self._explain_provider.explain(guard.candidate)
-        except ExplainProviderError:
+        except ExplainProviderError as error:
             explain_result = ExplainResult(
                 accepted=False,
                 accesses=[],
                 rejection_reason="EXPLAIN_PROVIDER_FAILURE",
             )
-            return SQLAdmissionOutcome(guard=guard, explain_result=explain_result)
+            return SQLAdmissionOutcome(
+                guard=guard,
+                explain_result=explain_result,
+                provider_error=error,
+            )
         explain_result = self._explain_policy.evaluate(guard.candidate, raw_explain)
         if not explain_result.accepted:
             return SQLAdmissionOutcome(guard=guard, explain_result=explain_result)

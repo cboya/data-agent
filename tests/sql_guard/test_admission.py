@@ -44,7 +44,12 @@ class RecordingProvider:
 
 class FailingProvider:
     def explain(self, candidate: GuardedSQL) -> str:
-        raise ExplainProviderError("redacted provider failure")
+        raise ExplainProviderError(
+            "redacted provider failure",
+            provider_errno=1054,
+            provider_sqlstate="42S22",
+            safe_detail="unknown bounded column",
+        )
 
 
 def service(provider: RecordingProvider | FailingProvider) -> SQLAdmissionService:
@@ -186,6 +191,9 @@ def test_provider_failure_is_fail_closed() -> None:
         rejection_reason="EXPLAIN_PROVIDER_FAILURE",
     )
     assert outcome.guarded_query is None
+    assert outcome.provider_error is not None
+    assert outcome.provider_error.provider_errno == 1054
+    assert outcome.provider_error.provider_sqlstate == "42S22"
 
 
 def test_constant_select_can_pass_without_table_accesses() -> None:

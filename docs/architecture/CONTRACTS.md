@@ -558,6 +558,17 @@ One Run represents processing one inbound user message. `CLARIFYING`, `COMPLETED
 `POLICY_DENIED`, `QUERY_TOO_EXPENSIVE`, `REPAIR_EXHAUSTED`, and `FAILED` are terminal outcomes;
 a later user reply creates a new Run in the same Session.
 
+M13 does not add a public repair contract or Run status. Internal `RepairFailure v0.1` carries a
+typed stage/category/code, optional bounded provider errno/SQLSTATE and sanitized diagnostic
+detail, the original QueryPlan and PlannerContext fingerprints, and applicable downstream
+fingerprints. Its canonical `repair-failure-fingerprint-v0.1` determines evidence identity, not
+eligibility. Internal `RepairTrace v0.1` binds policy/prompt versions, attempt/max, failure,
+original/replacement plan fingerprints, unchanged PlannerContext fingerprint, model/runtime,
+outcome, and final verification identity on success. Neither type contains raw result rows.
+The provider-facing `RepairPlanProposal` mirrors public `QueryPlan v0.1` but requires at least one
+`expected_columns` item; it is normalized immediately to `QueryPlan` and is never persisted or
+treated as semantic authority.
+
 ---
 
 ## 17. Internal model ports

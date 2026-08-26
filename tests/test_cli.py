@@ -19,6 +19,11 @@ from data_agent.query_runtime.evaluation import (
     RuntimeEvalMetrics,
     RuntimeEvalReport,
 )
+from data_agent.repair.evaluation import (
+    RepairEvalIdentity,
+    RepairEvalMetrics,
+    RepairEvalReport,
+)
 from data_agent.retrieval.evaluation import RetrievalEvalMetrics, RetrievalEvalReport
 from data_agent.verification.evaluation import (
     VerificationEvalIdentity,
@@ -172,6 +177,27 @@ def _passing_verification_report() -> VerificationEvalReport:
     )
 
 
+def _passing_repair_report() -> RepairEvalReport:
+    return RepairEvalReport(
+        identity=RepairEvalIdentity(
+            suite_version="v0.1",
+            suite_fingerprint="a" * 64,
+            repair_policy_version="repair-policy-v0.1",
+            failure_fingerprint_version="repair-failure-fingerprint-v0.1",
+            max_attempts=1,
+        ),
+        metrics=RepairEvalMetrics(
+            case_count=19,
+            eligibility_classification_accuracy=1.0,
+            policy_integrity_no_model_call_accuracy=1.0,
+            repair_bound_enforcement=1.0,
+            concurrent_claim_bound_enforcement=1.0,
+        ),
+        cases=(),
+        passed=True,
+    )
+
+
 def test_eval_runs_standalone_retrieval_gate(
     monkeypatch: pytest.MonkeyPatch,
     capsys: pytest.CaptureFixture[str],
@@ -204,6 +230,11 @@ def test_eval_runs_standalone_retrieval_gate(
     )
     monkeypatch.setattr(
         data_agent.cli,
+        "evaluate_current_repair",
+        lambda _: _passing_repair_report(),
+    )
+    monkeypatch.setattr(
+        data_agent.cli,
         "format_sql_guard_eval_summary",
         lambda _: "SQL guard eval PASS",
     )
@@ -221,6 +252,8 @@ def test_eval_runs_standalone_retrieval_gate(
     assert "capability_only=1.000" in output
     assert "Verification eval PASS" in output
     assert "identity=1.000" in output
+    assert "Repair eval PASS" in output
+    assert "concurrent_bound=1.000" in output
 
 
 def test_planner_eval_command_is_independent(
@@ -268,3 +301,19 @@ def test_verification_eval_command_is_independent(
     output = capsys.readouterr().out
     assert "Verification eval PASS" in output
     assert "cases=15" in output
+
+
+def test_repair_eval_command_is_independent(
+    monkeypatch: pytest.MonkeyPatch,
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    monkeypatch.setattr(
+        data_agent.cli,
+        "evaluate_current_repair",
+        lambda _: _passing_repair_report(),
+    )
+
+    assert main(["repair-eval"]) == 0
+    output = capsys.readouterr().out
+    assert "Repair eval PASS" in output
+    assert "cases=19" in output
