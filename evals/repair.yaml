@@ -1,0 +1,154 @@
+version: v0.1
+
+cases:
+  - id: syntax
+    stage: SQL_GUARD
+    category: FORMULATION
+    code: SQL_PARSE_ERROR
+    expected_eligible: true
+    expected_model_calls: 1
+
+  - id: unknown-column
+    stage: EXPLAIN
+    category: FORMULATION
+    code: EXPLAIN_PROVIDER_ERROR
+    provider_errno: 1054
+    expected_eligible: true
+    expected_model_calls: 1
+
+  - id: ambiguous-column
+    stage: RUNTIME
+    category: FORMULATION
+    code: DATABASE_EXECUTION_ERROR
+    provider_errno: 1052
+    expected_eligible: true
+    expected_model_calls: 1
+
+  - id: output-alias
+    stage: VERIFICATION
+    category: FORMULATION
+    code: VERIFICATION_CHECK_FAILED
+    failed_checks: [actual_columns_match_expected]
+    expected_eligible: true
+    expected_model_calls: 1
+
+  - id: governed-source
+    stage: VERIFICATION
+    category: FORMULATION
+    code: VERIFICATION_CHECK_FAILED
+    failed_checks: [metric_source:0:paid_amount]
+    expected_eligible: true
+    expected_model_calls: 1
+
+  - id: governed-join
+    stage: VERIFICATION
+    category: FORMULATION
+    code: VERIFICATION_CHECK_FAILED
+    failed_checks: [governed_relationship_joins]
+    expected_eligible: true
+    expected_model_calls: 1
+
+  - id: grouping-key
+    stage: VERIFICATION
+    category: FORMULATION
+    code: VERIFICATION_CHECK_FAILED
+    failed_checks: [grouping_keys_unique]
+    expected_eligible: true
+    expected_model_calls: 1
+
+  - id: policy-denial
+    stage: SQL_GUARD
+    category: POLICY
+    code: MULTIPLE_STATEMENTS
+    expected_eligible: false
+    expected_terminal: POLICY_DENIED
+    expected_model_calls: 0
+
+  - id: dangerous-function
+    stage: SQL_GUARD
+    category: POLICY
+    code: DANGEROUS_FUNCTION
+    expected_eligible: false
+    expected_terminal: POLICY_DENIED
+    expected_model_calls: 0
+
+  - id: table-escape
+    stage: SQL_GUARD
+    category: POLICY
+    code: UNAUTHORIZED_SCHEMA
+    expected_eligible: false
+    expected_terminal: POLICY_DENIED
+    expected_model_calls: 0
+
+  - id: too-expensive
+    stage: EXPLAIN
+    category: COST
+    code: ROW_ESTIMATE_LIMIT_EXCEEDED
+    expected_eligible: false
+    expected_terminal: QUERY_TOO_EXPENSIVE
+    expected_model_calls: 0
+
+  - id: timeout
+    stage: RUNTIME
+    category: TIMEOUT
+    code: QUERY_TIMEOUT
+    expected_eligible: false
+    expected_terminal: FAILED
+    expected_model_calls: 0
+
+  - id: unavailable
+    stage: RUNTIME
+    category: AVAILABILITY
+    code: DATABASE_UNAVAILABLE
+    expected_eligible: false
+    expected_terminal: FAILED
+    expected_model_calls: 0
+
+  - id: integrity
+    stage: VERIFICATION
+    category: INTEGRITY
+    code: VERIFICATION_INTEGRITY_ERROR
+    expected_eligible: false
+    expected_terminal: FAILED
+    expected_model_calls: 0
+
+  - id: capability
+    stage: RUNTIME
+    category: CAPABILITY
+    code: CAPABILITY_INTEGRITY_ERROR
+    expected_eligible: false
+    expected_terminal: FAILED
+    expected_model_calls: 0
+
+  - id: result-decoding
+    stage: RUNTIME
+    category: RESULT
+    code: RESULT_DECODING_ERROR
+    expected_eligible: false
+    expected_terminal: FAILED
+    expected_model_calls: 0
+
+  - id: truncation
+    stage: VERIFICATION
+    category: TRUNCATION
+    code: RESULT_TRUNCATED
+    expected_eligible: false
+    expected_terminal: FAILED
+    expected_model_calls: 0
+
+  - id: coverage-gap
+    stage: VERIFICATION
+    category: COVERAGE
+    code: VERIFICATION_COVERAGE_GAP
+    coverage_gaps: [time_range_semantics]
+    expected_eligible: false
+    expected_model_calls: 0
+
+  - id: exhausted
+    stage: SQL_GUARD
+    category: FORMULATION
+    code: SQL_PARSE_ERROR
+    budget_remaining: false
+    expected_eligible: true
+    expected_terminal: REPAIR_EXHAUSTED
+    expected_model_calls: 0

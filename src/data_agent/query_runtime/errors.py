@@ -8,9 +8,18 @@ class RuntimeExecutionError(RuntimeError):
 
     code = "RUNTIME_EXECUTION_ERROR"
 
-    def __init__(self, message: str, *, safe_detail: str | None = None) -> None:
+    def __init__(
+        self,
+        message: str,
+        *,
+        safe_detail: str | None = None,
+        provider_errno: int | None = None,
+        provider_sqlstate: str | None = None,
+    ) -> None:
         super().__init__(message)
         self.safe_detail = safe_detail
+        self.provider_errno = provider_errno
+        self.provider_sqlstate = provider_sqlstate
 
 
 class CapabilityIntegrityError(RuntimeExecutionError):

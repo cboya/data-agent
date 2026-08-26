@@ -43,6 +43,7 @@ def test_new_run_must_start_received() -> None:
         (RunStatus.RETRIEVING, RunStatus.PLANNING),
         (RunStatus.PLANNING, RunStatus.VALIDATING),
         (RunStatus.VALIDATING, RunStatus.EXECUTING),
+        (RunStatus.VALIDATING, RunStatus.REPAIR_EXHAUSTED),
         (RunStatus.EXECUTING, RunStatus.VERIFYING),
         (RunStatus.EXECUTING, RunStatus.VALIDATING),
         (RunStatus.VERIFYING, RunStatus.SYNTHESIZING),

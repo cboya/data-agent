@@ -84,6 +84,14 @@ class RunRepository(Protocol):
         error_code: str | None = None,
     ) -> Run: ...
 
+    def claim_repair(
+        self,
+        run_id: str,
+        *,
+        max_attempts: int,
+        expected_status: RunStatus,
+    ) -> Run: ...
+
 
 class ArtifactRepository(Protocol):
     def append(self, artifact: Artifact) -> Artifact: ...

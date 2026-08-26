@@ -62,6 +62,14 @@ class RuntimeLimits:
             raise ValueError("runtime execution and result bounds must be positive")
 
 
+@dataclass(frozen=True)
+class RuntimeExecutionEvidence:
+    """One successful M11 result and its matching metadata evidence."""
+
+    result: ExecutionResult
+    metadata: ExecutionMetadata
+
+
 def _canonical_cell_bytes(value: object) -> bytes:
     """Return versioned, deterministic accounting bytes without changing the value."""
 
@@ -139,6 +147,11 @@ class ReadOnlyQueryRuntime:
     def execute(self, query: GuardedQuery) -> ExecutionResult:
         """Consume a GuardedQuery only; the candidate SQL is never transformed."""
 
+        return self.execute_with_evidence(query).result
+
+    def execute_with_evidence(self, query: GuardedQuery) -> RuntimeExecutionEvidence:
+        """Return matching success metadata for the M12 evidence-chain builder."""
+
         if not isinstance(query, GuardedQuery):
             raise CapabilityIntegrityError("query runtime accepts GuardedQuery only")
         try:
@@ -191,22 +204,21 @@ class ReadOnlyQueryRuntime:
                     connection.close()
 
         completed_at = datetime.now(UTC)
-        self._metadata_sink.record(
-            self._metadata(
-                query=query,
-                execution_id=execution_id,
-                started_at=started_at,
-                completed_at=completed_at,
-                duration_ms=result.duration_ms,
-                attempt_count=attempt_count,
-                returned_row_count=result.returned_row_count,
-                returned_result_bytes=result_bytes,
-                truncated=result.truncated,
-                result_fingerprint=result_fingerprint,
-                outcome=ExecutionOutcome.SUCCEEDED,
-            )
+        metadata = self._metadata(
+            query=query,
+            execution_id=execution_id,
+            started_at=started_at,
+            completed_at=completed_at,
+            duration_ms=result.duration_ms,
+            attempt_count=attempt_count,
+            returned_row_count=result.returned_row_count,
+            returned_result_bytes=result_bytes,
+            truncated=result.truncated,
+            result_fingerprint=result_fingerprint,
+            outcome=ExecutionOutcome.SUCCEEDED,
         )
-        return result
+        self._metadata_sink.record(metadata)
+        return RuntimeExecutionEvidence(result=result, metadata=metadata)
 
     def _configure_and_verify_session(self, connection: Connection) -> None:
         cursor = connection.cursor()
@@ -303,14 +315,31 @@ class ReadOnlyQueryRuntime:
 
     def _map_database_error(self, error: BaseException) -> RuntimeExecutionError:
         code = _mysql_error_code(error)
+        sqlstate_value = getattr(error, "sqlstate", None)
+        sqlstate = (
+            sqlstate_value if isinstance(sqlstate_value, str) and sqlstate_value.strip() else None
+        )
         detail = _safe_provider_detail(error, self._connection_factory.redaction_values)
         if code in _QUERY_TIMEOUT_MYSQL_CODES or isinstance(error, (TimeoutError, socket.timeout)):
-            return QueryTimeoutError("MySQL query exceeded its execution bound", safe_detail=detail)
+            return QueryTimeoutError(
+                "MySQL query exceeded its execution bound",
+                safe_detail=detail,
+                provider_errno=code,
+                provider_sqlstate=sqlstate,
+            )
         if code in _UNAVAILABLE_MYSQL_CODES:
             return DatabaseUnavailableError(
-                "MySQL query runtime is unavailable", safe_detail=detail
+                "MySQL query runtime is unavailable",
+                safe_detail=detail,
+                provider_errno=code,
+                provider_sqlstate=sqlstate,
             )
-        return DatabaseExecutionError("MySQL rejected query execution", safe_detail=detail)
+        return DatabaseExecutionError(
+            "MySQL rejected query execution",
+            safe_detail=detail,
+            provider_errno=code,
+            provider_sqlstate=sqlstate,
+        )
 
     def _record_failure(
         self,

@@ -30,6 +30,7 @@ _ALLOWED_TRANSITIONS: dict[RunStatus, frozenset[RunStatus]] = {
             RunStatus.EXECUTING,
             RunStatus.POLICY_DENIED,
             RunStatus.QUERY_TOO_EXPENSIVE,
+            RunStatus.REPAIR_EXHAUSTED,
             RunStatus.FAILED,
         }
     ),

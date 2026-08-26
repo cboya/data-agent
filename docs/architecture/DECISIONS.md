@@ -365,3 +365,48 @@ time/formula interpretation. `PASSED` therefore means every applicable encoded i
 it is not a proof that all possible semantic errors have been excluded. Not checked is never
 represented as passed, and evidence-chain mismatch is a typed integrity error rather than an
 ordinary business-check failure.
+
+---
+
+## D-028 — Repair is a typed, persisted replacement-plan branch
+
+**Decision:** M13 repair eligibility is a default-deny policy over typed stage/category/code
+evidence, never diagnostic text. The initial allowlist covers M10 parse formulation, MySQL error
+codes `1052`/`1054` from EXPLAIN or runtime, and selected M12 output-shape/alias, unique governed
+source, governed direct-JOIN, and grouping-key formulation checks. Policy/cost/integrity,
+capability/namespace, availability/timeout/decoding, truncation, and verification coverage gaps are
+terminal or non-triggering and make no repair-model call.
+
+Each internal `RepairFailure v0.2` includes the source Run identity in its canonical fingerprint.
+The repair entry point rejects a caller-supplied Run mismatch before repository or model access.
+An eligible attempt maps `SQL_GUARD`/`EXPLAIN` to `VALIDATING`, `RUNTIME` to `EXECUTING`, and
+`VERIFICATION` to `VERIFYING`; the repository checks that exact state and atomically increments
+durable `Run.repair_count` under one row lock before inference. It proposes a new full public
+`QueryPlan v0.1` with `query-repair-v0.1` under the exact original
+`PlannerContext`; retrieval, catalog, RequirementState, and authorized tables cannot expand. The
+replacement passes M9 `PlannerPolicy`, a fresh M10 guard and EXPLAIN, a fresh M11 execution, and a
+fresh M12 verification. Previous capabilities, execution evidence, results, and verification are
+never mutated or reused. Internal versioned failure and trace evidence binds both branches without
+raw result rows. `VALIDATING → REPAIR_EXHAUSTED` is legal so a consumed M10-stage attempt can end
+without a new `REPAIRING` status.
+
+**Reason:** Retrying unchanged evidence cannot correct formulation and lets concurrency obscure the
+attempt bound. Without source Run and lifecycle-stage binding, the same failed branch could consume
+another Run's budget or claim from the wrong lifecycle point. Text classification would allow
+provider or prompt content to influence authority.
+Reusing downstream evidence would break the M9→M12 identity chain. A durable pre-inference claim
+and exact-context replacement branch are the smallest design that makes the default one-attempt
+limit auditable and fail closed.
+
+A competing caller that observes an already-consumed positive attempt budget makes no model call
+and does not mutate the Run: the in-flight attempt owner alone may advance or terminalize that
+branch. A configured zero-attempt budget has no possible owner and terminates directly as
+`REPAIR_EXHAUSTED`. This prevents one concurrent observer from invalidating a legitimately running
+repair while the database counter still enforces the global bound.
+
+**Provider grammar amendment:** Bound Ollama evidence showed that `QueryPlan v0.1`'s intentionally
+default-empty `expected_columns` field was emitted empty in two of three repair cases; the SQL then
+executed and M12 correctly rejected the missing output-shape evidence. M13 therefore requests an
+internal `RepairPlanProposal` with `expected_columns` constrained to at least one item and
+immediately normalizes it to public `QueryPlan v0.1`. The DTO adds no field or semantic authority
+and does not bypass M9 policy or any downstream check.

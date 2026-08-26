@@ -19,9 +19,8 @@ from data_agent.sql_guard.guard import SQL_GUARD_POLICY_VERSION, SQLGuard
 from data_agent.sql_guard.service import SQLAdmissionService
 
 
-def evaluate_current_sql_guard(settings: Settings) -> SQLGuardEvalReport:
-    snapshot, snapshot_fingerprint = load_m9_proposal_snapshot()
-    admission = SQLAdmissionService(
+def build_sql_admission_service(settings: Settings) -> SQLAdmissionService:
+    return SQLAdmissionService(
         guard=SQLGuard(
             analytics_schema=settings.mysql_database,
             max_sql_characters=settings.max_sql_characters,
@@ -31,6 +30,11 @@ def evaluate_current_sql_guard(settings: Settings) -> SQLGuardEvalReport:
             max_estimated_rows_per_access=settings.max_explain_estimated_rows
         ),
     )
+
+
+def evaluate_current_sql_guard(settings: Settings) -> SQLGuardEvalReport:
+    snapshot, snapshot_fingerprint = load_m9_proposal_snapshot()
+    admission = build_sql_admission_service(settings)
     report = run_sql_guard_evaluation(
         admission,
         suite=load_sql_guard_eval_suite(),
