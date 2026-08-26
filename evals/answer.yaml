@@ -1,0 +1,32 @@
+version: v0.1
+cases:
+  - id: grounded-decimal-first-row
+    answer: "首日实付金额为 100.00。"
+    references:
+      - [0, 2]
+    expected: ACCEPT
+  - id: grounded-decimal-second-row
+    answer: "第二日实付金额为 80.00。"
+    references:
+      - [1, 2]
+    expected: ACCEPT
+  - id: hallucinated-number
+    answer: "首日实付金额为 999.00。"
+    references:
+      - [0, 2]
+    expected: REJECT
+  - id: derived-percentage
+    answer: "实付金额下降了 20%。"
+    references:
+      - [0, 2]
+      - [1, 2]
+    expected: REJECT
+  - id: invalid-cell-reference
+    answer: "首日实付金额为 100.00。"
+    references:
+      - [0, 9]
+    expected: REJECT
+  - id: missing-cell-reference
+    answer: "结果中存在记录。"
+    references: []
+    expected: REJECT

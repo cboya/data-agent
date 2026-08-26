@@ -17,6 +17,8 @@ def test_settings_validate_runtime_limits(settings: Settings) -> None:
     assert settings.max_relationship_hops == 1
     assert settings.retrieval_seed_tables == 4
     assert settings.retrieval_rrf_k == 60
+    assert settings.max_answer_context_rows == 100
+    assert settings.max_answer_context_bytes == 131_072
 
 
 def test_empty_model_name_fails_validation() -> None:
