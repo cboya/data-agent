@@ -260,6 +260,19 @@ The standalone deterministic M12 gate additionally requires:
 - evidence identity mismatch rejection = 1.00;
 - PlannerContext semantic-content substitution rejection = 1.00;
 - runtime truncation rejection = 1.00.
+- frozen verified/Oracle mismatch count = 0.
+
+The last item is an exact release hard gate, separate from any probabilistic Golden Oracle pass
+rate. The six frozen M15 diagnostic regressions (four unrequested-grain and two unprovable public
+output-shape cases) must never finish with both M12 `PASSED` and deterministic Oracle `FAILED`.
+Their source Golden and Oracle truth are not rewritten by the M12 suite.
+The frozen M12 suite also contains metric-only and requested-dimension aggregates whose hidden
+`GROUP BY` keys refine result grain; both must be semantic failures even when their public columns
+match the READY requirement exactly. A missing or ambiguous requested-dimension M6 source is
+nonrepairable and must consume zero M13 attempts/model calls.
+The suite also freezes MySQL's source-column-first `GROUP BY` resolution: a grouping name that
+collides with an input column must not be accepted as a transformed SELECT alias, while a proven
+noncolliding alias and a valid SELECT ordinal remain accepted.
 
 Verification coverage is reported, not optimized into a false pass. A green M12 report means all
 currently encoded applicable invariants classified the controlled mutations correctly; it does

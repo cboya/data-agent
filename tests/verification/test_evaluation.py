@@ -15,7 +15,7 @@ from data_agent.verification.evaluation import (
 def test_frozen_verification_suite_covers_every_decision_class() -> None:
     suite, fingerprint = load_verification_eval_suite()
 
-    assert len(suite.cases) == 15
+    assert len(suite.cases) == 24
     assert {case.expected for case in suite.cases} == {
         "PASS",
         "STRUCTURAL_FAILURE",
@@ -44,12 +44,25 @@ def test_verification_evaluation_meets_all_decision_gates() -> None:
     assert report.metrics.identity_mismatch_rejection == 1.0
     assert report.metrics.planner_context_substitution_rejection == 1.0
     assert report.metrics.truncation_rejection == 1.0
+    assert report.metrics.verified_oracle_mismatch_count == 0
+    assert {
+        result.id
+        for result in report.cases
+        if result.verified_oracle_regression and result.actual == "SEMANTIC_FAILURE"
+    } == {
+        "simple-gmv",
+        "simple-paid-amount",
+        "simple-payment-attempts",
+        "join-net-revenue",
+        "agg-gmv-channel",
+        "agg-orders-channel",
+    }
     assert 0.0 < report.metrics.verification_coverage < 1.0
 
 
 def test_verification_suite_duplicate_yaml_key_fails_closed(tmp_path: Path) -> None:
     path = tmp_path / "verification.yaml"
-    path.write_text("version: v0.1\nversion: v0.1\ncases: []\n", encoding="utf-8")
+    path.write_text("version: v0.2\nversion: v0.2\ncases: []\n", encoding="utf-8")
 
     with pytest.raises(VerificationEvaluationError, match="missing or invalid"):
         load_verification_eval_suite(path)

@@ -441,3 +441,42 @@ turn with its Run outcome, and separately atomically appends the final assistant
 the user boundary. Positional references remain unambiguous with duplicate column labels, while
 atomic completion prevents conversation history and Run state from reporting contradictory
 durable outcomes.
+
+---
+
+## D-030 — M12 independently proves the governed public analytical shape
+
+**Decision:** `verification-policy-v0.2` treats the READY `RequirementState`, not a mutually
+consistent `QueryPlan` and `ExecutionResult`, as the independent authority for the public
+analytical shape. In an aggregate query, the public grouping outputs must equal the requested
+resolved dimensions plus `period` exactly when a time grain was requested. The complete public
+result-column set must equal the requested resolved metrics, resolved dimensions, and applicable
+`period`; additional public columns fail even when the Plan predicted them. Every requested
+dimension must also bind to exactly one M6 governed column and the matching public projection
+lineage. An absent, ambiguous, or mismatched governed dimension binding is a failed semantic check,
+not a successful check or an unsupported coverage pass.
+
+Output identity uses only final SELECT projections. Aggregate grain additionally inspects every
+final SELECT `GROUP BY` partition key: each key must map exactly to one requested public
+non-aggregate projection, by expression, unambiguous alias, or ordinal. Current M6 metadata does
+not encode enough uniqueness/functional-dependency authority to excuse a hidden grouping key, so
+an unmatched key fails closed. MySQL resolves an unqualified `GROUP BY` name against input columns
+before SELECT aliases, so the alias path is unambiguous only when bounded final-scope metadata
+proves that no input column has that name; complex or incomplete source scope fails closed. SQL
+helpers outside the final `GROUP BY` (for example JOIN or WHERE columns) remain outside this check.
+Formula and time-filter equivalence still remain explicit coverage gaps where current contracts
+cannot prove them.
+
+**Reason:** M15 diagnosis found plans that introduced an unrequested grouping dimension and then
+validated themselves because their expected columns matched the executed result. It also found a
+generic `channel` output whose requested semantic source could not be uniquely established from
+the bounded M6 catalog. Required-output containment alone allowed both shapes to receive M12
+`PASSED` despite deterministic Oracle disagreement.
+
+**Consequences:** A wrong Plan and matching wrong result can no longer authorize one another, and a
+hidden `GROUP BY` key cannot silently refine the requested grain. Repairable output-set,
+projection-lineage, and grouping formulation checks retain the existing typed M13 path. Missing or
+ambiguous M6 dimension authority is a distinct nonrepairable check and therefore consumes no model
+call or durable repair attempt. M13's bound, prompt, stage/category gate, and all other eligibility
+classes remain unchanged. Public `VerificationResult v0.1` and the M8/M9/M10/M11/M13/M14
+contracts remain unchanged.

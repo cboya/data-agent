@@ -148,9 +148,9 @@ def _passing_runtime_report() -> RuntimeEvalReport:
 def _passing_verification_report() -> VerificationEvalReport:
     return VerificationEvalReport(
         identity=VerificationEvalIdentity(
-            suite_version="v0.1",
+            suite_version="v0.2",
             suite_fingerprint="a" * 64,
-            verification_policy_version="verification-policy-v0.1",
+            verification_policy_version="verification-policy-v0.2",
             execution_metadata_version="execution-metadata-v0.2",
             result_fingerprint_version="execution-result-fingerprint-v0.1",
             planner_context_fingerprint_version="planner-context-fingerprint-v0.1",
@@ -170,6 +170,7 @@ def _passing_verification_report() -> VerificationEvalReport:
             identity_mismatch_rejection=1.0,
             planner_context_substitution_rejection=1.0,
             truncation_rejection=1.0,
+            verified_oracle_mismatch_count=0,
             verification_coverage=0.8,
         ),
         cases=(),
