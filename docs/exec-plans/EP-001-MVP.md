@@ -1002,6 +1002,25 @@ JSON and thinking disabled. The provider-neutral adapter now sends the frozen co
 ceiling and the request timeout. This is a resource-safety amendment only: prompts, Golden cases,
 Oracles, stage policies, and M8–M14 semantics remain unchanged.
 
+M15 effect-acceptance note (2026-08-27): head `3be2534` passed the focused resource-boundary,
+typed-failure, configuration, and frozen-Golden checks (`33 passed`), followed from a clean reset
+by `task bootstrap` and `task quality` (`454 passed, 7 skipped`). The complete public-API run under
+Qwen3-30B-A3B-Instruct-2507 recorded environment fingerprint
+`f2fb51fb05df516c59489fffaccb0d3a3adf0daeb528ecfb568481f6e665b933`, Git
+`3be25340a471a101ce414b6bec98909c18045ea0`, Ollama `0.32.15`, request timeout `60s`, output ceiling
+`2048`, Golden fingerprint `53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7`,
+and the bound schema, catalog, retrieval, chat, and embedding identities. Retrieval, planning,
+SQL guard, runtime, verification, repair, and answer stage gates passed. Trace integrity was
+`1.000`, with zero unauthorized execution, failed-verification synthesis, repair-bound, and
+numeric-grounding violations. Model-bound dialogue and Golden behavior did not pass: Golden E2E
+was `0.169`, Oracle pass rate `0.127`, and unnecessary clarification rate `0.610`. Per the
+resource-sensitive acceptance direction, an additional dense 27B local calibration was stopped
+to avoid host contention; no further local large-model run is required for this PR iteration.
+These model-capability results remain diagnostic: no Prompt, Golden case, Oracle, or frozen
+behavioral threshold changed, `task eval` remains failed, and PR #15 remains Draft pending final
+behavioral acceptance in a suitable capable-model environment. The post-eval and post-quality
+tracked worktree was clean.
+
 M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
 APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
 focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag
