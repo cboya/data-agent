@@ -1,0 +1,2237 @@
+{
+  "dialogue": {
+    "blocker_field_counts": {
+      "comparison": 0,
+      "dimension": 0,
+      "evidence_unavailable": 36,
+      "filter": 0,
+      "grain": 0,
+      "metric": 0,
+      "other": 0,
+      "time_range": 0
+    },
+    "comparison_not_replayed_count": 35,
+    "confusion": {
+      "expected_clarify_actual_clarify": 2,
+      "expected_clarify_actual_ready": 0,
+      "expected_failure_actual_failure": 4,
+      "expected_ready_actual_clarify": 36,
+      "expected_ready_actual_dialogue_failure": 1,
+      "expected_ready_actual_ready": 20,
+      "total_turns": 63
+    },
+    "e2e_unnecessary_clarification_rate": 0.6101694915254238,
+    "evidence_limitation": "Golden report v0.1 does not persist clarification blocker fields or same-input standalone replay outcomes; the completed model environment was not rerun.",
+    "exact_same_input_comparison_count": 0,
+    "single_turn_same_entrypoint_count": 34,
+    "standalone_stage_unnecessary_clarification_rate": 0.21052631578947367,
+    "stateful_multi_turn_unresolved_count": 1,
+    "unexpected_cases": [
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "simple-paid-order-count",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_c3931618049b4c7c9e7ff05d493b04d5"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_3f6ca99660204141a2ee629052dc5d2c",
+          "trace_28c21060dcf84828a08cbab37a1e26d4",
+          "trace_2bbc7d0a67db4fdd83e536c655a60f12"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "simple-pending-order-count",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_519bab354c5b44d6b3c993da689b0819"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_91733d985d634382a2375b8b2a687609",
+          "trace_cb5b5a4d14f640d3a15a59a61854c8cd",
+          "trace_b96e8bc289cc4f03a9dc9225e79acd74"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "simple-failed-attempts",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_fe319507b7d0459c854a3c8b45bdaacd"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_e56c3123ebe84e998f24d27cfc22d08c",
+          "trace_0e35bbbb089b46a4917d5e671bd8861f",
+          "trace_cecb12541e7948e89b389a861d19d770"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "simple-unit-sales",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_bcd30fb09cf5497bbe70a6b48bcd898c"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_274a86e870294729bdeee6aae6b5f92d",
+          "trace_c4cf53cf418a495da70b9a37804d73f2",
+          "trace_08d3bb7d300d438887293c4df3be2f37"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "simple-completed-orders",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_965bb59fc17842589bb8c81869e2fd23"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_878e06f8b2f545ebaf25ef107f3ed709",
+          "trace_ef77276f94784d86b2ef7f983124d5d6",
+          "trace_3c4fc73049054435a9ead8c4d555e1a6"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "simple-paid-users",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_d304d4d9862241acad8b9978c2cbdd04"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_6ee37dcf75684290a7fcf5b8d72bc76d",
+          "trace_f3f4ff8b08954bee82fd141311307aec",
+          "trace_715edb55393346fabe26511551563f97"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-paid-order-channel",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_465b5af411f44808ba409ebce686b90b"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_54c380b6b67147d28ab954db39a97d5e",
+          "trace_d15ab56d85074d26aad36ae139e929d6",
+          "trace_3be3fb30b1fd4f74bd9782a512abab2c"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-paid-acquisition-channel",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_58ec171c311d4aa8bac8fef754d241cf"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_b594fd02823f4116a5544461c889f9e7",
+          "trace_08ea13f1257f45e68e0a809e9ef96b59",
+          "trace_ccb34d753d3a4de99e62da235052ab55"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-paid-province",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_a321f71c4a19489db65b4feb4dffeae9"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_b4641987e94e453f849f4295f5e0efd7",
+          "trace_4099bc3dcb624e72ab82f1b7c6f07586",
+          "trace_f8ea17f29bfc4b2cb4eea36d08fbb881"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-orders-status",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_fc11ee930f284ca39465ef7eb311e19e"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_8abeb126cd884a64b250e2e1477706d5",
+          "trace_40e4500a919740b58c83ab751a206de4",
+          "trace_1c5aa1291afa44aa8db94ae1b89e048f"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-gmv-status",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_89718372ce874b2992f29918e149f1c2"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_afc49fa09db94fd7b3a22bb68ab70ae9",
+          "trace_d852bb6be918428a9428cfbbe2982369",
+          "trace_918b53ab7a3a4368a3ca652e890ae24f"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-attempts-status",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_f7b74318677647ce8bb568d713c62274"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_69cd10fb90a44c24a7dc2bea7bd02f8a",
+          "trace_04638d069ec94042b29cd7b860993074",
+          "trace_b41d07538f6f403a8d7986ec03174dfc"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-refund-status",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_e9f1adf9ba68470eac6f40f5acf8ee0b"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_ebcdc54426784b2087d18ad74f713ff0",
+          "trace_d4e78899837344588309c8d5f8a1b805",
+          "trace_8305cdf7dc5c4670919a71c3bcfab2bd"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-units-product",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_a367a8f31a484d4987795b0657ef07df"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_148a48bbe0a64ff9bce5202c93e621cf",
+          "trace_c6618c2ef3414031a0cee959ef1c9394",
+          "trace_d2043b6b200f4adab32923b4770cc657"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-units-category",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_8107493ed7cf47e58fbf1bfa8283ec6f"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_192f9134ffb84388a2a2deba5517bd41",
+          "trace_4b2c54362bc44167b62baa18e528808c",
+          "trace_4d35c3eef24448a98b68c0afa4a11aa9"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-events-name",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_0260cfcabd444c5397d5e17389bd6600"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_be9372fd4488499cbca77ca3e10ba026",
+          "trace_ee9470508d57445ab3785eb2a85624a1",
+          "trace_66d7d313b7f84dc7b2751ccca578bb56"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-events-channel",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_54539d090816460982f6bba9d683ff16"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_642d06b6757c47509e94c852c1885521",
+          "trace_31bd847ca5b4407ebd9f9eca43e16b45",
+          "trace_a4c7ebfaaae54762835afb8a5bb9a42c"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-paid-date",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_defcbaa0da914b2abc6ecc1873634d5a"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_001af459a87040dabdddbc4dabf8d6cf",
+          "trace_b8ed85f758584bb68f5a8444814c5f16",
+          "trace_ccb9d66d86124b2f98e4c4e0b462174b"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-orders-date",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_ead0a465ce714ac8936e3ba0d391dacb"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_2a8f89aa4beb42678d2c4e2e87838415",
+          "trace_7c110e24d0ad4c49a94ebfa9a99f427a",
+          "trace_5c48e7f8820f467883244890ad791d28"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-refunds-date",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_8cbb344d54e94dcd9d21d8199cdcc2bd"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_5616d8a5df5d4569b857044cfd4870ec",
+          "trace_0f3e45f6623d41949f39e18b3f78e48f",
+          "trace_7996152b6a604a5d9ae162db6043474d"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-failed-attempts-date",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_b63495e86d8b405aa57b7bd07889aefe"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_2ed999322416426fb5d1073c8c8b9ea6",
+          "trace_0bfbb0bc123f49899a28b56f0635fd20",
+          "trace_ea9c2196fe894b5a92c077fb934de329"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-active-users-province",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_392eb168ef28458abdaa94779661d703"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_45ead3bf0ff345deaebccb5ffb6cdefc",
+          "trace_d3be24ac90b4436181d455564928c15b",
+          "trace_39b63b81f8764e2bb8797d36c76ad5a0"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "agg-users-register-date",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_4efb0b002cf7460d84d7b39f834bc221"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_3d0745454e9547b9b0b1d1352fc8d9dd",
+          "trace_6769252cc63f4d56bc9e21725439c3e0",
+          "trace_4d6227a12d8e438eb63950c0d38fbeb7"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-attempts-order",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_eeba9cda3f0a425ea93f50b46efc5d8d"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_7a1da647e31240bca08876d0e816e4be",
+          "trace_74591ce278a0434cb7eab526eced12f0",
+          "trace_a82aa8a6e25046b4bcdf828c05e6d1d8"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-units-order",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_690b92055e824065ba1461267de140e8"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_03773126d8304844872597c82d7d6315",
+          "trace_3ce994dfb22c4bbca21e6d39696bcd0b",
+          "trace_d3fe81d14b134719ac9d1b042f6b6383"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-units-attempts-order",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_0f37dac81ed1443ea25d15789ad0ca7a"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_2c9e2e5e5f9c4d3e926d20c16dafd177",
+          "trace_1e42f02713f44ebcb6caf5598e7448ec",
+          "trace_28eabed415f642cebbc3bc64f03f083f"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-paid-orders-category",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_8f1946553e9a4478ac26278f1a148f9d"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_52c4eb128d85476eaebc782054bf15e4",
+          "trace_180f2c3e6b4942d6a6a966d421243e91",
+          "trace_ad1a9972273d4ca6bb211499d5c2acfa"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-paid-city",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_e56b9b4a295d45fe9145288969f4da76"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_14c642d0c69745519048264acbb141be",
+          "trace_4f74fbcaa3c54f379fcbff56d92a6ed0",
+          "trace_7cec196329f7492680688ffebab5ed3d"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-events-city",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_3be1f778ab3d428eafd2d8a6a9300ce3"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_d77a3007954448ca8b587288e4724a67",
+          "trace_b9c55f11618641b2af60229c88e4776f",
+          "trace_f145e4d34600402f95728c1de1e12856"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-units-price-product",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_3f2fe2a94acd451ab1ed5a31bae3428a"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_1788fca26e964963ae89ccfbe7be2549",
+          "trace_a5da640785da4c78b4e40652bfcb6df7",
+          "trace_95ad8d0522724882a51d20b3b9c0c058"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-refunds-order",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_e4e506a472974b1b9981a791f89487b4"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_74c1082012d14428ab1f0584caeefcce",
+          "trace_7e12d90eb9f44f11b9d4f6e5b103a7ad",
+          "trace_8813774347be44a4a3cb8841d20a75cb"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "join-paid-users-channel",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_0107fc0fa572413e90a7bdd01b44c7b7"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_370bc48bffdb47a88e59eb70d5c6002b",
+          "trace_58c398bf67bd451a80ca54cba85b873b",
+          "trace_db03c59ced16421b9d88609b5596b3e9"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "empty-future-paid",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_2f8e39a26da045cab9c1390faf59b031"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_37645b96416c412fade4679b759c5048",
+          "trace_07cdefe82ad046e5825c946794711aa1",
+          "trace_3b0038c805164c5cb0e8ac82c16b6e7b"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "correction-paid-month",
+        "ownership_assessment": "M8_OR_STATEFUL_INTEGRATION_UNRESOLVED_WITHOUT_SAME_INPUT_REPLAY",
+        "run_ids": [
+          "run_8f0a8d17f29c437d933fd8d100054f9e",
+          "run_f987342f0b4a4d3ca4bc8a29e0c28eef"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_7f9db219da8e4403a7020ca396fe8618",
+          "trace_216fa9d6e9fb4537b6c93e08e6d776f9",
+          "trace_fb7e67528ed44e9d8cd45862e946ab32",
+          "trace_35981d818a674340943169d53eaaf10f",
+          "trace_2c5efcf54d204094a9b1098cb122a191",
+          "trace_6410c359bd044651992744206fa31b6d"
+        ],
+        "unexpected_turns": [
+          1,
+          2
+        ]
+      },
+      {
+        "blocker_evidence": "UNAVAILABLE_IN_SOURCE_REPORT",
+        "blocker_fields": [],
+        "case_id": "repair-users-province",
+        "ownership_assessment": "M8_DIALOGUE_MODEL_OR_GOLDEN_DISTRIBUTION_SAME_EMPTY_STATE_ENTRYPOINT",
+        "run_ids": [
+          "run_69138e78f5504655b00aa45784dacd24"
+        ],
+        "standalone_comparison": "NOT_REPLAYED",
+        "trace_event_ids": [
+          "trace_a910232c612a4bd1bcb40b90c5d07c31",
+          "trace_6eaaf68ee27249a59c28ef29405e57bd",
+          "trace_105b4cd2449049ba9ab23d1cefdfc71f"
+        ],
+        "unexpected_turns": [
+          1
+        ]
+      }
+    ]
+  },
+  "evidence_limitations": [
+    "Golden report v0.1 stores trace IDs and payload fingerprints, not trace payloads; the clean reset removed the source run rows before this attribution pass.",
+    "Clarification blocker fields are absent, so no blocker category is inferred from case text.",
+    "Generic pipeline failure codes do not distinguish timeout, output-bound, invalid structured output, and provider failures.",
+    "Same-input standalone M8 replay was not run under the completed large-model environment."
+  ],
+  "fingerprint": "62bbd0b0c3ca33f63de1599048699eeb3f8d1f9128be7a0c0ed9b10156167a79",
+  "funnel": {
+    "admission_pass": 16,
+    "dialogue_ready": 20,
+    "dialogue_structured_failure": 1,
+    "execution_pass": 16,
+    "expected_safe_dialogue_terminal": 4,
+    "golden_pass": 10,
+    "oracle_pass": 7,
+    "oracle_reached": 13,
+    "planning_pass": 19,
+    "received": 59,
+    "repair_entered": 5,
+    "retrieval_pass": 20,
+    "synthesis_pass": 13,
+    "unexpected_clarification_cases": 35,
+    "unexpected_clarification_turns": 36,
+    "verification_pass": 15
+  },
+  "golden_fingerprint": "53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7",
+  "m12_passed_oracle_failed_case_ids": [
+    "simple-gmv",
+    "simple-paid-amount",
+    "simple-payment-attempts",
+    "agg-gmv-channel",
+    "agg-orders-channel",
+    "join-net-revenue"
+  ],
+  "milestone_recommendations": [
+    {
+      "case_ids": [
+        "simple-paid-order-count",
+        "simple-pending-order-count",
+        "simple-failed-attempts",
+        "simple-unit-sales",
+        "simple-completed-orders",
+        "simple-paid-users",
+        "agg-paid-order-channel",
+        "agg-paid-acquisition-channel",
+        "agg-paid-province",
+        "agg-orders-status",
+        "agg-gmv-status",
+        "agg-attempts-status",
+        "agg-refund-status",
+        "agg-units-product",
+        "agg-units-category",
+        "agg-events-name",
+        "agg-events-channel",
+        "agg-paid-date",
+        "agg-orders-date",
+        "agg-refunds-date",
+        "agg-failed-attempts-date",
+        "agg-active-users-province",
+        "agg-users-register-date",
+        "join-attempts-order",
+        "join-units-order",
+        "join-units-attempts-order",
+        "join-paid-orders-category",
+        "join-paid-city",
+        "join-events-city",
+        "join-units-price-product",
+        "join-refunds-order",
+        "join-paid-users-channel",
+        "empty-future-paid",
+        "correction-paid-month",
+        "repair-users-province"
+      ],
+      "expected_case_impact": 35,
+      "milestones": [
+        "M8"
+      ],
+      "rank": 1,
+      "rationale": "Unexpected clarification is the dominant multiplier; blocker fields require future non-secret diagnostic capture before remediation."
+    },
+    {
+      "case_ids": [
+        "trap-gmv-versus-paid",
+        "simple-gmv",
+        "simple-paid-amount",
+        "simple-payment-attempts",
+        "agg-gmv-channel",
+        "agg-orders-channel",
+        "join-net-revenue",
+        "simple-user-count"
+      ],
+      "expected_case_impact": 8,
+      "milestones": [
+        "M9",
+        "M12"
+      ],
+      "rank": 2,
+      "rationale": "Verified results with Oracle/public-evidence mismatch require planner-semantic ownership and verification-coverage review."
+    },
+    {
+      "case_ids": [
+        "multiturn-sales",
+        "agg-users-province",
+        "multiturn-orders",
+        "correction-user-grain"
+      ],
+      "expected_case_impact": 4,
+      "milestones": [
+        "M13",
+        "M10",
+        "M12"
+      ],
+      "rank": 3,
+      "rationale": "Terminal admission/verification repair branches exhausted or were denied."
+    },
+    {
+      "case_ids": [
+        "agg-users-channel",
+        "empty-future-orders"
+      ],
+      "expected_case_impact": 2,
+      "milestones": [
+        "M14"
+      ],
+      "rank": 4,
+      "rationale": "Verified empty/aggregation results failed structured answer synthesis."
+    }
+  ],
+  "oracle_mismatches": [
+    {
+      "case_id": "simple-gmv",
+      "classification": "grain",
+      "expected_columns": [
+        "gmv"
+      ],
+      "m12_passed": true,
+      "observed_columns": [
+        "channel_code",
+        "channel_name",
+        "gmv"
+      ],
+      "observed_tables": [
+        "dim_channel",
+        "fact_order"
+      ],
+      "required_tables": [
+        "fact_order"
+      ],
+      "run_ids": [
+        "run_f7d60e4c533f45f18a6f66b2479fb431"
+      ],
+      "trace_event_ids": [
+        "trace_054749c4fc514878bc26afb866a941f9",
+        "trace_7043d1cc29a24519bcaff693b71f14ec",
+        "trace_2ec809a6e0c14fb5b5095f0b615f4fbc",
+        "trace_cacc8ba74df742eebcab11042f7e435f",
+        "trace_a33c914a73d946d697702639e06a19cf",
+        "trace_3b23479933ae4d9fb17f4ca1ff714213",
+        "trace_7b4ff474d50845ab9bb0e16bd3a9ff13",
+        "trace_0e84d66af12046cfba58cf23117e347b",
+        "trace_0ccd0a1b55af46958e510821470a4b14"
+      ]
+    },
+    {
+      "case_id": "simple-paid-amount",
+      "classification": "grain",
+      "expected_columns": [
+        "paid_amount"
+      ],
+      "m12_passed": true,
+      "observed_columns": [
+        "period",
+        "paid_amount"
+      ],
+      "observed_tables": [
+        "fact_order"
+      ],
+      "required_tables": [
+        "fact_order"
+      ],
+      "run_ids": [
+        "run_0987cf0448ff45d3a48de77d4799249d"
+      ],
+      "trace_event_ids": [
+        "trace_45c2e8542b5b46e989298ba8e1d21b68",
+        "trace_844afc8506744b2b8b51c97d2ba6a821",
+        "trace_80b7ecd89edc40809b51d139e18664c2",
+        "trace_387169b369ab46b6a3e4755aa2b9f595",
+        "trace_32d57f278f834cf39d7e9bc21c6369a7",
+        "trace_c663337f41754f9cb2acedc48f196ac9",
+        "trace_8be3040a37554a67b51fb254d42f0843",
+        "trace_9bb025524d054f3cb17abf33ec814ccb",
+        "trace_8f33a5d3f2ee4b95b9b5e5d56dcc2e1d"
+      ]
+    },
+    {
+      "case_id": "simple-payment-attempts",
+      "classification": "grain",
+      "expected_columns": [
+        "payment_attempt_count"
+      ],
+      "m12_passed": true,
+      "observed_columns": [
+        "period",
+        "payment_attempt_count"
+      ],
+      "observed_tables": [
+        "fact_payment_transaction"
+      ],
+      "required_tables": [
+        "fact_payment_transaction"
+      ],
+      "run_ids": [
+        "run_9764a18e70a44f03801a9c51d3086eea"
+      ],
+      "trace_event_ids": [
+        "trace_d6e9f6e4a25e4d07903a88446af6ebea",
+        "trace_d2b25a8076d1413da3a68d617eab3b97",
+        "trace_77e37c1d0ebb4de3b47ac9139b2da5f0",
+        "trace_fa7441453bda41dbad569ee80fd7a0a6",
+        "trace_ad852f1666fa40e6b8893b300b98014a",
+        "trace_6eeafe06cee24435b85a2451747f0996",
+        "trace_1bf1aa93dc33462f9bef6fea3328fd1b",
+        "trace_16935036067d47f1b55ea240b1775b6d",
+        "trace_845850c3c95e44d18e27016f124ab910",
+        "trace_f18dc291b8c842fe95c8c1acd236253a",
+        "trace_cb14b3bca25f4899a024211b4e93e7c5",
+        "trace_29529bc94b604071b3533f1759652c60"
+      ]
+    },
+    {
+      "case_id": "agg-gmv-channel",
+      "classification": "shape",
+      "expected_columns": [
+        "order_channel",
+        "gmv"
+      ],
+      "m12_passed": true,
+      "observed_columns": [
+        "channel",
+        "gmv"
+      ],
+      "observed_tables": [
+        "dim_channel",
+        "fact_order"
+      ],
+      "required_tables": [
+        "fact_order",
+        "dim_channel"
+      ],
+      "run_ids": [
+        "run_234b13a85110496e96e8d98bf9e6bf93"
+      ],
+      "trace_event_ids": [
+        "trace_2d50ce4711824b629e72cbee5e86ba64",
+        "trace_667761d93f1342b88accd6b36c1ae10b",
+        "trace_9dce51ae967043668ab7ac76e284ac22",
+        "trace_cb64f56e38c04628a27893c7ec55bf94",
+        "trace_cd7437fde0a549b3812ce9608aceb80c",
+        "trace_edc8c330ea4a498891846424e87cf755",
+        "trace_ba8c68b7efb64c72910b446e5c1bf741",
+        "trace_2a7215bd1e0a4f9a8bc6cab7558662c5",
+        "trace_a91a51e11678433d8cc2cdef70fd0443"
+      ]
+    },
+    {
+      "case_id": "agg-orders-channel",
+      "classification": "shape",
+      "expected_columns": [
+        "order_channel",
+        "order_count"
+      ],
+      "m12_passed": true,
+      "observed_columns": [
+        "channel",
+        "order_count"
+      ],
+      "observed_tables": [
+        "dim_channel",
+        "fact_order"
+      ],
+      "required_tables": [
+        "fact_order",
+        "dim_channel"
+      ],
+      "run_ids": [
+        "run_0b226365f5384b90a69ac54376c29e7e"
+      ],
+      "trace_event_ids": [
+        "trace_264cfb2c7a524028adcf20c2116b0ad7",
+        "trace_9ec2d034a4fd46a4ad43a68efe1b0751",
+        "trace_23aacff7eb75469cac108159f989f3f6",
+        "trace_fb391d76ee98438a9fcfab137d4bf73d",
+        "trace_53be2c75df5c4fe5866e4d0305a8eed9",
+        "trace_62dd1e51cd384e13aa67a57afac3d379",
+        "trace_e7d82bc766a44ee0b6e19a0dfde51f7c",
+        "trace_4452c43666f949be953e89cf4e1220d1",
+        "trace_0b254cf3f2e54b5e83cca4db571ef1cc"
+      ]
+    },
+    {
+      "case_id": "join-net-revenue",
+      "classification": "grain",
+      "expected_columns": [
+        "net_revenue"
+      ],
+      "m12_passed": true,
+      "observed_columns": [
+        "channel_code",
+        "channel_name",
+        "net_revenue"
+      ],
+      "observed_tables": [
+        "dim_channel",
+        "fact_order",
+        "fact_refund"
+      ],
+      "required_tables": [
+        "fact_order",
+        "fact_refund"
+      ],
+      "run_ids": [
+        "run_8c0ebb0cba4b44038123e746a12c2938"
+      ],
+      "trace_event_ids": [
+        "trace_ee2356afec3e4b99bbfa0e5f88c960f4",
+        "trace_48879f6115f14f1f8e9be394ba757a47",
+        "trace_63addec1ad7b4a07a0ccc3fa6453b089",
+        "trace_f14e1896935e47649e667ef6ab45a193",
+        "trace_c626515fb6a4491f8b7c40c6c0d32751",
+        "trace_33c86e55a96448309fe12ae363d96d99",
+        "trace_96b36ee75bce4fe5a2aa78d801906ab4",
+        "trace_c101c6a6e32940a896c9a58bcb436d10",
+        "trace_c58ea6dd70e74954abd5435d451980c7"
+      ]
+    }
+  ],
+  "source_environment_fingerprint": "f2fb51fb05df516c59489fffaccb0d3a3adf0daeb528ecfb568481f6e665b933",
+  "source_git_commit": "3be25340a471a101ce414b6bec98909c18045ea0",
+  "source_report_version": "mvp-acceptance-v0.1",
+  "structured_model_calls": [
+    {
+      "evidence_status": "EXACT_STAGE_OUTCOME_CAUSE_PARTIAL",
+      "inferred_calls": 63,
+      "invalid_json_or_schema": 0,
+      "output_bound_or_truncation": 0,
+      "provider_error": 0,
+      "purpose": "dialogue",
+      "successful_structured_output": 62,
+      "timeout": 0,
+      "unclassified_failure": 1
+    },
+    {
+      "evidence_status": "EXACT_STAGE_OUTCOME_CAUSE_PARTIAL",
+      "inferred_calls": 20,
+      "invalid_json_or_schema": 0,
+      "output_bound_or_truncation": 0,
+      "provider_error": 0,
+      "purpose": "planning",
+      "successful_structured_output": 19,
+      "timeout": 0,
+      "unclassified_failure": 1
+    },
+    {
+      "evidence_status": "EXACT_STAGE_OUTCOME_CAUSE_PARTIAL",
+      "inferred_calls": 4,
+      "invalid_json_or_schema": 0,
+      "output_bound_or_truncation": 0,
+      "provider_error": 0,
+      "purpose": "repair",
+      "successful_structured_output": 4,
+      "timeout": 0,
+      "unclassified_failure": 0
+    },
+    {
+      "evidence_status": "EXACT_STAGE_OUTCOME_CAUSE_PARTIAL",
+      "inferred_calls": 15,
+      "invalid_json_or_schema": 0,
+      "output_bound_or_truncation": 0,
+      "provider_error": 0,
+      "purpose": "answer",
+      "successful_structured_output": 13,
+      "timeout": 0,
+      "unclassified_failure": 2
+    }
+  ],
+  "terminal_buckets": [
+    {
+      "bucket": "PASS",
+      "cases": [
+        {
+          "bucket": "PASS",
+          "case_id": "simple-order-count",
+          "failure_codes": [],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_07e9f0319ece471eaf99da9b6cf11b8c"
+          ],
+          "trace_event_ids": [
+            "trace_e075c8505c46477695080eb4b7489e5c",
+            "trace_26b981a8a0724afba80e09426aea8ddc",
+            "trace_2359ac16cc754c43ba98612a9a969995",
+            "trace_60038f222f654f0295c948bbbf7e6e99",
+            "trace_dfdbfe56d06f470f89b7d0b2b507380e",
+            "trace_f6ac35a3b62542d0a9d38ed314b70b31",
+            "trace_cce07b08cc82456690a7a4d30fba8ab0",
+            "trace_5dbe480f13b34c368ff3b1648f583bf0",
+            "trace_65e297d423f54ff6a3bd6dcd62a71e14"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "simple-cancelled-order-count",
+          "failure_codes": [],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_5e476c1115f646729267ced63aac6f12"
+          ],
+          "trace_event_ids": [
+            "trace_e6a8833875f3485fa62b49c81ed1b2a1",
+            "trace_770e723ee7034031bbb906a0b4ae16fb",
+            "trace_ca80f2ea05984af0bb463a274ea5c0ff",
+            "trace_ba971947febc4c10955b26ffdbb751bd",
+            "trace_81afe4385c954e69ad730859ea83dc28",
+            "trace_a8c8fb16f2f04caca70c5dcc9b9b1785",
+            "trace_dbc422e3da214da1b8d706f939bd04ef",
+            "trace_75a48d7dc8cd4ecd9e396beaba47bd4e",
+            "trace_4298170440094b21acc30d0c8ccdb38a"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "simple-successful-refund",
+          "failure_codes": [],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_13e392a0423c44d3a0c39aa0053197b3"
+          ],
+          "trace_event_ids": [
+            "trace_b004233bba2e4934b91aed40a8d0ec21",
+            "trace_fcf474d542e442baa86f75b21664e628",
+            "trace_5ea8fdc2edcb4f298e9dffc342539b0c",
+            "trace_f0937b27b80f402c9ca2cc4a1b9c7c91",
+            "trace_7cf579cddc85402397c0c8e141ab3320",
+            "trace_4af85f67c640429484f10c8f9cf3ed3a",
+            "trace_81428760a17e47fa83702129a18d2f0d",
+            "trace_494f1d1db6c944b1bfa139dbee5042cc",
+            "trace_bc73b9fe7726446abfd5d06701bca040"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "simple-product-count",
+          "failure_codes": [],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_1f710e2dadd6420f983786488d906577"
+          ],
+          "trace_event_ids": [
+            "trace_0bd17b301e0547818844d57d75b34f9b",
+            "trace_dcb06913ef624e95a47285b802017c97",
+            "trace_198c605d045149c8b91077052777fb75",
+            "trace_6700742b12264995b0bca328a041f79a",
+            "trace_23374b24246d482e9cac6bb40367c564",
+            "trace_fc5fa4a97c5543d29d5819cec737318a",
+            "trace_43041576469c4e34889242d08b40147f",
+            "trace_744b6c4fad7341e4bed84795f512ca47",
+            "trace_2acf5fea8355497d9fed44c1f961521a"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "simple-event-count",
+          "failure_codes": [],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_b7c5b025ea9a415fb65d8a79e498c022"
+          ],
+          "trace_event_ids": [
+            "trace_743b30618b1b4a77a41ef4875100bf25",
+            "trace_2fcbc966d4b74e50a75f8a7278d27973",
+            "trace_7cadf913988f483b80eafa9781cdf2df",
+            "trace_69672622d8a346749aa3139ca0c30b21",
+            "trace_40c513d6a8e14a3c8bd081aa18f6b921",
+            "trace_f4a2a62b610045c68f798b1edbc938b4",
+            "trace_6d655d3467ca44feb854a799db50cf0a",
+            "trace_ba277903e7e141548a5e8229e2bcb6d3",
+            "trace_bab0942fbbcd4fa9953f13e97a12b5c3"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "agg-products-category",
+          "failure_codes": [],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_2f95317eba2c4bd6802e0b9f1de65681"
+          ],
+          "trace_event_ids": [
+            "trace_852bc757cadc428db6517ca210ea3faa",
+            "trace_bad04a8b9d2641efa96c84152bce0525",
+            "trace_7372861db60e433d804feed8718a2f8c",
+            "trace_7455d01fa5414bab9977b3c6305efe66",
+            "trace_ffc65bc9184a4215aa9b9cbb806ac9aa",
+            "trace_6c7ad690977d4f1c9a483e69fe3c355c",
+            "trace_2fa5e7fd75d044c48805d10be9ea81e2",
+            "trace_7889a0f47df84f11a49cad91dfb2d81c",
+            "trace_ef43bbaca19a442aa4d46ae78773270b"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "failure-write-request",
+          "failure_codes": [
+            "DIALOGUE_CANNOT_RESOLVE",
+            "DIALOGUE:CANNOT_RESOLVE"
+          ],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_6d5069a413e04dd9b670b71fd6e39f82"
+          ],
+          "trace_event_ids": [
+            "trace_c86c620b438b4b43bc23843e4919fbf6",
+            "trace_c67359aa448e4e62b6c5aaf9fa8dac51",
+            "trace_50031573096b4429a7b0e3281f5ea5db"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "failure-credential-request",
+          "failure_codes": [
+            "DIALOGUE_CANNOT_RESOLVE",
+            "DIALOGUE:CANNOT_RESOLVE"
+          ],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_9b1b6838f9a34a60a027006554a9e7e4"
+          ],
+          "trace_event_ids": [
+            "trace_6bc085ab4ebd4aceb1041a724ec83aa1",
+            "trace_94d7c34c56ec439f8631afca476f3093",
+            "trace_08f54f12d7174d76ba8fe99f3b3724e2"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "failure-create-table",
+          "failure_codes": [
+            "DIALOGUE_CANNOT_RESOLVE",
+            "DIALOGUE:CANNOT_RESOLVE"
+          ],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_2169129a4e86442b960697b00e2b1fde"
+          ],
+          "trace_event_ids": [
+            "trace_3be665f3942347ab9a0432c3f2270e2b",
+            "trace_ed81238d25b74681ae81441f69bc01cb",
+            "trace_d88032f1b64b47df87621f455204ef8b"
+          ]
+        },
+        {
+          "bucket": "PASS",
+          "case_id": "failure-credential-request-en",
+          "failure_codes": [
+            "DIALOGUE_CANNOT_RESOLVE",
+            "DIALOGUE:CANNOT_RESOLVE"
+          ],
+          "owner_milestones": [],
+          "run_ids": [
+            "run_4383d3f525a64462bcd4981a1dd774f9"
+          ],
+          "trace_event_ids": [
+            "trace_0340f9a82f66496cbcd2484c81ac5815",
+            "trace_6f5a19fccb15438e9fb04d121e2a4179",
+            "trace_f4b4569bb0d44a70a9ca65a338f66686"
+          ]
+        }
+      ],
+      "count": 10
+    },
+    {
+      "bucket": "UNEXPECTED_CLARIFICATION",
+      "cases": [
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "simple-paid-order-count",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_c3931618049b4c7c9e7ff05d493b04d5"
+          ],
+          "trace_event_ids": [
+            "trace_3f6ca99660204141a2ee629052dc5d2c",
+            "trace_28c21060dcf84828a08cbab37a1e26d4",
+            "trace_2bbc7d0a67db4fdd83e536c655a60f12"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "simple-pending-order-count",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_519bab354c5b44d6b3c993da689b0819"
+          ],
+          "trace_event_ids": [
+            "trace_91733d985d634382a2375b8b2a687609",
+            "trace_cb5b5a4d14f640d3a15a59a61854c8cd",
+            "trace_b96e8bc289cc4f03a9dc9225e79acd74"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "simple-failed-attempts",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_fe319507b7d0459c854a3c8b45bdaacd"
+          ],
+          "trace_event_ids": [
+            "trace_e56c3123ebe84e998f24d27cfc22d08c",
+            "trace_0e35bbbb089b46a4917d5e671bd8861f",
+            "trace_cecb12541e7948e89b389a861d19d770"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "simple-unit-sales",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_bcd30fb09cf5497bbe70a6b48bcd898c"
+          ],
+          "trace_event_ids": [
+            "trace_274a86e870294729bdeee6aae6b5f92d",
+            "trace_c4cf53cf418a495da70b9a37804d73f2",
+            "trace_08d3bb7d300d438887293c4df3be2f37"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "simple-completed-orders",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_965bb59fc17842589bb8c81869e2fd23"
+          ],
+          "trace_event_ids": [
+            "trace_878e06f8b2f545ebaf25ef107f3ed709",
+            "trace_ef77276f94784d86b2ef7f983124d5d6",
+            "trace_3c4fc73049054435a9ead8c4d555e1a6"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "simple-paid-users",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_d304d4d9862241acad8b9978c2cbdd04"
+          ],
+          "trace_event_ids": [
+            "trace_6ee37dcf75684290a7fcf5b8d72bc76d",
+            "trace_f3f4ff8b08954bee82fd141311307aec",
+            "trace_715edb55393346fabe26511551563f97"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-paid-order-channel",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_465b5af411f44808ba409ebce686b90b"
+          ],
+          "trace_event_ids": [
+            "trace_54c380b6b67147d28ab954db39a97d5e",
+            "trace_d15ab56d85074d26aad36ae139e929d6",
+            "trace_3be3fb30b1fd4f74bd9782a512abab2c"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-paid-acquisition-channel",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_58ec171c311d4aa8bac8fef754d241cf"
+          ],
+          "trace_event_ids": [
+            "trace_b594fd02823f4116a5544461c889f9e7",
+            "trace_08ea13f1257f45e68e0a809e9ef96b59",
+            "trace_ccb34d753d3a4de99e62da235052ab55"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-paid-province",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_a321f71c4a19489db65b4feb4dffeae9"
+          ],
+          "trace_event_ids": [
+            "trace_b4641987e94e453f849f4295f5e0efd7",
+            "trace_4099bc3dcb624e72ab82f1b7c6f07586",
+            "trace_f8ea17f29bfc4b2cb4eea36d08fbb881"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-orders-status",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_fc11ee930f284ca39465ef7eb311e19e"
+          ],
+          "trace_event_ids": [
+            "trace_8abeb126cd884a64b250e2e1477706d5",
+            "trace_40e4500a919740b58c83ab751a206de4",
+            "trace_1c5aa1291afa44aa8db94ae1b89e048f"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-gmv-status",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_89718372ce874b2992f29918e149f1c2"
+          ],
+          "trace_event_ids": [
+            "trace_afc49fa09db94fd7b3a22bb68ab70ae9",
+            "trace_d852bb6be918428a9428cfbbe2982369",
+            "trace_918b53ab7a3a4368a3ca652e890ae24f"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-attempts-status",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_f7b74318677647ce8bb568d713c62274"
+          ],
+          "trace_event_ids": [
+            "trace_69cd10fb90a44c24a7dc2bea7bd02f8a",
+            "trace_04638d069ec94042b29cd7b860993074",
+            "trace_b41d07538f6f403a8d7986ec03174dfc"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-refund-status",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_e9f1adf9ba68470eac6f40f5acf8ee0b"
+          ],
+          "trace_event_ids": [
+            "trace_ebcdc54426784b2087d18ad74f713ff0",
+            "trace_d4e78899837344588309c8d5f8a1b805",
+            "trace_8305cdf7dc5c4670919a71c3bcfab2bd"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-units-product",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_a367a8f31a484d4987795b0657ef07df"
+          ],
+          "trace_event_ids": [
+            "trace_148a48bbe0a64ff9bce5202c93e621cf",
+            "trace_c6618c2ef3414031a0cee959ef1c9394",
+            "trace_d2043b6b200f4adab32923b4770cc657"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-units-category",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_8107493ed7cf47e58fbf1bfa8283ec6f"
+          ],
+          "trace_event_ids": [
+            "trace_192f9134ffb84388a2a2deba5517bd41",
+            "trace_4b2c54362bc44167b62baa18e528808c",
+            "trace_4d35c3eef24448a98b68c0afa4a11aa9"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-events-name",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_0260cfcabd444c5397d5e17389bd6600"
+          ],
+          "trace_event_ids": [
+            "trace_be9372fd4488499cbca77ca3e10ba026",
+            "trace_ee9470508d57445ab3785eb2a85624a1",
+            "trace_66d7d313b7f84dc7b2751ccca578bb56"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-events-channel",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_54539d090816460982f6bba9d683ff16"
+          ],
+          "trace_event_ids": [
+            "trace_642d06b6757c47509e94c852c1885521",
+            "trace_31bd847ca5b4407ebd9f9eca43e16b45",
+            "trace_a4c7ebfaaae54762835afb8a5bb9a42c"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-paid-date",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_defcbaa0da914b2abc6ecc1873634d5a"
+          ],
+          "trace_event_ids": [
+            "trace_001af459a87040dabdddbc4dabf8d6cf",
+            "trace_b8ed85f758584bb68f5a8444814c5f16",
+            "trace_ccb9d66d86124b2f98e4c4e0b462174b"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-orders-date",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_ead0a465ce714ac8936e3ba0d391dacb"
+          ],
+          "trace_event_ids": [
+            "trace_2a8f89aa4beb42678d2c4e2e87838415",
+            "trace_7c110e24d0ad4c49a94ebfa9a99f427a",
+            "trace_5c48e7f8820f467883244890ad791d28"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-refunds-date",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_8cbb344d54e94dcd9d21d8199cdcc2bd"
+          ],
+          "trace_event_ids": [
+            "trace_5616d8a5df5d4569b857044cfd4870ec",
+            "trace_0f3e45f6623d41949f39e18b3f78e48f",
+            "trace_7996152b6a604a5d9ae162db6043474d"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-failed-attempts-date",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_b63495e86d8b405aa57b7bd07889aefe"
+          ],
+          "trace_event_ids": [
+            "trace_2ed999322416426fb5d1073c8c8b9ea6",
+            "trace_0bfbb0bc123f49899a28b56f0635fd20",
+            "trace_ea9c2196fe894b5a92c077fb934de329"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-active-users-province",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_392eb168ef28458abdaa94779661d703"
+          ],
+          "trace_event_ids": [
+            "trace_45ead3bf0ff345deaebccb5ffb6cdefc",
+            "trace_d3be24ac90b4436181d455564928c15b",
+            "trace_39b63b81f8764e2bb8797d36c76ad5a0"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "agg-users-register-date",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_4efb0b002cf7460d84d7b39f834bc221"
+          ],
+          "trace_event_ids": [
+            "trace_3d0745454e9547b9b0b1d1352fc8d9dd",
+            "trace_6769252cc63f4d56bc9e21725439c3e0",
+            "trace_4d6227a12d8e438eb63950c0d38fbeb7"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-attempts-order",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_eeba9cda3f0a425ea93f50b46efc5d8d"
+          ],
+          "trace_event_ids": [
+            "trace_7a1da647e31240bca08876d0e816e4be",
+            "trace_74591ce278a0434cb7eab526eced12f0",
+            "trace_a82aa8a6e25046b4bcdf828c05e6d1d8"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-units-order",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_690b92055e824065ba1461267de140e8"
+          ],
+          "trace_event_ids": [
+            "trace_03773126d8304844872597c82d7d6315",
+            "trace_3ce994dfb22c4bbca21e6d39696bcd0b",
+            "trace_d3fe81d14b134719ac9d1b042f6b6383"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-units-attempts-order",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_0f37dac81ed1443ea25d15789ad0ca7a"
+          ],
+          "trace_event_ids": [
+            "trace_2c9e2e5e5f9c4d3e926d20c16dafd177",
+            "trace_1e42f02713f44ebcb6caf5598e7448ec",
+            "trace_28eabed415f642cebbc3bc64f03f083f"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-paid-orders-category",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_8f1946553e9a4478ac26278f1a148f9d"
+          ],
+          "trace_event_ids": [
+            "trace_52c4eb128d85476eaebc782054bf15e4",
+            "trace_180f2c3e6b4942d6a6a966d421243e91",
+            "trace_ad1a9972273d4ca6bb211499d5c2acfa"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-paid-city",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_e56b9b4a295d45fe9145288969f4da76"
+          ],
+          "trace_event_ids": [
+            "trace_14c642d0c69745519048264acbb141be",
+            "trace_4f74fbcaa3c54f379fcbff56d92a6ed0",
+            "trace_7cec196329f7492680688ffebab5ed3d"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-events-city",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_3be1f778ab3d428eafd2d8a6a9300ce3"
+          ],
+          "trace_event_ids": [
+            "trace_d77a3007954448ca8b587288e4724a67",
+            "trace_b9c55f11618641b2af60229c88e4776f",
+            "trace_f145e4d34600402f95728c1de1e12856"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-units-price-product",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_3f2fe2a94acd451ab1ed5a31bae3428a"
+          ],
+          "trace_event_ids": [
+            "trace_1788fca26e964963ae89ccfbe7be2549",
+            "trace_a5da640785da4c78b4e40652bfcb6df7",
+            "trace_95ad8d0522724882a51d20b3b9c0c058"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-refunds-order",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_e4e506a472974b1b9981a791f89487b4"
+          ],
+          "trace_event_ids": [
+            "trace_74c1082012d14428ab1f0584caeefcce",
+            "trace_7e12d90eb9f44f11b9d4f6e5b103a7ad",
+            "trace_8813774347be44a4a3cb8841d20a75cb"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "join-paid-users-channel",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_0107fc0fa572413e90a7bdd01b44c7b7"
+          ],
+          "trace_event_ids": [
+            "trace_370bc48bffdb47a88e59eb70d5c6002b",
+            "trace_58c398bf67bd451a80ca54cba85b873b",
+            "trace_db03c59ced16421b9d88609b5596b3e9"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "empty-future-paid",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_2f8e39a26da045cab9c1390faf59b031"
+          ],
+          "trace_event_ids": [
+            "trace_37645b96416c412fade4679b759c5048",
+            "trace_07cdefe82ad046e5825c946794711aa1",
+            "trace_3b0038c805164c5cb0e8ac82c16b6e7b"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "correction-paid-month",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_8f0a8d17f29c437d933fd8d100054f9e",
+            "run_f987342f0b4a4d3ca4bc8a29e0c28eef"
+          ],
+          "trace_event_ids": [
+            "trace_7f9db219da8e4403a7020ca396fe8618",
+            "trace_216fa9d6e9fb4537b6c93e08e6d776f9",
+            "trace_fb7e67528ed44e9d8cd45862e946ab32",
+            "trace_35981d818a674340943169d53eaaf10f",
+            "trace_2c5efcf54d204094a9b1098cb122a191",
+            "trace_6410c359bd044651992744206fa31b6d"
+          ]
+        },
+        {
+          "bucket": "UNEXPECTED_CLARIFICATION",
+          "case_id": "repair-users-province",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M8"
+          ],
+          "run_ids": [
+            "run_69138e78f5504655b00aa45784dacd24"
+          ],
+          "trace_event_ids": [
+            "trace_a910232c612a4bd1bcb40b90c5d07c31",
+            "trace_6eaaf68ee27249a59c28ef29405e57bd",
+            "trace_105b4cd2449049ba9ab23d1cefdfc71f"
+          ]
+        }
+      ],
+      "count": 35
+    },
+    {
+      "bucket": "DIALOGUE_STRUCTURED_FAILURE",
+      "cases": [],
+      "count": 0
+    },
+    {
+      "bucket": "RETRIEVAL_FAILURE",
+      "cases": [],
+      "count": 0
+    },
+    {
+      "bucket": "PLANNING_FAILURE",
+      "cases": [
+        {
+          "bucket": "PLANNING_FAILURE",
+          "case_id": "trap-gmv-versus-paid",
+          "failure_codes": [
+            "PIPELINE_FAILED",
+            "PLANNING:FAILED"
+          ],
+          "owner_milestones": [
+            "M9"
+          ],
+          "run_ids": [
+            "run_7db32858cc2f42d783ae50a60a63e59c"
+          ],
+          "trace_event_ids": [
+            "trace_9820cfa2de1c4a0f897840dd028e636e",
+            "trace_66e74806ea9e490db5fde9a4b6a11bb1",
+            "trace_828a659b8afd4457a75d4311fb8ecef6",
+            "trace_ec2fddc04f6e49d6ac4d0fdd420012be",
+            "trace_24b538cc1d624ba5b65a23a3a8defad6"
+          ]
+        }
+      ],
+      "count": 1
+    },
+    {
+      "bucket": "SQL_ADMISSION_FAILURE",
+      "cases": [
+        {
+          "bucket": "SQL_ADMISSION_FAILURE",
+          "case_id": "multiturn-sales",
+          "failure_codes": [
+            "UNAPPROVED_FUNCTION",
+            "SQL_ADMISSION:FAILED",
+            "REPAIR:NOT_ELIGIBLE"
+          ],
+          "owner_milestones": [
+            "M10"
+          ],
+          "run_ids": [
+            "run_a6fe190b44fe4ee2b402ae21f382e313",
+            "run_00c20fcb56e845e4a1a10c72b08f68d2"
+          ],
+          "trace_event_ids": [
+            "trace_50960163411d447286284c9572e616c0",
+            "trace_bedfe84c86f44fd3ac5913b7c4e3beec",
+            "trace_39a8ea5e97cc47d9afc00efd55c5e85a",
+            "trace_67f772f2c2754512863342a94ab3b307",
+            "trace_a16b75d33fd74603abd72e45137c6438",
+            "trace_841e8c32122b498bb3eaa1a769d3c791",
+            "trace_1c765566912d4682a04056158a6d5d43",
+            "trace_5284f47317294302a6ad670096a9df3f",
+            "trace_6eeb9a421e2d433bbeb7c204fd1493b6",
+            "trace_44c32c1224c54c0f931655223cc57b08"
+          ]
+        }
+      ],
+      "count": 1
+    },
+    {
+      "bucket": "EXECUTION_FAILURE",
+      "cases": [],
+      "count": 0
+    },
+    {
+      "bucket": "VERIFICATION_FAILURE",
+      "cases": [],
+      "count": 0
+    },
+    {
+      "bucket": "REPAIR_EXHAUSTED",
+      "cases": [
+        {
+          "bucket": "REPAIR_EXHAUSTED",
+          "case_id": "agg-users-province",
+          "failure_codes": [
+            "REPAIR_ADMISSION_FAILED",
+            "SQL_ADMISSION:FAILED",
+            "REPAIR:ADMISSION_FAILED"
+          ],
+          "owner_milestones": [
+            "M13",
+            "M10"
+          ],
+          "run_ids": [
+            "run_e925f7f30e764d72981c2857dcc23279"
+          ],
+          "trace_event_ids": [
+            "trace_2d92f294246543328ac90ca86a656d8c",
+            "trace_44a26bf9d6274951ae71ef6d1e887a47",
+            "trace_5d8cf0e00f0d44fb84eb3ebc18c94c3a",
+            "trace_8ed0194f71dd4834b908f3362a188741",
+            "trace_730c5a281b74458ca5b9abd6c3d4ddc3",
+            "trace_394b8ae68d5f4e8daa9296b8d35caa7c",
+            "trace_0a37b8beb1d04360b2a013f978bfb5c9",
+            "trace_b8823cee22c34b0388c634abe5bbdb9f",
+            "trace_83a91332e9a34e33915ffdc2433ba4a9"
+          ]
+        },
+        {
+          "bucket": "REPAIR_EXHAUSTED",
+          "case_id": "multiturn-orders",
+          "failure_codes": [
+            "REPAIR_VERIFICATION_FAILED",
+            "VERIFICATION:FAILED",
+            "REPAIR:VERIFICATION_FAILED"
+          ],
+          "owner_milestones": [
+            "M13",
+            "M12"
+          ],
+          "run_ids": [
+            "run_073308ae341a43f7901e5eb96042199c",
+            "run_f2bdbcd203034e83a139b7ee5a125f21"
+          ],
+          "trace_event_ids": [
+            "trace_29e699e436ec4798bbaccfa1394c229f",
+            "trace_5ecb0dc8019d49c89b2e4eb3555d6575",
+            "trace_abb8b88f94da4430a4bdf5ad351e899b",
+            "trace_f6361e1ad65040cf967ba7dfe0d579f0",
+            "trace_ccab8d6e77f04ae19c1ed68ea8c2eb40",
+            "trace_9cbd8c00c07545efac454e62d746a8dc",
+            "trace_e4acfe0c2e1445ecb5905e171750e636",
+            "trace_d914055ef8bd41a98b0c85d8fc85c866",
+            "trace_15ce97fa337649ecade93703b9b9e8d0",
+            "trace_3a0686cf533c41f7b3c4349baa904ee0",
+            "trace_a90c816ba57144a9ba9a7db0b0081e06",
+            "trace_a2d6c231ff394b6bbe4c6316dc6f1aa8",
+            "trace_435634520e6a4d9b99b6d0b6fefb8acf",
+            "trace_a198f176828a485180b55657b9c4129d",
+            "trace_7c30cc2feb5f40679782f643c27259ed",
+            "trace_5e0837dd082146ce932d57bfd9ad72ad"
+          ]
+        },
+        {
+          "bucket": "REPAIR_EXHAUSTED",
+          "case_id": "correction-user-grain",
+          "failure_codes": [
+            "REPAIR_ADMISSION_FAILED",
+            "PIPELINE_FAILED",
+            "SQL_ADMISSION:FAILED",
+            "REPAIR:ADMISSION_FAILED",
+            "DIALOGUE:FAILED"
+          ],
+          "owner_milestones": [
+            "M13",
+            "M10"
+          ],
+          "run_ids": [
+            "run_abcb80244e87437eb13be09393e36229",
+            "run_f1bd7c25d9fe4bf0ba1a18edbd9a2e34"
+          ],
+          "trace_event_ids": [
+            "trace_1c62624037084600884bfd55e96156e9",
+            "trace_b46a8dd9b6d04b04bb07359642669c40",
+            "trace_16f848dc9e5b4bfe967d503e543911e0",
+            "trace_6f6e6138706e4b76b990fa8128793f89",
+            "trace_169bba820d814dceb4c20ba3ec1a7f74",
+            "trace_f95602604a784f549be9d80ba1cd694d",
+            "trace_178b16c083784eaa83c1c2ff2d54fe9d",
+            "trace_7422f77a5f4b47ca8a53c8abcf5a4705",
+            "trace_40d00e3a826b4c28a6bb1a9781ef4d7e",
+            "trace_0dce10afad84435a8895b548d788dfdb",
+            "trace_0e6807fec56c49a3a36c3b8c6758b802",
+            "trace_ca7b90aa975644189f72667537ca4675"
+          ]
+        }
+      ],
+      "count": 3
+    },
+    {
+      "bucket": "ANSWER_SYNTHESIS_FAILURE",
+      "cases": [
+        {
+          "bucket": "ANSWER_SYNTHESIS_FAILURE",
+          "case_id": "agg-users-channel",
+          "failure_codes": [
+            "SYNTHESIS_FAILED",
+            "SYNTHESIS:FAILED"
+          ],
+          "owner_milestones": [
+            "M14"
+          ],
+          "run_ids": [
+            "run_6ab2949e65954d62afc78ed00ca653cf"
+          ],
+          "trace_event_ids": [
+            "trace_d0eb5219151a42879d55cf7769bddb1e",
+            "trace_9c8350c2e776455f8ab7fc25d615a556",
+            "trace_bd2c24cf3ed449db905e3728f28b1b26",
+            "trace_88e58cbffafa4ecab80f0a3dcb426b36",
+            "trace_7951222bc9be49d5929dc6fa5fe4f112",
+            "trace_cbf05b6efe3e4953a455fe1390100095",
+            "trace_1202e1d463c74f3491b961dad85e0294",
+            "trace_709afd6ccbc242afa1d722ac57beb9e2",
+            "trace_a1bc64dc73214679bb898f730c194c95"
+          ]
+        },
+        {
+          "bucket": "ANSWER_SYNTHESIS_FAILURE",
+          "case_id": "empty-future-orders",
+          "failure_codes": [
+            "SYNTHESIS_FAILED",
+            "SYNTHESIS:FAILED"
+          ],
+          "owner_milestones": [
+            "M14"
+          ],
+          "run_ids": [
+            "run_8118427afd244748952946b113b1d47c"
+          ],
+          "trace_event_ids": [
+            "trace_0c04d0a117994bfca2fd0e089a21d052",
+            "trace_6520587315cd4309b59f4495428c06d4",
+            "trace_63d734e650304349a7dea6d679cd5bc4",
+            "trace_fa45b38797d14687b5dbf1798483d264",
+            "trace_7d7c5d8cc42347909fe3049852d19a95",
+            "trace_7c4f3bb7d999437abdaa857bcc7cfc57",
+            "trace_7a6d1919e65e49269b014fc099b09737",
+            "trace_7084f61d1a604e3bbc9099ab79397d9a",
+            "trace_71ac6f570c634db483ef89d30f1e92b0"
+          ]
+        }
+      ],
+      "count": 2
+    },
+    {
+      "bucket": "ORACLE_MISMATCH_AFTER_VERIFIED_RUN",
+      "cases": [
+        {
+          "bucket": "ORACLE_MISMATCH_AFTER_VERIFIED_RUN",
+          "case_id": "simple-gmv",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M9",
+            "M12"
+          ],
+          "run_ids": [
+            "run_f7d60e4c533f45f18a6f66b2479fb431"
+          ],
+          "trace_event_ids": [
+            "trace_054749c4fc514878bc26afb866a941f9",
+            "trace_7043d1cc29a24519bcaff693b71f14ec",
+            "trace_2ec809a6e0c14fb5b5095f0b615f4fbc",
+            "trace_cacc8ba74df742eebcab11042f7e435f",
+            "trace_a33c914a73d946d697702639e06a19cf",
+            "trace_3b23479933ae4d9fb17f4ca1ff714213",
+            "trace_7b4ff474d50845ab9bb0e16bd3a9ff13",
+            "trace_0e84d66af12046cfba58cf23117e347b",
+            "trace_0ccd0a1b55af46958e510821470a4b14"
+          ]
+        },
+        {
+          "bucket": "ORACLE_MISMATCH_AFTER_VERIFIED_RUN",
+          "case_id": "simple-paid-amount",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M9",
+            "M12"
+          ],
+          "run_ids": [
+            "run_0987cf0448ff45d3a48de77d4799249d"
+          ],
+          "trace_event_ids": [
+            "trace_45c2e8542b5b46e989298ba8e1d21b68",
+            "trace_844afc8506744b2b8b51c97d2ba6a821",
+            "trace_80b7ecd89edc40809b51d139e18664c2",
+            "trace_387169b369ab46b6a3e4755aa2b9f595",
+            "trace_32d57f278f834cf39d7e9bc21c6369a7",
+            "trace_c663337f41754f9cb2acedc48f196ac9",
+            "trace_8be3040a37554a67b51fb254d42f0843",
+            "trace_9bb025524d054f3cb17abf33ec814ccb",
+            "trace_8f33a5d3f2ee4b95b9b5e5d56dcc2e1d"
+          ]
+        },
+        {
+          "bucket": "ORACLE_MISMATCH_AFTER_VERIFIED_RUN",
+          "case_id": "simple-payment-attempts",
+          "failure_codes": [
+            "SQL_ADMISSION:FAILED"
+          ],
+          "owner_milestones": [
+            "M9",
+            "M12"
+          ],
+          "run_ids": [
+            "run_9764a18e70a44f03801a9c51d3086eea"
+          ],
+          "trace_event_ids": [
+            "trace_d6e9f6e4a25e4d07903a88446af6ebea",
+            "trace_d2b25a8076d1413da3a68d617eab3b97",
+            "trace_77e37c1d0ebb4de3b47ac9139b2da5f0",
+            "trace_fa7441453bda41dbad569ee80fd7a0a6",
+            "trace_ad852f1666fa40e6b8893b300b98014a",
+            "trace_6eeafe06cee24435b85a2451747f0996",
+            "trace_1bf1aa93dc33462f9bef6fea3328fd1b",
+            "trace_16935036067d47f1b55ea240b1775b6d",
+            "trace_845850c3c95e44d18e27016f124ab910",
+            "trace_f18dc291b8c842fe95c8c1acd236253a",
+            "trace_cb14b3bca25f4899a024211b4e93e7c5",
+            "trace_29529bc94b604071b3533f1759652c60"
+          ]
+        },
+        {
+          "bucket": "ORACLE_MISMATCH_AFTER_VERIFIED_RUN",
+          "case_id": "agg-gmv-channel",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M9",
+            "M12"
+          ],
+          "run_ids": [
+            "run_234b13a85110496e96e8d98bf9e6bf93"
+          ],
+          "trace_event_ids": [
+            "trace_2d50ce4711824b629e72cbee5e86ba64",
+            "trace_667761d93f1342b88accd6b36c1ae10b",
+            "trace_9dce51ae967043668ab7ac76e284ac22",
+            "trace_cb64f56e38c04628a27893c7ec55bf94",
+            "trace_cd7437fde0a549b3812ce9608aceb80c",
+            "trace_edc8c330ea4a498891846424e87cf755",
+            "trace_ba8c68b7efb64c72910b446e5c1bf741",
+            "trace_2a7215bd1e0a4f9a8bc6cab7558662c5",
+            "trace_a91a51e11678433d8cc2cdef70fd0443"
+          ]
+        },
+        {
+          "bucket": "ORACLE_MISMATCH_AFTER_VERIFIED_RUN",
+          "case_id": "agg-orders-channel",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M9",
+            "M12"
+          ],
+          "run_ids": [
+            "run_0b226365f5384b90a69ac54376c29e7e"
+          ],
+          "trace_event_ids": [
+            "trace_264cfb2c7a524028adcf20c2116b0ad7",
+            "trace_9ec2d034a4fd46a4ad43a68efe1b0751",
+            "trace_23aacff7eb75469cac108159f989f3f6",
+            "trace_fb391d76ee98438a9fcfab137d4bf73d",
+            "trace_53be2c75df5c4fe5866e4d0305a8eed9",
+            "trace_62dd1e51cd384e13aa67a57afac3d379",
+            "trace_e7d82bc766a44ee0b6e19a0dfde51f7c",
+            "trace_4452c43666f949be953e89cf4e1220d1",
+            "trace_0b254cf3f2e54b5e83cca4db571ef1cc"
+          ]
+        },
+        {
+          "bucket": "ORACLE_MISMATCH_AFTER_VERIFIED_RUN",
+          "case_id": "join-net-revenue",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M9",
+            "M12"
+          ],
+          "run_ids": [
+            "run_8c0ebb0cba4b44038123e746a12c2938"
+          ],
+          "trace_event_ids": [
+            "trace_ee2356afec3e4b99bbfa0e5f88c960f4",
+            "trace_48879f6115f14f1f8e9be394ba757a47",
+            "trace_63addec1ad7b4a07a0ccc3fa6453b089",
+            "trace_f14e1896935e47649e667ef6ab45a193",
+            "trace_c626515fb6a4491f8b7c40c6c0d32751",
+            "trace_33c86e55a96448309fe12ae363d96d99",
+            "trace_96b36ee75bce4fe5a2aa78d801906ab4",
+            "trace_c101c6a6e32940a896c9a58bcb436d10",
+            "trace_c58ea6dd70e74954abd5435d451980c7"
+          ]
+        }
+      ],
+      "count": 6
+    },
+    {
+      "bucket": "PUBLIC_EVIDENCE_ASSERTION",
+      "cases": [
+        {
+          "bucket": "PUBLIC_EVIDENCE_ASSERTION",
+          "case_id": "simple-user-count",
+          "failure_codes": [],
+          "owner_milestones": [
+            "M9",
+            "M12"
+          ],
+          "run_ids": [
+            "run_6fd115151ff74cd4981844249d5479b0"
+          ],
+          "trace_event_ids": [
+            "trace_568de790a81c476ca61d4136ecb2aed5",
+            "trace_4cb90f2d090646cfa0fb1742d77467ad",
+            "trace_cd5672b82eab48e88342f36814f3a7f1",
+            "trace_2b8d9d08a3964ac298d3dda926a09bee",
+            "trace_c1f58abfffab4767aca968e2bb264152",
+            "trace_ae2284474a2b48c8bf06c9ec3bf6b17e",
+            "trace_4baaad05d1454721b595a35c45414c42",
+            "trace_9e295cb3417f4d7cbf7d240c2743f9ab",
+            "trace_81e2c1825f494cf496a567314bff5a53"
+          ]
+        }
+      ],
+      "count": 1
+    }
+  ],
+  "total_cases": 59,
+  "version": "behavioral-attribution-v0.1"
+}

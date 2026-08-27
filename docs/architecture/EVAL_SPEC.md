@@ -343,6 +343,23 @@ If calibration shows a target is structurally inappropriate, revise this file ex
 rationale; do not silently lower a test. Changing the frozen case source, model identity, prompt,
 catalog, or policy invalidates the earlier environment-bound acceptance result.
 
+### M15 behavioral-failure attribution
+
+`task m15-attribution` derives an eval-only diagnostic report from an already completed canonical
+report; it does not call a model, execute a query, or change acceptance status. The derived report
+must bind the source Git/environment/Golden fingerprints, provide a case-reached stage funnel, and
+assign every Golden case to exactly one terminal bucket so the bucket counts equal the frozen case
+count. Per-case evidence includes Run IDs, trace-event IDs, retained failure codes, and owning
+frozen milestone candidates.
+
+Stage-funnel counts mean "reached or passed at least once" and are not themselves a partition for
+multi-turn cases. Terminal buckets are the partition. Unknown evidence must stay unknown: if the
+source report did not retain clarification blocker fields, same-input standalone replay, or a
+typed model-failure cause, attribution records `EVIDENCE_UNAVAILABLE`, `NOT_REPLAYED`, or
+`UNCLASSIFIED` instead of inferring a field from user text or treating a zero classified count as
+proof that the failure did not occur. `M12 PASSED + Oracle FAILED` result branches are reported as
+a dedicated high-priority set.
+
 ## 7. Semantic correctness
 
 A query may execute and still be wrong.

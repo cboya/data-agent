@@ -1021,6 +1021,28 @@ behavioral threshold changed, `task eval` remains failed, and PR #15 remains Dra
 behavioral acceptance in a suitable capable-model environment. The post-eval and post-quality
 tracked worktree was clean.
 
+M15 behavioral-failure attribution note (2026-08-27): `task m15-attribution` now derives a strict,
+model-free report from the failed source report without changing runtime behavior. Attribution
+fingerprint `62bbd0b0c3ca33f63de1599048699eeb3f8d1f9128be7a0c0ed9b10156167a79`
+binds source environment `f2fb51fb05df516c59489fffaccb0d3a3adf0daeb528ecfb568481f6e665b933`
+and produces an exact 59-case terminal partition: 10 pass, 35 unexpected clarification, one
+planning failure, one SQL-admission failure, three repair-exhausted, two answer-synthesis failure,
+six verified-result Oracle mismatch, and one public-evidence assertion. The stage funnel is 59
+received, 20 dialogue-ready/retrieval-pass, 19 planning-pass, 16 admission/execution-pass, 15
+verification-pass, 13 synthesis/Oracle-reached, seven Oracle-pass, and ten final Golden-pass;
+five cases entered repair. Across 63 turns the dialogue matrix is READY→READY 20,
+READY→CLARIFY 36, READY→DIALOGUE_FAILURE one, CLARIFY→CLARIFY two, and four expected safe
+terminal failures. Six explicit `M12 PASSED + Oracle FAILED` cases split into four extra-grain and
+two output-shape mismatches. Source report v0.1 did not retain clarification blocker fields,
+same-input standalone replay, or typed causes beneath generic pipeline failures; the report marks
+36 blocker occurrences `EVIDENCE_UNAVAILABLE`, all 35 comparisons `NOT_REPLAYED`, and four
+structured-call failures `UNCLASSIFIED` rather than guessing. The ranked remediation ownership is
+M8 first (35 cases), M9+M12 second (eight cases including the planning and verified semantic set),
+M13+M10/M12 third (four cases), and M14 fourth (two cases). Machine-readable and human evidence
+are frozen at `docs/evidence/M15-BEHAVIORAL-ATTRIBUTION-3be2534.json` and
+`docs/evidence/M15-BEHAVIORAL-ATTRIBUTION-3be2534.md`. This diagnosis does not authorize reopening
+any prior milestone, changing a frozen truth source, or moving PR #15 out of Draft.
+
 M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
 APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
 focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag
