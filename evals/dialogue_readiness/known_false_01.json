@@ -1,0 +1,1006 @@
+{
+  "cases": [
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "simple-paid-order-count",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "ALREADY_RESOLVED"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "order_count",
+                "status": "CONFIRMED",
+                "term": "paid_order_count"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "统计整个数据集中成功支付或完成的业务订单数，输出 paid_order_count",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "order_count",
+                  "status": "CONFIRMED",
+                  "term": "paid_order_count"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "CLEAR",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请明确您希望统计的时间范围，例如最近7天、最近30天或特定日期区间。",
+              "reason": "时间范围未指定，存在阻塞性歧义。当前状态中 time_range 为 null，且最新消息未提供具体时间窗口。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "时间范围未明确，无法确定分析的时间区间。",
+                  "subject_term": "整个数据集"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "simple-pending-order-count",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "ALREADY_RESOLVED"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "pending_order_count",
+                "status": "CONFIRMED",
+                "term": "pending_order_count"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "统计整个数据集中 PENDING 业务订单数，输出 pending_order_count",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "pending_order_count",
+                  "status": "CONFIRMED",
+                  "term": "pending_order_count"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "CLEAR",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认您要分析的时间范围，例如最近7天、最近30天或具体日期区间。",
+              "reason": "时间范围未指定，存在阻塞性歧义。当前状态中 time_range 为 null，且最新消息未提供明确时间窗口。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "时间范围未指定，无法确定分析周期。",
+                  "subject_term": "整个数据集中"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "simple-failed-attempts",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "ALREADY_RESOLVED"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "failed_payment_attempt_count",
+                "status": "CONFIRMED",
+                "term": "failed_payment_attempt_count"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "统计整个数据集 FAILED 支付尝试次数，输出 failed_payment_attempt_count",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "failed_payment_attempt_count",
+                  "status": "CONFIRMED",
+                  "term": "failed_payment_attempt_count"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "CLEAR",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认您要分析的时间范围，例如最近7天、最近30天或具体日期区间。",
+              "reason": "未指定时间范围，存在时间范围歧义。当前状态中 time_range 为 null，且最新消息未提供明确时间窗口。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "未指定时间范围，存在时间范围歧义。",
+                  "subject_term": "整个数据集"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "simple-unit-sales",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "ALREADY_RESOLVED"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "unit_sales",
+                "status": "CONFIRMED",
+                "term": "商品销售件数"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "统计整个数据集的商品销售件数，输出 unit_sales",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "unit_sales",
+                  "status": "CONFIRMED",
+                  "term": "商品销售件数"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "CLEAR",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认您要分析的时间范围，例如最近7天、最近30天或整个数据集？",
+              "reason": "未指定时间范围，存在时间范围歧义。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "未指定时间范围，存在时间范围歧义。",
+                  "subject_term": "整个数据集"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "simple-completed-orders",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "ALREADY_RESOLVED"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "completed_order_count",
+                "status": "CONFIRMED",
+                "term": "completed_order_count"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "统计整个数据集中 COMPLETED 订单数，输出 completed_order_count",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "completed_order_count",
+                  "status": "CONFIRMED",
+                  "term": "completed_order_count"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "CLEAR",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认您希望分析的时间范围，例如最近7天、最近30天或整个数据集？",
+              "reason": "未指定时间范围，当前状态中 time_range 为 null，需明确具体时间窗口。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "未指定时间范围，无法确定分析的时间窗口。",
+                  "subject_term": "整个数据集中"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "simple-paid-users",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "NON_MATERIAL"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "paid_user_count",
+                "status": "CONFIRMED",
+                "term": "paid_user_count"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": {
+              "end": null,
+              "kind": "RELATIVE",
+              "start": null,
+              "value": "all_time"
+            },
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "统计整个数据集中有成功支付订单的去重用户数，输出 paid_user_count",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "paid_user_count",
+                  "status": "CONFIRMED",
+                  "term": "paid_user_count"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "SET",
+                "value": {
+                  "end": null,
+                  "kind": "RELATIVE",
+                  "start": null,
+                  "value": "all_time"
+                }
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认您要统计的用户数是否为‘成功支付订单’的去重用户数，即每个用户仅计一次，无论其有多少笔成功支付订单。",
+              "reason": "用户提到的‘有成功支付订单的去重用户数’存在歧义，需明确‘去重’的逻辑是否基于用户ID且仅统计至少一笔成功支付订单的用户。此为关键定义，必须澄清。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "metric",
+                  "options": [],
+                  "reason": "用户未明确说明‘去重用户数’的具体计算方式，需确认是否为按用户去重且至少有一笔成功支付订单。",
+                  "subject_term": "有成功支付订单的去重用户数"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "agg-paid-order-channel",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "OPTIONAL_TIME_ABSENT"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [
+              {
+                "resolved_name": "channel",
+                "status": "CONFIRMED",
+                "term": "订单归属渠道"
+              }
+            ],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "paid_amount",
+                "status": "CONFIRMED",
+                "term": "实际支付金额"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "按订单归属渠道统计成功订单的实际支付金额，输出 order_channel 和 paid_amount",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [
+                {
+                  "resolved_name": "channel",
+                  "status": "CONFIRMED",
+                  "term": "订单归属渠道"
+                }
+              ],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "paid_amount",
+                  "status": "CONFIRMED",
+                  "term": "实际支付金额"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认时间范围，例如最近7天、最近30天或具体日期区间。",
+              "reason": "未指定时间范围，无法确定分析的时间窗口。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "未提供明确的时间范围，如最近7天、最近30天等。",
+                  "subject_term": "按订单归属渠道统计成功订单的实际支付金额"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "agg-paid-acquisition-channel",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "OPTIONAL_TIME_ABSENT"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [
+              {
+                "resolved_name": "acquisition_channel",
+                "status": "CONFIRMED",
+                "term": "获客渠道"
+              }
+            ],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "paid_amount",
+                "status": "CONFIRMED",
+                "term": "实际支付金额"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "按用户获客渠道统计成功订单的实际支付金额，输出 acquisition_channel 和 paid_amount",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [
+                {
+                  "resolved_name": "acquisition_channel",
+                  "status": "CONFIRMED",
+                  "term": "获客渠道"
+                }
+              ],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "paid_amount",
+                  "status": "CONFIRMED",
+                  "term": "实际支付金额"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认时间范围，例如最近7天、最近30天或具体日期区间。",
+              "reason": "未指定时间范围，无法确定分析的时间窗口。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "未提供明确的时间范围，如最近7天、最近30天等。",
+                  "subject_term": "按用户获客渠道统计成功订单的实际支付金额"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_FALSE_CLARIFICATION",
+      "id": "agg-paid-province",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [
+            "OPTIONAL_TIME_ABSENT"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [
+              {
+                "resolved_name": "province",
+                "status": "CONFIRMED",
+                "term": "客户省份"
+              }
+            ],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "paid_amount",
+                "status": "CONFIRMED",
+                "term": "实际支付金额"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "按客户省份统计成功订单的实际支付金额，输出 province 和 paid_amount",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [
+                {
+                  "resolved_name": "province",
+                  "status": "CONFIRMED",
+                  "term": "客户省份"
+                }
+              ],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "paid_amount",
+                  "status": "CONFIRMED",
+                  "term": "实际支付金额"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "请确认时间范围，例如最近7天、最近30天或具体日期区间。",
+              "reason": "未指定时间范围，无法确定分析的时间窗口。",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [],
+                  "reason": "未提供明确的时间范围，如最近7天、最近30天或具体日期区间。",
+                  "subject_term": "按客户省份统计成功订单的实际支付金额"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    }
+  ],
+  "source_diagnosis_fingerprint": "1070e9346cdb441eb083299363d818e39cdde598815906e38437d1300b4ebc78",
+  "version": "v0.1"
+}

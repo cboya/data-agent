@@ -255,22 +255,25 @@ ASK_CLARIFICATION ⇒ question is non-empty
 READY ⇒ question is None
 ```
 
-The LLM proposes the decision. The harness validates and applies it.
+The LLM proposes the mutation and clarification candidates. The harness owns the final decision.
 The model cannot write `RequirementState.status`; deterministic dialogue policy derives it after
-merge. `ASK_CLARIFICATION` is accepted only when the merged state contains a blocking ambiguity,
-and `READY` only when it contains none.
+merge. `ASK_CLARIFICATION` is accepted only when deterministic blocking policy proves a material,
+execution-affecting ambiguity in the merged state, and `READY` only when it proves none.
 
 The Ollama boundary does not deserialize directly into the public decision. It first validates a
 provider-facing `DialogueProposal v0.1` containing a mutation patch and an action-discriminated
-`resolution`. ASK grammar requires at least one normalized blocking ambiguity; provider
-grain/comparison enum values are then deterministically normalized into `ScalarPatch` operations.
+`resolution`. Provider grain/comparison enum values are deterministically normalized into
+`ScalarPatch` operations, then the complete unsuppressed candidate patch is provisionally merged.
 Provider blocking ambiguity adds a required `subject_term` copied from the ambiguous surface
-phrase; this attribution metadata is removed before the public `Ambiguity` is constructed. The
-normalized `DialogueDecision` is revalidated before merge. A blocked scalar mutation becomes
-`NO_CHANGE`. A metric/dimension blocker suppresses only an upsert with the same normalized
-user-facing `term`, preserving unrelated explicit members of that collection. Collection removes
-that cannot be safely attributed and a filter replacement paired with a filter blocker fail
-closed instead of silently dropping facts.
+phrase. Internal `BlockingAmbiguityPolicy` classifies each candidate with stable reason codes from
+the provisional merged state, exact subject attribution, explicit patch operations, structured
+resolution status, and concrete competing options. Free-form provider reasons are never
+readiness authority. A missing optional `time_range` or `grain` is not a blocker; a resolved
+metric/dimension cannot remain blocked; a genuinely unresolved material candidate remains
+blocking. Only proven blockers suppress their attributable mutation and cross the public
+`Ambiguity` boundary. The final `DialogueDecision` is rebuilt and revalidated after this policy.
+Collection removes that cannot be safely attributed and a filter replacement paired with a proven
+filter blocker fail closed instead of silently dropping facts.
 
 ---
 
