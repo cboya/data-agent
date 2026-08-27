@@ -489,12 +489,13 @@ coherent evidence chain.
 Beginning with `verification-policy-v0.2`, public analytical shape is an applicable deterministic
 invariant whenever the READY requirement supplies resolved output names. The authoritative public
 set is its resolved metrics and dimensions plus `period` exactly when `grain` is present. For an
-aggregate result, public non-aggregate column projections define the observed analytical grain and
-must equal the requested dimensions plus applicable `period`. Each requested dimension must also
-resolve to exactly one bounded M6 catalog column and be present in that output projection's SQL
-lineage. QueryPlan expected columns remain useful structural evidence but cannot expand this
-RequirementState-owned authority. Non-public SQL helper/grouping expressions are not result
-outputs and do not participate.
+aggregate result, every final `GROUP BY` partition key must map exactly to a requested public
+non-aggregate projection, and those mapped outputs must equal the requested dimensions plus
+applicable `period`. Hidden grouping keys fail closed unless a future governed contract can prove
+the required functional dependency; ordinary non-grouping SQL helpers do not participate. Each
+requested dimension must resolve to exactly one bounded M6 catalog column and be present in that
+output projection's SQL lineage. QueryPlan expected columns remain useful structural evidence but
+cannot expand this RequirementState-owned authority.
 
 The internal `planner-context-fingerprint-v0.1` is SHA-256 over canonical JSON containing its
 fingerprint version and the complete `PlannerContext`: context version, authoritative

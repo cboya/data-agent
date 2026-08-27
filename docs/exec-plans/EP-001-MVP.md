@@ -456,15 +456,17 @@ regressions, and enforce `verified_oracle_mismatch_count == 0`; M8/M9/M10/M11/M1
 Golden/Oracle truth, model/resource configuration, and acceptance thresholds remain frozen.
 
 M12 targeted-remediation local evidence (2026-08-27): `verification-policy-v0.2` and
-`verification-trace-v0.2` add `governed_public_output_shape` and
-`unrequested_analytical_grain`. All six frozen IDs (`simple-gmv`, `simple-paid-amount`,
+`verification-trace-v0.2` add separately typed requested-output resolution, public-shape,
+dimension-source authority, dimension-projection lineage, and analytical-grain checks. All six
+frozen IDs (`simple-gmv`, `simple-paid-amount`,
 `simple-payment-attempts`, `join-net-revenue`, `agg-gmv-channel`, `agg-orders-channel`) now end in
-deterministic `SEMANTIC_FAILURE`; the 21-case standalone report passes with structural, semantic,
+deterministic `SEMANTIC_FAILURE`; the 23-case standalone report passes with structural, semantic,
 empirical, identity, PlannerContext-substitution, and truncation metrics at `1.000`, false accept
-and false reject at `0.000`, `verified_oracle_mismatch_count=0`, and coverage `0.901`. Clean
+and false reject at `0.000`, `verified_oracle_mismatch_count=0`, and coverage `0.912`. Clean
 `task bootstrap` passed against an isolated local control schema and reproduced the ten-table
 world plus retrieval index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`.
-The complete M12 suite passes 32 tests; `task quality` passes 439 tests with 7 explicit host-only
+The complete M12 suite passes 37 tests; the focused M12/M13 review set passes 61 tests; `task
+quality` passes 446 tests with 7 explicit host-only
 skips. Downstream deterministic M13 and M14 evals remain green (19 and 7 cases respectively, every
 reported authority metric `1.000`). No large-model or full 59-case M15 suite was run. The
 remediation is ready for a focused PR and substantive review; it is not authorized for merge, and
@@ -1231,7 +1233,9 @@ Decision: Advance the internal policy to `verification-policy-v0.2`. Derive the 
 public output set and requested aggregate grain from READY RequirementState, independently of the
 Plan's expected columns. Require exact public-shape equality and exact public aggregate grain, and
 require every requested dimension output to have one uniquely governed M6 column source in the SQL
-projection lineage. Ignore grouping/helper expressions not exposed in the final result.
+projection lineage. Inspect every final aggregate `GROUP BY` partition key; without governed
+functional-dependency metadata, any key that cannot map to one requested public grouping
+projection fails closed. Ignore only non-grouping SQL helpers that cannot partition result rows.
 Evidence: Draft M15 diagnosis froze six `M12 PASSED + Oracle FAILED` cases: four Plans added
 unrequested channel/day grain and two exposed generic `channel` dimensions without a uniquely
 provable M6 column identity. In every case the wrong Plan and matching result had been allowed to
@@ -1239,8 +1243,25 @@ validate one another.
 Consequences: These six cases become permanent provider-free M12 regressions and the standalone
 report adds the exact `verified_oracle_mismatch_count == 0` release gate. This does not change the
 Golden/Oracle assets, model behavior, M8/M9 prompts or contracts, M13 bound/prompt/repair categories,
-or public VerificationResult schema. The two new typed check names join M13's already-supported
-verification-formulation allowlist so existing bounded repair behavior is preserved.
+or public VerificationResult schema. Repairable public-shape, projection-lineage, and grain check
+names join M13's already-supported verification-formulation allowlist. Missing/ambiguous requested
+dimension authority has a separate nonrepairable check and consumes zero repair attempts.
+
+2026-08-27 — M12 substantive-review grain and repair-classification remediation
+Decision: Replace projection-only grain inference with an exact mapping from every final aggregate
+`GROUP BY` expression to one public non-aggregate projection. Accept structural expression
+identity, an unambiguous output alias, or a valid SELECT ordinal; reject any unmatched/ambiguous
+hidden grouping key because current governed metadata cannot prove it functionally dependent on
+the requested grain. Split output-set conformance, requested-output resolution, requested-dimension
+source uniqueness, and requested-dimension projection lineage into stable check IDs. Only the
+output-set, projection-lineage, and grain formulation checks are M13-repairable.
+Evidence: Substantive review supplied a metric-only counterexample whose public shape was correct
+but `GROUP BY user_id` produced multiple hidden-grain rows, plus a province result refined by a
+hidden user key. It also showed that zero/multiple M6 candidates cannot be repaired under the same
+frozen PlannerContext.
+Consequences: Hidden grouping refinements become deterministic semantic failures. M6 authority
+ambiguity makes zero repair-model calls and consumes zero durable attempts; no text-detail parsing,
+new repair category, prompt change, or attempt expansion is introduced.
 
 2026-08-26 — M14 deterministic response authority and atomic conversation completion
 Decision: Allow the answer model to propose only natural-language text and unique positional

@@ -205,6 +205,32 @@ def test_policy_failure_is_terminal_with_zero_model_calls_and_zero_claims() -> N
     assert model.calls == []
 
 
+def test_dimension_authority_ambiguity_consumes_no_repair_attempt() -> None:
+    original = original_trace()
+    failure = repair_failure(
+        original,
+        stage=RepairStage.VERIFICATION,
+        category=RepairCategory.FORMULATION,
+        code="VERIFICATION_CHECK_FAILED",
+        failed_checks=("requested_dimension_source_unique",),
+    )
+    model = FixedRepairModel()
+    runs = MemoryRunRepository(status=RunStatus.VERIFYING)
+
+    outcome = run_repair(
+        service(model=model, runs=runs),
+        runs=runs,
+        original=original,
+        failure=failure,
+    )
+
+    assert outcome.trace.outcome is RepairOutcomeKind.NOT_ELIGIBLE
+    assert outcome.run.status is RunStatus.FAILED
+    assert outcome.run.repair_count == 0
+    assert runs.claim_count == 0
+    assert model.calls == []
+
+
 def test_coverage_gap_is_not_a_trigger_and_does_not_terminalize_run() -> None:
     original = original_trace()
     failure = RepairFailure(

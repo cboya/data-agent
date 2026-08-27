@@ -90,3 +90,11 @@ cases:
     mutation: FROZEN_AGG_ORDERS_CHANNEL
     expected: SEMANTIC_FAILURE
     verified_oracle_regression: true
+
+  - id: hidden-grouping-global-aggregate
+    mutation: HIDDEN_GLOBAL_GRAIN
+    expected: SEMANTIC_FAILURE
+
+  - id: hidden-grouping-refines-requested-dimension
+    mutation: HIDDEN_REFINED_GRAIN
+    expected: SEMANTIC_FAILURE

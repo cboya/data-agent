@@ -15,6 +15,7 @@ _REPAIRABLE_EXACT_CHECKS = frozenset(
         "required_dimensions_present",
         "grain_period_present",
         "governed_public_output_shape",
+        "requested_dimension_projection_lineage",
         "unrequested_analytical_grain",
         "governed_relationship_joins",
         "grouping_keys_unique",

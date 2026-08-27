@@ -15,7 +15,7 @@ from data_agent.verification.evaluation import (
 def test_frozen_verification_suite_covers_every_decision_class() -> None:
     suite, fingerprint = load_verification_eval_suite()
 
-    assert len(suite.cases) == 21
+    assert len(suite.cases) == 23
     assert {case.expected for case in suite.cases} == {
         "PASS",
         "STRUCTURAL_FAILURE",

@@ -79,6 +79,12 @@ class _SemanticSQL:
         return candidates[0] if len(candidates) == 1 else None
 
 
+@dataclass(frozen=True)
+class _AggregateGrain:
+    projected_grouping_outputs: frozenset[str]
+    hidden_grouping_expressions: tuple[str, ...]
+
+
 def _parse_semantic_sql(context: VerificationContext) -> _SemanticSQL:
     try:
         statements = sqlglot.parse(
@@ -169,21 +175,58 @@ def _projection_lineage(
     return lineage
 
 
-def _public_aggregate_grain(sql: _SemanticSQL) -> set[str] | None:
-    """Return exposed non-aggregate column projections for a simple aggregate SELECT."""
+def _aggregate_grain(sql: _SemanticSQL) -> _AggregateGrain | None:
+    """Map every final GROUP BY partition key to one public non-aggregate projection."""
 
-    if sql.complex_sources or sql.final_select is None:
+    if sql.final_select is None:
         return None
     projections = tuple(sql.final_select.expressions)
     if not any(projection.find(exp.AggFunc) is not None for projection in projections):
         return None
-    return {
-        projection.alias_or_name
-        for projection in projections
-        if projection.alias_or_name
-        and projection.find(exp.AggFunc) is None
-        and projection.find(exp.Column) is not None
-    }
+    public_grouping_projections: list[tuple[int, str, exp.Expression]] = []
+    for index, projection in enumerate(projections, start=1):
+        output_name = projection.alias_or_name
+        if (
+            not output_name
+            or projection.find(exp.AggFunc) is not None
+            or projection.find(exp.Column) is None
+        ):
+            continue
+        projection_expression = projection.this if isinstance(projection, exp.Alias) else projection
+        public_grouping_projections.append((index, output_name, projection_expression))
+    group = sql.final_select.args.get("group")
+    if not isinstance(group, exp.Group):
+        return _AggregateGrain(frozenset(), ())
+
+    grouping_outputs: set[str] = set()
+    hidden_grouping_expressions: list[str] = []
+    for grouping_expression in group.expressions:
+        matches: list[str] = []
+        for index, output_name, projection_expression in public_grouping_projections:
+            if (
+                grouping_expression == projection_expression
+                or (
+                    isinstance(grouping_expression, exp.Column)
+                    and not grouping_expression.table
+                    and _normalized(grouping_expression.name) == _normalized(output_name)
+                )
+                or (
+                    isinstance(grouping_expression, exp.Literal)
+                    and grouping_expression.is_int
+                    and int(grouping_expression.this) == index
+                )
+            ):
+                matches.append(output_name)
+        if len(matches) == 1:
+            grouping_outputs.add(matches[0])
+        else:
+            hidden_grouping_expressions.append(
+                grouping_expression.sql(dialect="mysql", normalize=True)
+            )
+    return _AggregateGrain(
+        projected_grouping_outputs=frozenset(grouping_outputs),
+        hidden_grouping_expressions=tuple(hidden_grouping_expressions),
+    )
 
 
 def _relationship_edge(relationship: Relationship) -> frozenset[tuple[str, str]]:
@@ -387,58 +430,120 @@ def _semantic_checks(
         *({"period"} if requirement.grain is not None else set()),
     }
     output_shape_matches = (
-        not unresolved_outputs
-        and len(context.execution_result.columns) == len(authoritative_outputs)
+        len(context.execution_result.columns) == len(authoritative_outputs)
         and actual == authoritative_outputs
     )
-
-    projection_lineage = _projection_lineage(sql)
-    dimension_lineage_errors: list[str] = []
-    for dimension in requirement.dimensions:
-        if dimension.resolved_name is None:
-            continue
-        resolved_name = str(dimension.resolved_name)
-        candidates = _governed_sources(documents, resolved_name)
-        if len(candidates) != 1:
-            dimension_lineage_errors.append(
-                f"{resolved_name} maps to {len(candidates)} governed column sources"
-            )
-            continue
-        if projection_lineage is None:
-            dimension_lineage_errors.append(
-                f"{resolved_name} projection lineage is outside conservative coverage"
-            )
-            continue
-        required_source = next(iter(candidates))
-        if required_source not in projection_lineage.get(resolved_name, set()):
-            dimension_lineage_errors.append(
-                f"{resolved_name} does not project {required_source[0]}.{required_source[1]}"
-            )
-    governed_shape_passed = output_shape_matches and not dimension_lineage_errors
-    shape_details: list[str] = []
-    if unresolved_outputs:
-        shape_details.append(f"unresolved requested outputs: {sorted(unresolved_outputs)}")
-    if not output_shape_matches:
-        shape_details.append(
-            "public outputs differ from RequirementState authority: "
-            f"expected={sorted(authoritative_outputs)}, actual={sorted(actual)}"
+    checks.append(
+        _check(
+            "requested_outputs_resolved",
+            "SEMANTIC",
+            not unresolved_outputs,
+            None
+            if not unresolved_outputs
+            else f"requested outputs have no resolved_name: {sorted(unresolved_outputs)}",
         )
-    shape_details.extend(dimension_lineage_errors)
+    )
     checks.append(
         _check(
             "governed_public_output_shape",
             "SEMANTIC",
-            governed_shape_passed,
-            None if governed_shape_passed else "; ".join(shape_details),
+            output_shape_matches,
+            None
+            if output_shape_matches
+            else (
+                "public outputs differ from RequirementState authority: "
+                f"expected={sorted(authoritative_outputs)}, actual={sorted(actual)}"
+            ),
         )
     )
 
-    public_aggregate_grain = _public_aggregate_grain(sql)
+    projection_lineage = _projection_lineage(sql)
+    resolved_dimensions = tuple(
+        str(dimension.resolved_name)
+        for dimension in requirement.dimensions
+        if dimension.resolved_name is not None
+    )
+    dimension_candidates = {
+        resolved_name: _governed_sources(documents, resolved_name)
+        for resolved_name in resolved_dimensions
+    }
+    if resolved_dimensions:
+        non_unique_dimensions = sorted(
+            resolved_name
+            for resolved_name, candidates in dimension_candidates.items()
+            if len(candidates) != 1
+        )
+        checks.append(
+            _check(
+                "requested_dimension_source_unique",
+                "SEMANTIC",
+                not non_unique_dimensions,
+                None
+                if not non_unique_dimensions
+                else (
+                    "requested dimensions do not map to exactly one governed source: "
+                    f"{non_unique_dimensions}"
+                ),
+            )
+        )
+        uniquely_governed_dimensions = tuple(
+            resolved_name
+            for resolved_name in resolved_dimensions
+            if len(dimension_candidates[resolved_name]) == 1
+        )
+        if uniquely_governed_dimensions:
+            lineage_errors: list[str] = []
+            if projection_lineage is None:
+                lineage_errors.append("projection lineage is outside conservative coverage")
+            else:
+                for resolved_name in uniquely_governed_dimensions:
+                    required_source = next(iter(dimension_candidates[resolved_name]))
+                    if required_source not in projection_lineage.get(resolved_name, set()):
+                        lineage_errors.append(
+                            f"{resolved_name} does not project "
+                            f"{required_source[0]}.{required_source[1]}"
+                        )
+            checks.append(
+                _check(
+                    "requested_dimension_projection_lineage",
+                    "SEMANTIC",
+                    not lineage_errors,
+                    None if not lineage_errors else "; ".join(lineage_errors),
+                )
+            )
+        else:
+            gaps.append(
+                _gap(
+                    "requested_dimension_projection_lineage",
+                    "SEMANTIC",
+                    CoverageDisposition.NOT_APPLICABLE,
+                    "no requested dimension has one governed source",
+                )
+            )
+    else:
+        gaps.extend(
+            [
+                _gap(
+                    "requested_dimension_source_unique",
+                    "SEMANTIC",
+                    CoverageDisposition.NOT_APPLICABLE,
+                    "requirement has no resolved dimension",
+                ),
+                _gap(
+                    "requested_dimension_projection_lineage",
+                    "SEMANTIC",
+                    CoverageDisposition.NOT_APPLICABLE,
+                    "requirement has no resolved dimension",
+                ),
+            ]
+        )
+
+    aggregate_grain = _aggregate_grain(sql)
     requested_grain = {
         *dimension_names,
         *({"period"} if requirement.grain is not None else set()),
     }
-    if public_aggregate_grain is None:
+    if aggregate_grain is None:
         gaps.append(
             _gap(
                 "unrequested_analytical_grain",
@@ -448,7 +553,10 @@ def _semantic_checks(
             )
         )
     else:
-        grain_passed = public_aggregate_grain == requested_grain
+        grain_passed = (
+            not aggregate_grain.hidden_grouping_expressions
+            and aggregate_grain.projected_grouping_outputs == requested_grain
+        )
         checks.append(
             _check(
                 "unrequested_analytical_grain",
@@ -457,9 +565,10 @@ def _semantic_checks(
                 None
                 if grain_passed
                 else (
-                    "public aggregate grain differs from RequirementState authority: "
+                    "aggregate GROUP BY differs from RequirementState authority: "
                     f"expected={sorted(requested_grain)}, "
-                    f"actual={sorted(public_aggregate_grain)}"
+                    f"projected={sorted(aggregate_grain.projected_grouping_outputs)}, "
+                    f"hidden={list(aggregate_grain.hidden_grouping_expressions)}"
                 ),
             )
         )

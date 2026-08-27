@@ -80,6 +80,8 @@ type VerificationMutation = Literal[
     "FROZEN_JOIN_NET_REVENUE",
     "FROZEN_AGG_GMV_CHANNEL",
     "FROZEN_AGG_ORDERS_CHANNEL",
+    "HIDDEN_GLOBAL_GRAIN",
+    "HIDDEN_REFINED_GRAIN",
 ]
 type ExpectedVerificationDecision = Literal[
     "PASS",
@@ -676,6 +678,31 @@ def _case_bundle(
                 columns=("channel", "order_count"),
                 rows=[["社交媒体", 4]],
             ),
+        )
+    if mutation == "HIDDEN_GLOBAL_GRAIN":
+        return _bundle(
+            catalog,
+            requirement=_frozen_requirement(
+                metric_term="paid amount",
+                metric="paid_amount",
+            ),
+            plan=_frozen_plan(
+                intent="Paid amount incorrectly partitioned by user",
+                tables=("fact_order",),
+                sql=("SELECT SUM(paid_amount) AS paid_amount FROM fact_order GROUP BY user_id"),
+                columns=(("paid_amount", "metric"),),
+            ),
+            result=_result(
+                columns=("paid_amount",),
+                rows=[[Decimal("100.00")], [Decimal("200.00")]],
+            ),
+        )
+    if mutation == "HIDDEN_REFINED_GRAIN":
+        return _bundle(
+            catalog,
+            requirement=_requirement(),
+            plan=_plan(sql=f"{_VALID_SQL}, o.user_id"),
+            result=_result(),
         )
     if mutation == "MISSING_METRIC":
         return _bundle(

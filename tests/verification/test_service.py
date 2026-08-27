@@ -5,6 +5,8 @@ from __future__ import annotations
 from datetime import date
 from decimal import Decimal
 
+import pytest
+
 from data_agent.contracts.execution import ExecutionResult
 from data_agent.contracts.query import ExpectedColumn, QueryPlan
 from data_agent.contracts.requirement import (
@@ -161,7 +163,7 @@ def test_requirement_state_rejects_plan_self_authorized_extra_public_grain() -> 
     assert _failed(trace, "unrequested_analytical_grain")
 
 
-def test_unprovable_requested_dimension_fails_public_output_shape() -> None:
+def test_unprovable_requested_dimension_fails_nonrepairable_source_authority() -> None:
     requirement = RequirementState(
         version="v0.1",
         metrics=[
@@ -202,20 +204,102 @@ def test_unprovable_requested_dimension_fails_public_output_shape() -> None:
 
     trace = _verify(evidence_bundle(requirement=requirement, plan=plan, result=result))
 
-    assert _failed(trace, "governed_public_output_shape")
+    assert not _failed(trace, "governed_public_output_shape")
+    assert _failed(trace, "requested_dimension_source_unique")
+    assert not any(
+        check.name == "requested_dimension_projection_lineage" for check in trace.result.checks
+    )
     assert not _failed(trace, "unrequested_analytical_grain")
 
 
-def test_non_public_grouping_helper_does_not_expand_public_grain() -> None:
+def test_hidden_grouping_key_refines_requested_public_grain_and_fails() -> None:
     sql = VALID_SQL.replace(
         "GROUP BY DATE(o.paid_at), r.province",
-        "GROUP BY r.id, DATE(o.paid_at), r.province",
+        "GROUP BY DATE(o.paid_at), r.province, o.user_id",
+    )
+
+    trace = _verify(evidence_bundle(plan=valid_plan(sql=sql)))
+
+    assert trace.result.status == "FAILED"
+    assert _failed(trace, "unrequested_analytical_grain")
+
+
+@pytest.mark.parametrize(
+    "group_by",
+    ["period, province", "1, 2"],
+)
+def test_requested_grouping_aliases_and_ordinals_remain_valid(group_by: str) -> None:
+    sql = VALID_SQL.replace(
+        "GROUP BY DATE(o.paid_at), r.province",
+        f"GROUP BY {group_by}",
     )
 
     trace = _verify(evidence_bundle(plan=valid_plan(sql=sql)))
 
     assert trace.result.status == "PASSED"
     assert not _failed(trace, "unrequested_analytical_grain")
+
+
+def test_unaliased_public_dimension_grouping_remains_valid() -> None:
+    sql = VALID_SQL.replace("r.province AS province", "r.province")
+
+    trace = _verify(evidence_bundle(plan=valid_plan(sql=sql)))
+
+    assert trace.result.status == "PASSED"
+    assert not _failed(trace, "unrequested_analytical_grain")
+
+
+@pytest.mark.parametrize(
+    "sql",
+    [
+        "SELECT SUM(paid_amount) AS paid_amount FROM fact_order GROUP BY user_id",
+        (
+            "WITH bounded AS (SELECT user_id, paid_amount FROM fact_order) "
+            "SELECT SUM(paid_amount) AS paid_amount FROM bounded GROUP BY user_id"
+        ),
+    ],
+)
+def test_hidden_grouping_key_rejects_metric_only_false_global_aggregate(sql: str) -> None:
+    requirement = RequirementState(
+        version="v0.1",
+        metrics=[
+            MetricRequirement(
+                term="paid amount",
+                resolved_name="paid_amount",
+                status=ResolutionStatus.CONFIRMED,
+            )
+        ],
+        status=RequirementStatus.READY,
+    )
+    plan = QueryPlan(
+        version="v0.1",
+        intent="Paid amount incorrectly partitioned by channel",
+        tables=["fact_order"],
+        sql=sql,
+        expected_columns=[ExpectedColumn(name="paid_amount")],
+    )
+    result = ExecutionResult(
+        version="v0.1",
+        columns=["paid_amount"],
+        rows=[[Decimal("100.00")], [Decimal("200.00")]],
+        returned_row_count=2,
+        duration_ms=1,
+        truncated=False,
+    )
+
+    trace = _verify(
+        evidence_bundle(
+            requirement=requirement,
+            plan=plan,
+            result=result,
+            documents=(evidence_bundle().planning_trace.context.documents[0],),
+            relationships=(),
+        )
+    )
+
+    assert not _failed(trace, "governed_public_output_shape")
+    assert _failed(trace, "unrequested_analytical_grain")
+    assert trace.result.status == "FAILED"
 
 
 def test_wrong_unique_metric_source_fails_semantic_verification() -> None:
