@@ -82,6 +82,7 @@ type VerificationMutation = Literal[
     "FROZEN_AGG_ORDERS_CHANNEL",
     "HIDDEN_GLOBAL_GRAIN",
     "HIDDEN_REFINED_GRAIN",
+    "ALIAS_SOURCE_COLLISION",
 ]
 type ExpectedVerificationDecision = Literal[
     "PASS",
@@ -703,6 +704,28 @@ def _case_bundle(
             requirement=_requirement(),
             plan=_plan(sql=f"{_VALID_SQL}, o.user_id"),
             result=_result(),
+        )
+    if mutation == "ALIAS_SOURCE_COLLISION":
+        return _bundle(
+            catalog,
+            requirement=_requirement(
+                dimension="paid_at",
+                grain=None,
+                include_time=False,
+            ),
+            plan=_plan(
+                tables=("fact_order",),
+                sql=(
+                    "SELECT DATE(o.paid_at) AS paid_at, "
+                    "SUM(o.paid_amount) AS paid_amount "
+                    "FROM fact_order AS o GROUP BY paid_at"
+                ),
+                columns=("paid_at", "paid_amount"),
+            ),
+            result=_result(
+                columns=("paid_at", "paid_amount"),
+                rows=[[date(2026, 8, 1), Decimal("100.00")]],
+            ),
         )
     if mutation == "MISSING_METRIC":
         return _bundle(

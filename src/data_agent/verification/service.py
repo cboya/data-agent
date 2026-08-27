@@ -78,6 +78,18 @@ class _SemanticSQL:
         ]
         return candidates[0] if len(candidates) == 1 else None
 
+    def proves_no_final_scope_column(self, name: str) -> bool:
+        """Prove an unqualified name cannot bind to a final SELECT input column."""
+
+        if self.complex_sources or any(
+            table not in self.document_columns for table in self.physical_tables
+        ):
+            return False
+        normalized_name = _normalized(name)
+        return all(
+            normalized_name not in self.document_columns[table] for table in self.physical_tables
+        )
+
 
 @dataclass(frozen=True)
 class _AggregateGrain:
@@ -209,6 +221,7 @@ def _aggregate_grain(sql: _SemanticSQL) -> _AggregateGrain | None:
                     isinstance(grouping_expression, exp.Column)
                     and not grouping_expression.table
                     and _normalized(grouping_expression.name) == _normalized(output_name)
+                    and sql.proves_no_final_scope_column(grouping_expression.name)
                 )
                 or (
                     isinstance(grouping_expression, exp.Literal)

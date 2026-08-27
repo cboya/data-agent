@@ -460,13 +460,13 @@ M12 targeted-remediation local evidence (2026-08-27): `verification-policy-v0.2`
 dimension-source authority, dimension-projection lineage, and analytical-grain checks. All six
 frozen IDs (`simple-gmv`, `simple-paid-amount`,
 `simple-payment-attempts`, `join-net-revenue`, `agg-gmv-channel`, `agg-orders-channel`) now end in
-deterministic `SEMANTIC_FAILURE`; the 23-case standalone report passes with structural, semantic,
+deterministic `SEMANTIC_FAILURE`; the 24-case standalone report passes with structural, semantic,
 empirical, identity, PlannerContext-substitution, and truncation metrics at `1.000`, false accept
-and false reject at `0.000`, `verified_oracle_mismatch_count=0`, and coverage `0.912`. Clean
+and false reject at `0.000`, `verified_oracle_mismatch_count=0`, and coverage `0.914`. Clean
 `task bootstrap` passed against an isolated local control schema and reproduced the ten-table
 world plus retrieval index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`.
-The complete M12 suite passes 37 tests; the focused M12/M13 review set passes 61 tests; `task
-quality` passes 446 tests with 7 explicit host-only
+The complete M12 suite passes 38 tests; the focused M12/M13 review set passes 62 tests; `task
+quality` passes 447 tests with 7 explicit host-only
 skips. Downstream deterministic M13 and M14 evals remain green (19 and 7 cases respectively, every
 reported authority metric `1.000`). No large-model or full 59-case M15 suite was run. The
 remediation is ready for a focused PR and substantive review; it is not authorized for merge, and
@@ -1250,7 +1250,8 @@ dimension authority has a separate nonrepairable check and consumes zero repair 
 2026-08-27 — M12 substantive-review grain and repair-classification remediation
 Decision: Replace projection-only grain inference with an exact mapping from every final aggregate
 `GROUP BY` expression to one public non-aggregate projection. Accept structural expression
-identity, an unambiguous output alias, or a valid SELECT ordinal; reject any unmatched/ambiguous
+identity, an output alias only when bounded final-scope metadata proves that MySQL cannot resolve
+the unqualified name as an input column, or a valid SELECT ordinal; reject any unmatched/ambiguous
 hidden grouping key because current governed metadata cannot prove it functionally dependent on
 the requested grain. Split output-set conformance, requested-output resolution, requested-dimension
 source uniqueness, and requested-dimension projection lineage into stable check IDs. Only the
@@ -1262,6 +1263,18 @@ frozen PlannerContext.
 Consequences: Hidden grouping refinements become deterministic semantic failures. M6 authority
 ambiguity makes zero repair-model calls and consumes zero durable attempts; no text-detail parsing,
 new repair category, prompt change, or attempt expansion is introduced.
+
+2026-08-27 — M12 MySQL GROUP BY alias-resolution hardening
+Decision: Treat an unqualified final `GROUP BY` identifier as a SELECT alias only after proving
+from the complete bounded simple final scope that no input column has the same normalized name.
+If the scope is complex, incomplete, or contains a colliding source column, the alias route fails
+closed; structural-expression and positional-ordinal mappings remain unchanged.
+Evidence: MySQL resolves unqualified grouping names against `FROM` columns before SELECT aliases.
+The permanent collision regression uses `DATE(o.paid_at) AS paid_at ... GROUP BY paid_at`, while
+the noncolliding `period` alias and ordinal variants remain accepted.
+Consequences: A source `paid_at` column cannot be mistaken for the transformed output alias and
+silently refine aggregate grain. No planner, prompt, M6 authority, or M13 repair-policy change is
+introduced.
 
 2026-08-26 — M14 deterministic response authority and atomic conversation completion
 Decision: Allow the answer model to propose only natural-language text and unique positional

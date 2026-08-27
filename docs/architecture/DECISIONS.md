@@ -460,9 +460,12 @@ Output identity uses only final SELECT projections. Aggregate grain additionally
 final SELECT `GROUP BY` partition key: each key must map exactly to one requested public
 non-aggregate projection, by expression, unambiguous alias, or ordinal. Current M6 metadata does
 not encode enough uniqueness/functional-dependency authority to excuse a hidden grouping key, so
-an unmatched key fails closed. SQL helpers outside the final `GROUP BY` (for example JOIN or WHERE
-columns) remain outside this check. Formula and time-filter equivalence still remain explicit
-coverage gaps where current contracts cannot prove them.
+an unmatched key fails closed. MySQL resolves an unqualified `GROUP BY` name against input columns
+before SELECT aliases, so the alias path is unambiguous only when bounded final-scope metadata
+proves that no input column has that name; complex or incomplete source scope fails closed. SQL
+helpers outside the final `GROUP BY` (for example JOIN or WHERE columns) remain outside this check.
+Formula and time-filter equivalence still remain explicit coverage gaps where current contracts
+cannot prove them.
 
 **Reason:** M15 diagnosis found plans that introduced an unrequested grouping dimension and then
 validated themselves because their expected columns matched the executed result. It also found a

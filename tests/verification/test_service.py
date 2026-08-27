@@ -226,9 +226,9 @@ def test_hidden_grouping_key_refines_requested_public_grain_and_fails() -> None:
 
 @pytest.mark.parametrize(
     "group_by",
-    ["period, province", "1, 2"],
+    ["period, r.province", "1, 2"],
 )
-def test_requested_grouping_aliases_and_ordinals_remain_valid(group_by: str) -> None:
+def test_safe_grouping_alias_and_ordinals_remain_valid(group_by: str) -> None:
     sql = VALID_SQL.replace(
         "GROUP BY DATE(o.paid_at), r.province",
         f"GROUP BY {group_by}",
@@ -238,6 +238,64 @@ def test_requested_grouping_aliases_and_ordinals_remain_valid(group_by: str) -> 
 
     assert trace.result.status == "PASSED"
     assert not _failed(trace, "unrequested_analytical_grain")
+
+
+def test_grouping_alias_colliding_with_source_column_fails_closed() -> None:
+    requirement = RequirementState(
+        version="v0.1",
+        metrics=[
+            MetricRequirement(
+                term="paid amount",
+                resolved_name="paid_amount",
+                status=ResolutionStatus.CONFIRMED,
+            )
+        ],
+        dimensions=[
+            DimensionRequirement(
+                term="paid timestamp date",
+                resolved_name="paid_at",
+                status=ResolutionStatus.CONFIRMED,
+            )
+        ],
+        status=RequirementStatus.READY,
+    )
+    plan = QueryPlan(
+        version="v0.1",
+        intent="Paid amount by paid timestamp date",
+        tables=["fact_order"],
+        sql=(
+            "SELECT DATE(o.paid_at) AS paid_at, SUM(o.paid_amount) AS paid_amount "
+            "FROM fact_order AS o GROUP BY paid_at"
+        ),
+        expected_columns=[
+            ExpectedColumn(name="paid_at"),
+            ExpectedColumn(name="paid_amount"),
+        ],
+    )
+    result = ExecutionResult(
+        version="v0.1",
+        columns=["paid_at", "paid_amount"],
+        rows=[[date(2026, 8, 1), Decimal("100.00")]],
+        returned_row_count=1,
+        duration_ms=1,
+        truncated=False,
+    )
+
+    trace = _verify(
+        evidence_bundle(
+            requirement=requirement,
+            plan=plan,
+            result=result,
+            documents=(evidence_bundle().planning_trace.context.documents[0],),
+            relationships=(),
+        )
+    )
+
+    assert not _failed(trace, "governed_public_output_shape")
+    assert not _failed(trace, "requested_dimension_source_unique")
+    assert not _failed(trace, "requested_dimension_projection_lineage")
+    assert _failed(trace, "unrequested_analytical_grain")
+    assert trace.result.status == "FAILED"
 
 
 def test_unaliased_public_dimension_grouping_remains_valid() -> None:

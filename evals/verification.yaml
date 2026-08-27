@@ -98,3 +98,7 @@ cases:
   - id: hidden-grouping-refines-requested-dimension
     mutation: HIDDEN_REFINED_GRAIN
     expected: SEMANTIC_FAILURE
+
+  - id: grouping-alias-collides-with-source-column
+    mutation: ALIAS_SOURCE_COLLISION
+    expected: SEMANTIC_FAILURE
