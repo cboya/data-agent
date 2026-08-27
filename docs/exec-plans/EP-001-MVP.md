@@ -507,8 +507,11 @@ successful refunds `110.00`, and unchanged retrieval index
 `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; complete `task quality`
 passes 455 tests with 7 explicit host-only skips. `task m8-readiness-eval` passes every exact gate.
 The optional targeted live replay was not run because the frozen local chat model is the 30B
-effect-acceptance model and the approved resource boundary forbids a large local run here. Remote
-evidence remains pending.
+effect-acceptance model and the approved resource boundary forbids a large local run here. Focused
+PR #17 is open for substantive M8 review at implementation head
+`b77640b6d5ee04e2562931ee40cf0efd58461acc`; remote `Delivery / Quality` passes in workflow run
+`33093127780`. The remediation is not authorized for merge, M8 remains open pending substantive
+review, and Draft PR #15 remains paused and untouched.
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
