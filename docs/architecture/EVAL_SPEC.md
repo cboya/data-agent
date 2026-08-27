@@ -360,6 +360,33 @@ typed model-failure cause, attribution records `EVIDENCE_UNAVAILABLE`, `NOT_REPL
 proof that the failure did not occur. `M12 PASSED + Oracle FAILED` result branches are reported as
 a dedicated high-priority set.
 
+### M15 targeted behavioral diagnosis
+
+`task m15-behavioral-diagnosis` is an eval-only follow-up to a completed attribution report. It
+must not run the complete Golden suite or change runtime behavior, prompts/policies, Golden or
+Oracle truth, behavioral thresholds, model choice, timeout, or output-token bounds. Before any
+model call it fails closed unless the retained effect environment and live chat/embedding model
+fingerprints, Ollama version, dialogue prompt, timeout, and output ceiling match exactly; frozen
+runtime, Golden, and Oracle source must have no diff from the effect commit.
+
+The M8 replay case set is exactly the 35 cases assigned to unnecessary clarification by the bound
+attribution report. It records every replayed turn's expected/original/standalone action, blocking
+field and model-facing subject term, structured `DialogueProposal`, normalized
+`DialogueDecision`, `RequirementPatch`, merged `RequirementState`, typed structured-call outcome,
+and prompt/model/environment identity. No hidden reasoning is retained. Every case belongs to
+exactly one of four ownership classes, and their counts must sum to 35. A checkpoint is reusable
+only under the same full diagnostic identity.
+
+The false-accept forensic set is exactly the six retained `M12 PASSED + Oracle FAILED` cases. A
+model rerun is permitted only because the canonical source report did not retain the full
+`RequirementState → PlannerContext → QueryPlan → SQL → ExecutionResult → VerificationTrace`
+chain and clean reset removed the referenced control rows. Each targeted replay records that
+chain plus the static Oracle, whether the retained public shape was reproduced, earliest semantic
+divergence, and exclusive M9/M12/both/human-review ownership. It stops model activity after M12;
+an eval-only deterministic synthesis placeholder may complete persistence but creates no M14
+behavior claim. Machine-readable and human-readable reports remain diagnostic evidence: they do
+not make PR #15 ready or authorize remediation of a frozen milestone.
+
 ## 7. Semantic correctness
 
 A query may execute and still be wrong.

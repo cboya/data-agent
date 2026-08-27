@@ -1043,6 +1043,33 @@ are frozen at `docs/evidence/M15-BEHAVIORAL-ATTRIBUTION-3be2534.json` and
 `docs/evidence/M15-BEHAVIORAL-ATTRIBUTION-3be2534.md`. This diagnosis does not authorize reopening
 any prior milestone, changing a frozen truth source, or moving PR #15 out of Draft.
 
+M15 targeted behavioral-diagnosis note (2026-08-27): under the exact retained effect environment
+(`be7d8c949d1d85dc17e248c17db10be4634effd614fd20860d749082fbe7fe3e` chat
+fingerprint, `0112ea4d6590628288600ebd612ee8b094001c1e181c4eda9a64493d205c138f`
+embedding fingerprint, Ollama `0.32.15`, dialogue prompt `v0.20`, timeout `60s`, and
+`num_predict=2048`), `task m15-behavioral-diagnosis` replayed exactly the 35 attributed M8 cases
+without running the full 59-case suite. All 35 also clarified standalone; all 36 structured turns
+completed successfully, so the partition is M8/model behavior 35, integration/context owner zero,
+structured/model failure zero, and spec/Oracle review zero. The 37 blocking-ambiguity occurrences
+are time range 22, grain eight, metric six, and dimension one.
+
+The retained report lacked the six original full evidence chains, so exactly those six
+`M12 PASSED + Oracle FAILED` cases were replayed. All six reproduced their source public shape and
+Oracle failure. `simple-gmv`, `simple-paid-amount`, `simple-payment-attempts`, and
+`join-net-revenue` first diverge at `QueryPlan` by adding output grain while canonical
+`RequirementState` has no grain/dimension; M12 then passes the plan-consistent extra shape, so
+ownership is M9+M12. `agg-gmv-channel` and `agg-orders-channel` first diverge when explicit
+`order_channel` output shape becomes canonical dimension `channel`; per the frozen owner taxonomy
+they require human M8/output-shape contract review rather than an automatic Golden/Oracle change.
+The forensic path makes no M14 model call. Report fingerprint
+`1070e9346cdb441eb083299363d818e39cdde598815906e38437d1300b4ebc78` and full machine/human
+evidence are frozen at `docs/evidence/M15-BEHAVIORAL-DIAGNOSIS-3be2534.json` and
+`docs/evidence/M15-BEHAVIORAL-DIAGNOSIS-3be2534.md`. This diagnostic recommends regression scope
+but does not authorize reopening M8/M9/M12, changing truth, or moving PR #15 out of Draft. The
+focused diagnosis/attribution suite passes 13 tests; complete host `task quality` passes 467 tests
+with seven explicit host-only skips after the sandbox-only MySQL denial was rerun with the required
+host socket access. The 30B model was unloaded after the bounded replay.
+
 M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
 APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
 focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag

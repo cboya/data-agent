@@ -42,6 +42,12 @@ tasks:
     cmds:
       - uv run python -m eval_harness.attribution
 
+  m15-behavioral-diagnosis:
+    desc: Replay the exact 35 M8 and six false-accept M15 diagnostic cases
+    deps: [sync]
+    cmds:
+      - uv run python -m eval_harness.behavioral_diagnosis
+
   m10-eval:
     desc: Run the standalone M10 SQL guard and EXPLAIN evaluation
     deps: [sync]
