@@ -74,6 +74,12 @@ type VerificationMutation = Literal[
     "DOCUMENT_CONTEXT_MISMATCH",
     "CAPABILITY_METADATA_MISMATCH",
     "RESULT_FINGERPRINT_MISMATCH",
+    "FROZEN_SIMPLE_GMV",
+    "FROZEN_SIMPLE_PAID_AMOUNT",
+    "FROZEN_SIMPLE_PAYMENT_ATTEMPTS",
+    "FROZEN_JOIN_NET_REVENUE",
+    "FROZEN_AGG_GMV_CHANNEL",
+    "FROZEN_AGG_ORDERS_CHANNEL",
 ]
 type ExpectedVerificationDecision = Literal[
     "PASS",
@@ -122,10 +128,11 @@ class VerificationEvalCase(_EvaluationModel):
     id: str = Field(min_length=1, pattern=r"\S")
     mutation: VerificationMutation
     expected: ExpectedVerificationDecision
+    verified_oracle_regression: bool = False
 
 
 class VerificationEvalSuite(_EvaluationModel):
-    version: Literal["v0.1"]
+    version: Literal["v0.2"]
     cases: tuple[VerificationEvalCase, ...] = Field(min_length=12)
 
     @model_validator(mode="after")
@@ -142,6 +149,25 @@ class VerificationEvalSuite(_EvaluationModel):
         }
         if {case.expected for case in self.cases} != required:
             raise ValueError("verification eval must cover every decision class")
+        frozen_oracle_regressions = {
+            "simple-gmv",
+            "simple-paid-amount",
+            "simple-payment-attempts",
+            "join-net-revenue",
+            "agg-gmv-channel",
+            "agg-orders-channel",
+        }
+        actual_oracle_regressions = {
+            case.id for case in self.cases if case.verified_oracle_regression
+        }
+        if actual_oracle_regressions != frozen_oracle_regressions:
+            raise ValueError("verification eval must preserve the six frozen Oracle regressions")
+        if any(
+            case.expected != "SEMANTIC_FAILURE"
+            for case in self.cases
+            if case.verified_oracle_regression
+        ):
+            raise ValueError("frozen Oracle regressions must expect semantic failure")
         return self
 
 
@@ -154,6 +180,7 @@ class VerificationEvalCaseResult(_EvaluationModel):
     applied_check_count: int = Field(ge=0)
     not_applicable_gap_count: int = Field(ge=0)
     unsupported_gap_count: int = Field(ge=0)
+    verified_oracle_regression: bool
     passed: bool
 
 
@@ -167,6 +194,7 @@ class VerificationEvalMetrics(_EvaluationModel):
     identity_mismatch_rejection: float = Field(ge=0, le=1)
     planner_context_substitution_rejection: float = Field(ge=0, le=1)
     truncation_rejection: float = Field(ge=0, le=1)
+    verified_oracle_mismatch_count: int = Field(ge=0)
     verification_coverage: float = Field(ge=0, le=1)
 
 
@@ -311,6 +339,60 @@ def _result(
     )
 
 
+def _frozen_requirement(
+    *,
+    metric_term: str,
+    metric: str,
+    dimension_term: str | None = None,
+    dimension: str | None = None,
+    include_all_time: bool = False,
+) -> RequirementState:
+    return RequirementState(
+        version="v0.1",
+        metrics=[
+            MetricRequirement(
+                term=metric_term,
+                resolved_name=metric,
+                status=ResolutionStatus.CONFIRMED,
+            )
+        ],
+        dimensions=(
+            [
+                DimensionRequirement(
+                    term=dimension_term,
+                    resolved_name=dimension,
+                    status=ResolutionStatus.CONFIRMED,
+                )
+            ]
+            if dimension_term is not None and dimension is not None
+            else []
+        ),
+        time_range=TimeRange(kind="RELATIVE", value="all") if include_all_time else None,
+        status=RequirementStatus.READY,
+    )
+
+
+def _frozen_plan(
+    *,
+    intent: str,
+    tables: tuple[str, ...],
+    sql: str,
+    columns: tuple[tuple[str, str], ...],
+) -> QueryPlan:
+    return QueryPlan(
+        version="v0.1",
+        intent=intent,
+        tables=list(tables),
+        assumptions=[],
+        sql=sql,
+        expected_columns=[
+            ExpectedColumn(name=name, semantic_role=semantic_role)
+            for name, semantic_role in columns
+        ],
+        explanation="Frozen M15 false-acceptance replay",
+    )
+
+
 def _catalog_slice(
     catalog: AssembledSemanticCatalog,
     tables: tuple[str, ...],
@@ -434,6 +516,167 @@ def _case_bundle(
     catalog: AssembledSemanticCatalog,
     mutation: VerificationMutation,
 ) -> _EvidenceBundle:
+    if mutation == "FROZEN_SIMPLE_GMV":
+        return _bundle(
+            catalog,
+            requirement=_frozen_requirement(
+                metric_term="下单总金额 GMV",
+                metric="gmv",
+                include_all_time=True,
+            ),
+            plan=_frozen_plan(
+                intent="Calculate total GMV by channel.",
+                tables=("fact_order", "dim_channel"),
+                sql=(
+                    "SELECT d.code AS channel_code, d.name AS channel_name, "
+                    "SUM(o.total_amount) AS gmv FROM fact_order AS o "
+                    "JOIN dim_channel AS d ON o.channel_id = d.id "
+                    "GROUP BY d.code, d.name ORDER BY gmv DESC"
+                ),
+                columns=(
+                    ("channel_code", "dimension"),
+                    ("channel_name", "dimension"),
+                    ("gmv", "metric"),
+                ),
+            ),
+            result=_result(
+                columns=("channel_code", "channel_name", "gmv"),
+                rows=[["social", "社交媒体", Decimal("860.00")]],
+            ),
+        )
+    if mutation == "FROZEN_SIMPLE_PAID_AMOUNT":
+        return _bundle(
+            catalog,
+            requirement=_frozen_requirement(
+                metric_term="实际支付金额",
+                metric="paid_amount",
+                include_all_time=True,
+            ),
+            plan=_frozen_plan(
+                intent="Calculate paid amount by day.",
+                tables=("fact_order",),
+                sql=(
+                    "SELECT DATE(fact_order.paid_at) AS period, "
+                    "SUM(fact_order.paid_amount) AS paid_amount FROM fact_order "
+                    "WHERE fact_order.status IN ('PAID', 'COMPLETED') "
+                    "AND fact_order.paid_at IS NOT NULL "
+                    "GROUP BY DATE(fact_order.paid_at) ORDER BY period ASC"
+                ),
+                columns=(("period", "time bucket"), ("paid_amount", "metric")),
+            ),
+            result=_result(
+                columns=("period", "paid_amount"),
+                rows=[[date(2026, 8, 23), Decimal("90.00")]],
+            ),
+        )
+    if mutation == "FROZEN_SIMPLE_PAYMENT_ATTEMPTS":
+        return _bundle(
+            catalog,
+            requirement=_frozen_requirement(
+                metric_term="支付尝试次数",
+                metric="payment_attempt_count",
+                include_all_time=True,
+            ),
+            plan=_frozen_plan(
+                intent="Calculate payment attempts by day.",
+                tables=("fact_payment_transaction",),
+                sql=(
+                    "SELECT DATE(fpt.attempted_at) AS period, "
+                    "COUNT(*) AS payment_attempt_count "
+                    "FROM fact_payment_transaction AS fpt "
+                    "WHERE fpt.status = 'SUCCESS' "
+                    "GROUP BY DATE(fpt.attempted_at) ORDER BY period ASC"
+                ),
+                columns=(
+                    ("period", "time bucket"),
+                    ("payment_attempt_count", "metric"),
+                ),
+            ),
+            result=_result(
+                columns=("period", "payment_attempt_count"),
+                rows=[[date(2026, 8, 23), 1]],
+            ),
+        )
+    if mutation == "FROZEN_JOIN_NET_REVENUE":
+        return _bundle(
+            catalog,
+            requirement=_frozen_requirement(metric_term="净收入", metric="net_revenue"),
+            plan=_frozen_plan(
+                intent="Calculate net revenue by channel.",
+                tables=("fact_order", "dim_channel", "fact_refund"),
+                sql=(
+                    "SELECT dc.code AS channel_code, dc.name AS channel_name, "
+                    "SUM(COALESCE(fo.paid_amount, 0)) - "
+                    "COALESCE(SUM(fr.refund_amount), 0) AS net_revenue "
+                    "FROM fact_order AS fo "
+                    "JOIN dim_channel AS dc ON fo.channel_id = dc.id "
+                    "LEFT JOIN fact_refund AS fr "
+                    "ON fo.id = fr.order_id AND fr.status = 'SUCCESS' "
+                    "WHERE fo.status IN ('PAID', 'COMPLETED') "
+                    "GROUP BY dc.code, dc.name ORDER BY net_revenue DESC"
+                ),
+                columns=(
+                    ("channel_code", "dimension"),
+                    ("channel_name", "dimension"),
+                    ("net_revenue", "metric"),
+                ),
+            ),
+            result=_result(
+                columns=("channel_code", "channel_name", "net_revenue"),
+                rows=[["organic", "自然流量", Decimal("740.00")]],
+            ),
+        )
+    if mutation == "FROZEN_AGG_GMV_CHANNEL":
+        return _bundle(
+            catalog,
+            requirement=_frozen_requirement(
+                metric_term="gmv",
+                metric="gmv",
+                dimension_term="order_channel",
+                dimension="channel",
+            ),
+            plan=_frozen_plan(
+                intent="Calculate GMV by order channel.",
+                tables=("fact_order", "dim_channel"),
+                sql=(
+                    "SELECT dc.name AS channel, SUM(fo.total_amount) AS gmv "
+                    "FROM fact_order AS fo "
+                    "JOIN dim_channel AS dc ON fo.channel_id = dc.id "
+                    "WHERE fo.status IN ('PAID', 'COMPLETED') "
+                    "GROUP BY dc.id, dc.name ORDER BY gmv DESC"
+                ),
+                columns=(("channel", "dimension"), ("gmv", "metric")),
+            ),
+            result=_result(
+                columns=("channel", "gmv"),
+                rows=[["社交媒体", Decimal("720.00")]],
+            ),
+        )
+    if mutation == "FROZEN_AGG_ORDERS_CHANNEL":
+        return _bundle(
+            catalog,
+            requirement=_frozen_requirement(
+                metric_term="订单数",
+                metric="order_count",
+                dimension_term="订单归属渠道",
+                dimension="channel",
+            ),
+            plan=_frozen_plan(
+                intent="Calculate order count by order channel.",
+                tables=("fact_order", "dim_channel"),
+                sql=(
+                    "SELECT dc.name AS channel, COUNT(fo.id) AS order_count "
+                    "FROM fact_order AS fo "
+                    "JOIN dim_channel AS dc ON fo.channel_id = dc.id "
+                    "GROUP BY dc.id, dc.name ORDER BY order_count DESC"
+                ),
+                columns=(("channel", "dimension"), ("order_count", "metric")),
+            ),
+            result=_result(
+                columns=("channel", "order_count"),
+                rows=[["社交媒体", 4]],
+            ),
+        )
     if mutation == "MISSING_METRIC":
         return _bundle(
             catalog,
@@ -631,6 +874,7 @@ def _evaluate_case(
         applied_check_count=applied,
         not_applicable_gap_count=not_applicable,
         unsupported_gap_count=unsupported,
+        verified_oracle_regression=case.verified_oracle_regression,
         passed=actual == case.expected,
     )
 
@@ -659,6 +903,7 @@ def run_verification_evaluation(
         if result.mutation in {"RELATIONSHIP_CONTEXT_MISMATCH", "DOCUMENT_CONTEXT_MISMATCH"}
     ]
     truncation = [result for result in results if result.mutation == "TRUNCATED"]
+    oracle_regressions = [result for result in results if result.verified_oracle_regression]
     applied = sum(result.applied_check_count for result in results)
     unsupported = sum(result.unsupported_gap_count for result in results)
     metrics = VerificationEvalMetrics(
@@ -676,6 +921,9 @@ def run_verification_evaluation(
         / len(context_substitution),
         truncation_rejection=sum(result.actual == "STRUCTURAL_FAILURE" for result in truncation)
         / len(truncation),
+        verified_oracle_mismatch_count=sum(
+            result.actual == "PASS" for result in oracle_regressions
+        ),
         verification_coverage=applied / (applied + unsupported),
     )
     return VerificationEvalReport(
@@ -702,7 +950,8 @@ def run_verification_evaluation(
         and metrics.false_reject_rate == 0.0
         and metrics.identity_mismatch_rejection == 1.0
         and metrics.planner_context_substitution_rejection == 1.0
-        and metrics.truncation_rejection == 1.0,
+        and metrics.truncation_rejection == 1.0
+        and metrics.verified_oracle_mismatch_count == 0,
     )
 
 
@@ -749,5 +998,6 @@ def format_verification_eval_summary(report: VerificationEvalReport) -> str:
         f"identity={metrics.identity_mismatch_rejection:.3f}, "
         f"context_identity={metrics.planner_context_substitution_rejection:.3f}, "
         f"truncation={metrics.truncation_rejection:.3f}, "
+        f"verified_oracle_mismatch={metrics.verified_oracle_mismatch_count}, "
         f"coverage={metrics.verification_coverage:.3f}"
     )

@@ -334,8 +334,9 @@ Acceptance:
 - structural checks reject runtime truncation and shape/count/metadata inconsistency while allowing
   a coherent empty result;
 - semantic checks require READY state, required metric/dimension outputs, `period` for grain,
-  unique governed column sources where provable, and direct joins authorized by bounded M6
-  relationships;
+  exact RequirementState-owned public output shape, no unrequested public aggregate grain,
+  uniquely governed requested-dimension projection lineage, unique governed metric column sources
+  where provable, and direct joins authorized by bounded M6 relationships;
 - unsupported/ambiguous time, formula, or SQL semantics become explicit coverage gaps rather than
   successful checks or heuristic/model judgments;
 - empirical checks enforce generic COUNT, finite-numeric, and grouping-key invariants without a
@@ -439,9 +440,35 @@ Codex must update this section as milestones complete.
 [x] M11 Read-only runtime — complete and frozen via PR #11
 [x] M12 Verification — complete and frozen via PR #12
 [x] M13 Bounded repair — complete and frozen via PR #13
-[ ] M14 Answer synthesis + API — active
-[ ] M15 Trace + Golden Dataset eval
+[x] M14 Answer synthesis + API — complete and frozen via PR #14
+[ ] M12 targeted false-acceptance remediation — active; baseline remains frozen
+[ ] M15 Trace + Golden Dataset eval — paused / Draft PR #15
 ```
+
+M12 targeted-remediation activation (2026-08-27): M14 is squash-merged at
+`8cf14aa2766603ffb581abf8fb08874dbdd3e478`. Draft PR #15 diagnosis at
+`395991b3ec66531362973da8c44d853cb59d9c53` found six frozen cases where M12 returned `PASSED`
+while the deterministic Golden Oracle failed: four unrequested aggregate-grain expansions and two
+public dimension shapes whose generic `channel` identity could not be proven from the bounded M6
+catalog. M15 remains paused and untouched. This isolated remediation reopens only M12 to make the
+READY RequirementState the independent public-shape authority, add exact six-case deterministic
+regressions, and enforce `verified_oracle_mismatch_count == 0`; M8/M9/M10/M11/M13/M14 behavior,
+Golden/Oracle truth, model/resource configuration, and acceptance thresholds remain frozen.
+
+M12 targeted-remediation local evidence (2026-08-27): `verification-policy-v0.2` and
+`verification-trace-v0.2` add `governed_public_output_shape` and
+`unrequested_analytical_grain`. All six frozen IDs (`simple-gmv`, `simple-paid-amount`,
+`simple-payment-attempts`, `join-net-revenue`, `agg-gmv-channel`, `agg-orders-channel`) now end in
+deterministic `SEMANTIC_FAILURE`; the 21-case standalone report passes with structural, semantic,
+empirical, identity, PlannerContext-substitution, and truncation metrics at `1.000`, false accept
+and false reject at `0.000`, `verified_oracle_mismatch_count=0`, and coverage `0.901`. Clean
+`task bootstrap` passed against an isolated local control schema and reproduced the ten-table
+world plus retrieval index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`.
+The complete M12 suite passes 32 tests; `task quality` passes 439 tests with 7 explicit host-only
+skips. Downstream deterministic M13 and M14 evals remain green (19 and 7 cases respectively, every
+reported authority metric `1.000`). No large-model or full 59-case M15 suite was run. The
+remediation is ready for a focused PR and substantive review; it is not authorized for merge, and
+M15 remains paused/Draft.
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
@@ -1198,6 +1225,22 @@ check. Runtime truncation fails structural verification. Ambiguous/unencoded sem
 silently marked passed or replaced by an LLM judge or a second business-semantics registry. M13
 alone may consume verification failure for bounded repair. M14 must consume the internal trace or
 equivalent coverage evidence and preserve this bounded claim in answer synthesis.
+
+2026-08-27 — M12 targeted public-shape authority remediation
+Decision: Advance the internal policy to `verification-policy-v0.2`. Derive the complete allowed
+public output set and requested aggregate grain from READY RequirementState, independently of the
+Plan's expected columns. Require exact public-shape equality and exact public aggregate grain, and
+require every requested dimension output to have one uniquely governed M6 column source in the SQL
+projection lineage. Ignore grouping/helper expressions not exposed in the final result.
+Evidence: Draft M15 diagnosis froze six `M12 PASSED + Oracle FAILED` cases: four Plans added
+unrequested channel/day grain and two exposed generic `channel` dimensions without a uniquely
+provable M6 column identity. In every case the wrong Plan and matching result had been allowed to
+validate one another.
+Consequences: These six cases become permanent provider-free M12 regressions and the standalone
+report adds the exact `verified_oracle_mismatch_count == 0` release gate. This does not change the
+Golden/Oracle assets, model behavior, M8/M9 prompts or contracts, M13 bound/prompt/repair categories,
+or public VerificationResult schema. The two new typed check names join M13's already-supported
+verification-formulation allowlist so existing bounded repair behavior is preserved.
 
 2026-08-26 — M14 deterministic response authority and atomic conversation completion
 Decision: Allow the answer model to propose only natural-language text and unique positional

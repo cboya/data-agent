@@ -486,6 +486,16 @@ explicit internal `VerificationTrace` coverage gaps; they must not be encoded as
 the M9 planning, M10 capability, M11 metadata, and bounded result identities do not form one
 coherent evidence chain.
 
+Beginning with `verification-policy-v0.2`, public analytical shape is an applicable deterministic
+invariant whenever the READY requirement supplies resolved output names. The authoritative public
+set is its resolved metrics and dimensions plus `period` exactly when `grain` is present. For an
+aggregate result, public non-aggregate column projections define the observed analytical grain and
+must equal the requested dimensions plus applicable `period`. Each requested dimension must also
+resolve to exactly one bounded M6 catalog column and be present in that output projection's SQL
+lineage. QueryPlan expected columns remain useful structural evidence but cannot expand this
+RequirementState-owned authority. Non-public SQL helper/grouping expressions are not result
+outputs and do not participate.
+
 The internal `planner-context-fingerprint-v0.1` is SHA-256 over canonical JSON containing its
 fingerprint version and the complete `PlannerContext`: context version, authoritative
 `RequirementState`, ordered allowed tables, bounded M6 `CatalogDocument` semantic contents,

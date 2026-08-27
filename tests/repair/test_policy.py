@@ -64,6 +64,18 @@ def failure(**overrides: object) -> RepairFailure:
             None,
         ),
         (
+            failure(
+                stage="VERIFICATION",
+                code="VERIFICATION_CHECK_FAILED",
+                failed_checks=(
+                    "governed_public_output_shape",
+                    "unrequested_analytical_grain",
+                ),
+            ),
+            True,
+            None,
+        ),
+        (
             failure(category="POLICY", code="UNAUTHORIZED_SCHEMA"),
             False,
             RunStatus.POLICY_DENIED,

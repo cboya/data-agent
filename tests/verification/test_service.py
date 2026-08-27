@@ -8,6 +8,7 @@ from decimal import Decimal
 from data_agent.contracts.execution import ExecutionResult
 from data_agent.contracts.query import ExpectedColumn, QueryPlan
 from data_agent.contracts.requirement import (
+    DimensionRequirement,
     MetricRequirement,
     RequirementState,
     RequirementStatus,
@@ -113,6 +114,108 @@ def test_missing_metric_dimension_and_period_fail_semantic_verification() -> Non
     assert _failed(trace, "required_metrics_present")
     assert _failed(trace, "required_dimensions_present")
     assert _failed(trace, "grain_period_present")
+
+
+def test_requirement_state_rejects_plan_self_authorized_extra_public_grain() -> None:
+    requirement = RequirementState(
+        version="v0.1",
+        metrics=[
+            MetricRequirement(
+                term="paid amount",
+                resolved_name="paid_amount",
+                status=ResolutionStatus.CONFIRMED,
+            )
+        ],
+        status=RequirementStatus.READY,
+    )
+    plan = QueryPlan(
+        version="v0.1",
+        intent="Wrong daily paid amount",
+        tables=["fact_order"],
+        sql=(
+            "SELECT DATE(paid_at) AS period, SUM(paid_amount) AS paid_amount "
+            "FROM fact_order GROUP BY DATE(paid_at)"
+        ),
+        expected_columns=[ExpectedColumn(name="period"), ExpectedColumn(name="paid_amount")],
+    )
+    result = ExecutionResult(
+        version="v0.1",
+        columns=["period", "paid_amount"],
+        rows=[[date(2026, 8, 1), Decimal("100.00")]],
+        returned_row_count=1,
+        duration_ms=1,
+        truncated=False,
+    )
+
+    trace = _verify(
+        evidence_bundle(
+            requirement=requirement,
+            plan=plan,
+            result=result,
+            documents=(evidence_bundle().planning_trace.context.documents[0],),
+            relationships=(),
+        )
+    )
+
+    assert _failed(trace, "governed_public_output_shape")
+    assert _failed(trace, "unrequested_analytical_grain")
+
+
+def test_unprovable_requested_dimension_fails_public_output_shape() -> None:
+    requirement = RequirementState(
+        version="v0.1",
+        metrics=[
+            MetricRequirement(
+                term="paid amount",
+                resolved_name="paid_amount",
+                status=ResolutionStatus.CONFIRMED,
+            )
+        ],
+        dimensions=[
+            DimensionRequirement(
+                term="region",
+                resolved_name="region",
+                status=ResolutionStatus.CONFIRMED,
+            )
+        ],
+        status=RequirementStatus.READY,
+    )
+    plan = QueryPlan(
+        version="v0.1",
+        intent="Paid amount by generic region",
+        tables=["fact_order", "dim_user", "dim_region"],
+        sql=(
+            "SELECT r.province AS region, SUM(o.paid_amount) AS paid_amount "
+            "FROM fact_order AS o JOIN dim_user AS u ON o.user_id = u.id "
+            "JOIN dim_region AS r ON u.region_id = r.id GROUP BY r.province"
+        ),
+        expected_columns=[ExpectedColumn(name="region"), ExpectedColumn(name="paid_amount")],
+    )
+    result = ExecutionResult(
+        version="v0.1",
+        columns=["region", "paid_amount"],
+        rows=[["广东", Decimal("180.00")]],
+        returned_row_count=1,
+        duration_ms=1,
+        truncated=False,
+    )
+
+    trace = _verify(evidence_bundle(requirement=requirement, plan=plan, result=result))
+
+    assert _failed(trace, "governed_public_output_shape")
+    assert not _failed(trace, "unrequested_analytical_grain")
+
+
+def test_non_public_grouping_helper_does_not_expand_public_grain() -> None:
+    sql = VALID_SQL.replace(
+        "GROUP BY DATE(o.paid_at), r.province",
+        "GROUP BY r.id, DATE(o.paid_at), r.province",
+    )
+
+    trace = _verify(evidence_bundle(plan=valid_plan(sql=sql)))
+
+    assert trace.result.status == "PASSED"
+    assert not _failed(trace, "unrequested_analytical_grain")
 
 
 def test_wrong_unique_metric_source_fails_semantic_verification() -> None:

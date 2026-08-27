@@ -10,8 +10,8 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 from data_agent.contracts.base import NonEmptyString
 from data_agent.contracts.verification import VerificationResult
 
-VERIFICATION_TRACE_VERSION = "verification-trace-v0.1"
-VERIFICATION_POLICY_VERSION = "verification-policy-v0.1"
+VERIFICATION_TRACE_VERSION = "verification-trace-v0.2"
+VERIFICATION_POLICY_VERSION = "verification-policy-v0.2"
 
 type VerificationCategory = Literal["STRUCTURAL", "SEMANTIC", "EMPIRICAL"]
 
@@ -43,8 +43,8 @@ class VerificationEvidenceIdentity(_VerificationEvidenceModel):
 
 
 class VerificationTrace(_VerificationEvidenceModel):
-    version: Literal["verification-trace-v0.1"] = "verification-trace-v0.1"
-    verification_policy_version: Literal["verification-policy-v0.1"] = "verification-policy-v0.1"
+    version: Literal["verification-trace-v0.2"] = "verification-trace-v0.2"
+    verification_policy_version: Literal["verification-policy-v0.2"] = "verification-policy-v0.2"
     evidence: VerificationEvidenceIdentity
     applied_checks: tuple[NonEmptyString, ...]
     coverage_gaps: tuple[VerificationCoverageGap, ...]
