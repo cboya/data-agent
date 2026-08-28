@@ -327,7 +327,8 @@ def test_m8_readiness_eval_command_is_provider_free(
 
     output = capsys.readouterr().out
     assert "M8 readiness eval PASS" in output
-    assert "cases=39" in output
+    assert "cases=40" in output
     assert "unnecessary_clarification=0" in output
     assert "necessary_recall=1.000" in output
     assert "false_ready=0" in output
+    assert "insufficient_evidence_false_ready=0" in output

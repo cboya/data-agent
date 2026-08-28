@@ -500,6 +500,13 @@ it also states explicitly that absent time/grain is optional. This wire amendmen
 evidence but does not become final authority. Public `RequirementState v0.1`,
 `DialogueDecision v0.1`, and `RequirementPatch v0.2` remain unchanged.
 
+The v0.21 live boundary mechanically enforces those evidence requirements with a narrower response
+validator. Evidence that proves neither blocking nor nonblocking is invalid and produces no
+decision; it cannot fall through to READY. ASK also carries provider-only `question_target`
+identity. The Harness reuses the proposed question only when that exact candidate survives
+classification as blocking. Legacy v0.20 proposals remain replayable for diagnosis but are not
+accepted by the live v0.21 boundary.
+
 **Reason:** Draft M15 diagnosis replayed 35 unexpected clarifications in standalone M8. The old
 normalizer treated model ASK as effective readiness authority and suppressed patch facts before
 the Harness could observe that the cited ambiguity was optional, stale, or already resolved. The
@@ -513,3 +520,8 @@ clarification recall `1.000` and false READY `0`. Suppression cannot inject defa
 erase confirmed siblings. Existing bounded context and atomic persistence/CAS behavior remain
 unchanged. M9–M15 behavior, Golden/Oracle truth, model/resource identity, and final thresholds are
 outside this remediation.
+
+Every legacy proposal lacking an exact resolved or unresolved subject match must fail with invalid
+provider evidence. The empty-state case that omitted every requested analytical fact has a separate
+complete-READY control. The gate also fixes insufficient-evidence false READY at zero and rejects
+questions whose declared target no longer survives policy reclassification.

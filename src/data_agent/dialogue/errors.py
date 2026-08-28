@@ -15,3 +15,11 @@ class RequirementMergeError(DialogueError):
 
 class DialoguePolicyError(DialogueError):
     """Raised when the proposed action contradicts the merged requirement."""
+
+
+class InvalidProviderEvidenceError(DialoguePolicyError):
+    """Raised when structured provider evidence cannot authorize an M8 outcome."""
+
+    def __init__(self, message: str, *, reason_codes: tuple[str, ...]) -> None:
+        super().__init__(message)
+        self.reason_codes = reason_codes

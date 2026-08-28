@@ -13,6 +13,7 @@ from data_agent.contracts.requirement import (
     MetricRequirement,
     PatchOp,
     RequirementPatch,
+    ResolutionStatus,
     ScalarPatch,
     TimeRange,
 )
@@ -52,6 +53,10 @@ class DialogueComparisonMutation(StrEnum):
     WEEK_OVER_WEEK = "week_over_week"
     MONTH_OVER_MONTH = "month_over_month"
     YEAR_OVER_YEAR = "year_over_year"
+
+
+def _subject_key(value: str) -> str:
+    return " ".join(value.casefold().split())
 
 
 class DialoguePatchProposal(RequirementPatch):
@@ -110,6 +115,13 @@ class NonBlockingAmbiguity(Ambiguity):
     blocking: Literal[False] = False
 
 
+class DialogueQuestionTarget(ContractModel):
+    """Provider-only identity binding one question to one blocker candidate."""
+
+    field: Literal["metric", "time_range", "grain", "dimension", "filter", "comparison"]
+    subject_term: NonEmptyString
+
+
 class AskClarificationResolution(ContractModel):
     action: Literal[DialogueAction.ASK_CLARIFICATION]
     unresolved_replace: list[BlockingAmbiguity] = Field(min_length=1)
@@ -143,10 +155,11 @@ class DialogueProposal(ContractModel):
     version: ContractVersion
     patch: DialoguePatchProposal
     resolution: DialogueResolution
+    question_target: DialogueQuestionTarget | None = None
 
     @staticmethod
     def _subject_key(value: str) -> str:
-        return " ".join(value.casefold().split())
+        return _subject_key(value)
 
     def _normalize_collection_blockers(
         self,
@@ -273,13 +286,74 @@ class DialogueProposal(ContractModel):
             "question": decision.question,
             "reason": decision.reason,
         }
+        blocking_payload = [item for item in unresolved_payload if item["blocking"]]
+        question_target = (
+            {
+                "field": blocking_payload[0]["field"],
+                "subject_term": blocking_payload[0]["subject_term"],
+            }
+            if decision.action is DialogueAction.ASK_CLARIFICATION and blocking_payload
+            else None
+        )
         return cls.model_validate(
             {
                 "version": decision.version,
                 "patch": patch_payload,
                 "resolution": resolution_payload,
+                "question_target": question_target,
             }
         )
+
+
+class DialogueProposalV021(DialogueProposal):
+    """Live v0.21 wire contract; legacy proposals remain replayable by the base model."""
+
+    question_target: DialogueQuestionTarget | None
+
+    @model_validator(mode="after")
+    def enforce_structured_blocker_evidence(self) -> Self:
+        blockers = [item for item in self.resolution.unresolved_replace if item.blocking]
+        for blocker in blockers:
+            if len({_subject_key(str(option)) for option in blocker.options}) < 2:
+                raise ValueError("v0.21 blocker requires at least two distinct options")
+            if blocker.field not in {"metric", "dimension"}:
+                continue
+            items = (
+                self.patch.metrics_upsert
+                if blocker.field == "metric"
+                else self.patch.dimensions_upsert
+            )
+            subject = _subject_key(str(blocker.subject_term))
+            matching = [
+                item
+                for item in items
+                if _subject_key(str(item.term)) == subject
+                and item.status is ResolutionStatus.UNRESOLVED
+                and item.resolved_name is None
+            ]
+            if len(matching) != 1:
+                raise ValueError(
+                    "v0.21 metric/dimension blocker requires exactly one matching "
+                    "UNRESOLVED patch item"
+                )
+
+        if self.resolution.action is DialogueAction.ASK_CLARIFICATION:
+            if self.question_target is None:
+                raise ValueError("v0.21 ASK requires question_target")
+            target = (
+                str(self.question_target.field),
+                _subject_key(str(self.question_target.subject_term)),
+            )
+            matches = [
+                blocker
+                for blocker in blockers
+                if (str(blocker.field), _subject_key(str(blocker.subject_term))) == target
+            ]
+            if len(matches) != 1:
+                raise ValueError("v0.21 question_target must identify exactly one blocker")
+        elif self.question_target is not None:
+            raise ValueError("v0.21 non-ASK proposal cannot carry question_target")
+        return self
 
 
 class DialogueDecision(ContractModel):

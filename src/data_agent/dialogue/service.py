@@ -6,15 +6,23 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime
 
-from data_agent.contracts.dialogue import DialogueAction, DialogueDecision, DialogueProposal
+from data_agent.contracts.dialogue import (
+    DialogueAction,
+    DialogueDecision,
+    DialogueProposal,
+    DialogueProposalV021,
+)
 from data_agent.contracts.message import Message, MessageRole
 from data_agent.contracts.requirement import RequirementState, RequirementStatus
 from data_agent.contracts.session import Session, SessionStatus
 from data_agent.dialogue.context import DialogueContextBuilder
+from data_agent.dialogue.errors import InvalidProviderEvidenceError
 from data_agent.dialogue.merge import RequirementMerger
 from data_agent.dialogue.policy import (
     BlockingAmbiguityPolicy,
+    BlockingDisposition,
     BlockingPolicyResult,
+    BlockingReasonCode,
     DialogueOutcome,
     DialoguePolicy,
 )
@@ -89,7 +97,7 @@ class DialogueEngine:
         )
         return await self._chat_model.structured(
             messages=messages,
-            response_type=DialogueProposal,
+            response_type=DialogueProposalV021,
             purpose=DIALOGUE_PROMPT_VERSION,
         )
 
@@ -123,6 +131,14 @@ class DialogueEngine:
         proposal: DialogueProposal,
         blocking: BlockingPolicyResult,
     ) -> DialogueDecision:
+        if blocking.has_invalid:
+            invalid_reason_codes = tuple(
+                assessment.reason_code.value for assessment in blocking.invalid_assessments
+            )
+            raise InvalidProviderEvidenceError(
+                "provider blocker evidence is insufficient for deterministic readiness",
+                reason_codes=invalid_reason_codes,
+            )
         patch = proposal.to_requirement_patch(blocking=blocking.blocking_candidates)
         if not blocking.has_blocking:
             action = DialogueAction.READY
@@ -132,7 +148,10 @@ class DialogueEngine:
             question = None
         else:
             action = DialogueAction.ASK_CLARIFICATION
-            question = proposal.resolution.question
+            question = DialogueEngine._authorized_question(
+                proposal=proposal,
+                blocking=blocking,
+            )
         reason_codes = ",".join(assessment.reason_code.value for assessment in blocking.assessments)
         return DialogueDecision.model_validate(
             {
@@ -143,6 +162,44 @@ class DialogueEngine:
                 "reason": f"blocking-ambiguity-policy:{reason_codes or 'NO_CANDIDATES'}",
             }
         )
+
+    @staticmethod
+    def _authorized_question(
+        *,
+        proposal: DialogueProposal,
+        blocking: BlockingPolicyResult,
+    ) -> str:
+        target = proposal.question_target
+        if target is None:
+            raise InvalidProviderEvidenceError(
+                "clarification question is missing a provider target",
+                reason_codes=(BlockingReasonCode.INVALID_QUESTION_TARGET.value,),
+            )
+        target_identity = (
+            str(target.field),
+            " ".join(str(target.subject_term).casefold().split()),
+        )
+        assessments = [
+            assessment
+            for assessment in blocking.assessments
+            if (
+                assessment.field,
+                " ".join(assessment.subject_term.casefold().split()),
+            )
+            == target_identity
+        ]
+        if len(assessments) != 1 or assessments[0].disposition is not BlockingDisposition.BLOCKING:
+            raise InvalidProviderEvidenceError(
+                "clarification question target is not a surviving blocker",
+                reason_codes=(BlockingReasonCode.INVALID_QUESTION_TARGET.value,),
+            )
+        question = proposal.resolution.question
+        if question is None:
+            raise InvalidProviderEvidenceError(
+                "surviving blocker has no clarification question",
+                reason_codes=(BlockingReasonCode.INVALID_QUESTION_TARGET.value,),
+            )
+        return str(question)
 
     def resolve(
         self,

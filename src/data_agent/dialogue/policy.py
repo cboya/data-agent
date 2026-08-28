@@ -47,6 +47,8 @@ class BlockingReasonCode(StrEnum):
     ALREADY_RESOLVED = "ALREADY_RESOLVED"
     STALE_BLOCKER = "STALE_BLOCKER"
     NON_MATERIAL = "NON_MATERIAL"
+    INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+    INVALID_QUESTION_TARGET = "INVALID_QUESTION_TARGET"
 
 
 @dataclass(frozen=True)
@@ -66,6 +68,18 @@ class BlockingPolicyResult:
     @property
     def has_blocking(self) -> bool:
         return bool(self.blocking_candidates)
+
+    @property
+    def invalid_assessments(self) -> tuple[BlockingCandidateAssessment, ...]:
+        return tuple(
+            item
+            for item in self.assessments
+            if item.disposition is BlockingDisposition.INVALID_CANDIDATE
+        )
+
+    @property
+    def has_invalid(self) -> bool:
+        return bool(self.invalid_assessments)
 
 
 def _subject_key(value: str) -> str:
@@ -132,7 +146,7 @@ class BlockingAmbiguityPolicy:
         subject = _subject_key(str(candidate.subject_term))
         carried = _has_current_blocker(requirement, field)
         if subject not in latest_key and not carried:
-            return BlockingDisposition.INVALID_CANDIDATE, BlockingReasonCode.STALE_BLOCKER
+            return BlockingDisposition.NONBLOCKING, BlockingReasonCode.STALE_BLOCKER
 
         if field == "time_range":
             if (
@@ -176,21 +190,20 @@ class BlockingAmbiguityPolicy:
                 for item in matched
             ):
                 return BlockingDisposition.NONBLOCKING, BlockingReasonCode.ALREADY_RESOLVED
-            if any(item.status is ResolutionStatus.UNRESOLVED for item in matched):
+            if (
+                any(item.status is ResolutionStatus.UNRESOLVED for item in matched)
+                and len(_distinct_options(candidate)) >= 2
+            ):
                 return (
                     BlockingDisposition.BLOCKING,
                     BlockingReasonCode.UNRESOLVED_METRIC
                     if field == "metric"
                     else BlockingReasonCode.UNRESOLVED_DIMENSION,
                 )
-            if carried or len(_distinct_options(candidate)) >= 2:
-                return (
-                    BlockingDisposition.BLOCKING,
-                    BlockingReasonCode.UNRESOLVED_METRIC
-                    if field == "metric"
-                    else BlockingReasonCode.UNRESOLVED_DIMENSION,
-                )
-            return BlockingDisposition.NONBLOCKING, BlockingReasonCode.NON_MATERIAL
+            return (
+                BlockingDisposition.INVALID_CANDIDATE,
+                BlockingReasonCode.INSUFFICIENT_EVIDENCE,
+            )
 
         if field == "comparison":
             if (

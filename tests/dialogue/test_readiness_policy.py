@@ -1,7 +1,15 @@
 from typing import cast
 
-from data_agent.contracts.dialogue import DialogueAction, DialogueProposal
+import pytest
+from pydantic import ValidationError
+
+from data_agent.contracts.dialogue import (
+    DialogueAction,
+    DialogueProposal,
+    DialogueProposalV021,
+)
 from data_agent.contracts.requirement import PatchOp
+from data_agent.dialogue.errors import InvalidProviderEvidenceError
 from data_agent.dialogue.policy import BlockingReasonCode
 from data_agent.dialogue.readiness_evaluation import load_readiness_eval_suite
 from data_agent.dialogue.service import DialogueEngine
@@ -98,3 +106,122 @@ def test_unattributed_new_blocker_is_stale_not_readiness_authority() -> None:
     assert outcome.decision.action is DialogueAction.READY
     assert outcome.blocking is not None
     assert outcome.blocking.assessments[0].reason_code is BlockingReasonCode.STALE_BLOCKER
+
+
+def test_incomplete_provider_metric_evidence_fails_closed_instead_of_ready() -> None:
+    turn = _case("join-units-attempts-order").turns[0]
+
+    with pytest.raises(InvalidProviderEvidenceError) as raised:
+        _engine().resolve_proposal(
+            requirement=turn.initial_requirement_state,
+            proposal=turn.provider_proposal,
+            latest_user_message=turn.latest_user_message,
+        )
+
+    assert raised.value.reason_codes == (
+        BlockingReasonCode.INSUFFICIENT_EVIDENCE.value,
+        BlockingReasonCode.INSUFFICIENT_EVIDENCE.value,
+    )
+
+
+def test_v021_wire_rejects_blocker_without_mechanical_evidence() -> None:
+    turn = _case("join-units-attempts-order").turns[0]
+    payload = turn.provider_proposal.model_dump(mode="json")
+    payload["question_target"] = {
+        "field": "metric",
+        "subject_term": "销售件数",
+    }
+
+    with pytest.raises(ValidationError, match="at least two distinct options"):
+        DialogueProposalV021.model_validate(payload)
+
+
+def test_v021_wire_requires_matching_unresolved_collection_item() -> None:
+    turn = _case("ambiguous-metric").turns[0]
+    payload = turn.provider_proposal.model_dump(mode="json")
+    payload["patch"]["metrics_upsert"] = []
+
+    with pytest.raises(ValidationError, match="exactly one matching UNRESOLVED"):
+        DialogueProposalV021.model_validate(payload)
+
+
+def test_v021_wire_requires_question_target_for_ask() -> None:
+    turn = _case("ambiguous-metric").turns[0]
+    payload = turn.provider_proposal.model_dump(mode="json")
+    payload["question_target"] = None
+
+    assert "question_target" in DialogueProposalV021.model_json_schema()["required"]
+    with pytest.raises(ValidationError, match="ASK requires question_target"):
+        DialogueProposalV021.model_validate(payload)
+
+
+def test_structurally_complete_ready_control_preserves_every_requested_fact() -> None:
+    turn = _case("complete-units-attempts-order").turns[0]
+    proposal = DialogueProposalV021.model_validate(turn.provider_proposal.model_dump(mode="json"))
+
+    outcome = _engine().resolve_proposal(
+        requirement=turn.initial_requirement_state,
+        proposal=proposal,
+        latest_user_message=turn.latest_user_message,
+    )
+
+    assert outcome.decision.action is DialogueAction.READY
+    assert [str(item.resolved_name) for item in outcome.requirement.metrics] == [
+        "unit_sales",
+        "payment_attempt_count",
+    ]
+    assert [str(item.resolved_name) for item in outcome.requirement.dimensions] == ["order_id"]
+
+
+def test_question_target_must_survive_blocker_reclassification() -> None:
+    turn = _case("ambiguous-metric").turns[0]
+    payload = turn.provider_proposal.model_dump(mode="json")
+    payload["patch"]["time_range"] = {
+        "op": "SET",
+        "value": {
+            "kind": "RELATIVE",
+            "value": "last_30_days",
+            "start": None,
+            "end": None,
+        },
+    }
+    payload["resolution"]["unresolved_replace"].insert(
+        0,
+        {
+            "field": "time_range",
+            "subject_term": "last 30 days",
+            "reason": "provider question target candidate",
+            "options": ["last_7_days", "last_30_days"],
+            "blocking": True,
+        },
+    )
+    payload["resolution"]["question"] = "Which time range?"
+    payload["question_target"] = {
+        "field": "time_range",
+        "subject_term": "last 30 days",
+    }
+    proposal = DialogueProposalV021.model_validate(payload)
+
+    with pytest.raises(InvalidProviderEvidenceError) as raised:
+        _engine().resolve_proposal(
+            requirement=turn.initial_requirement_state,
+            proposal=proposal,
+            latest_user_message="Show sales over the last 30 days.",
+        )
+    assert raised.value.reason_codes == (BlockingReasonCode.INVALID_QUESTION_TARGET.value,)
+
+    corrected_payload = proposal.model_dump(mode="json")
+    corrected_payload["resolution"]["question"] = "Do you mean GMV or paid amount?"
+    corrected_payload["question_target"] = {"field": "metric", "subject_term": "sales"}
+    corrected = DialogueProposalV021.model_validate(corrected_payload)
+    outcome = _engine().resolve_proposal(
+        requirement=turn.initial_requirement_state,
+        proposal=corrected,
+        latest_user_message="Show sales over the last 30 days.",
+    )
+
+    assert outcome.decision.action is DialogueAction.ASK_CLARIFICATION
+    assert outcome.decision.question == "Do you mean GMV or paid amount?"
+    assert outcome.requirement.time_range is not None
+    assert outcome.requirement.time_range.value == "last_30_days"
+    assert [item.field for item in outcome.requirement.unresolved] == ["metric"]

@@ -1,4 +1,5 @@
 from data_agent.dialogue.readiness_evaluation import (
+    ReadinessExpectedOutcome,
     load_readiness_eval_suite,
     run_readiness_evaluation,
 )
@@ -46,6 +47,17 @@ def test_frozen_readiness_suite_contains_exact_diagnosed_cases_and_positive_cont
     suite = load_readiness_eval_suite()
     false_cases = {case.id for case in suite.cases if case.category == "KNOWN_FALSE_CLARIFICATION"}
     positive_cases = {case.id for case in suite.cases if case.category == "KNOWN_AMBIGUOUS"}
+    complete_ready_cases = {
+        case.id for case in suite.cases if case.category == "KNOWN_COMPLETE_READY"
+    }
+    invalid_evidence_cases = {
+        case.id
+        for case in suite.cases
+        if any(
+            turn.expected_outcome is ReadinessExpectedOutcome.INVALID_PROVIDER_EVIDENCE
+            for turn in case.turns
+        )
+    }
 
     assert false_cases == FROZEN_FALSE_CLARIFICATION_IDS
     assert positive_cases == {
@@ -54,7 +66,13 @@ def test_frozen_readiness_suite_contains_exact_diagnosed_cases_and_positive_cont
         "explicit-time-ambiguity",
         "explicit-grain-ambiguity",
     }
-    assert sum(len(case.turns) for case in suite.cases) == 40
+    assert complete_ready_cases == {"complete-units-attempts-order"}
+    assert invalid_evidence_cases == {
+        "simple-paid-users",
+        "join-units-order",
+        "join-units-attempts-order",
+    }
+    assert sum(len(case.turns) for case in suite.cases) == 41
 
 
 def test_provider_free_readiness_eval_enforces_both_clarification_directions() -> None:
@@ -64,6 +82,9 @@ def test_provider_free_readiness_eval_enforces_both_clarification_directions() -
     assert report.metrics.unnecessary_clarification_count == 0
     assert report.metrics.necessary_clarification_recall == 1.0
     assert report.metrics.false_ready_count == 0
+    assert report.metrics.complete_ready_control_count == 1
+    assert report.metrics.insufficient_provider_evidence_case_count == 3
+    assert report.metrics.insufficient_provider_evidence_false_ready_count == 0
     assert report.metrics.action_accuracy == 1.0
     assert report.metrics.state_accuracy == 1.0
     assert report.metrics.reason_code_accuracy == 1.0

@@ -535,38 +535,12 @@
       "id": "simple-paid-users",
       "turns": [
         {
-          "expected_action": "READY",
+          "expected_action": null,
+          "expected_outcome": "INVALID_PROVIDER_EVIDENCE",
           "expected_reason_codes": [
-            "NON_MATERIAL"
+            "INSUFFICIENT_EVIDENCE"
           ],
-          "expected_requirement_state": {
-            "assumptions": [],
-            "comparison": null,
-            "confirmed_terms": {},
-            "dimensions": [],
-            "filters": [],
-            "goal": null,
-            "grain": null,
-            "limit": null,
-            "metrics": [
-              {
-                "definition": null,
-                "resolved_name": "paid_user_count",
-                "status": "CONFIRMED",
-                "term": "paid_user_count"
-              }
-            ],
-            "sort": null,
-            "status": "READY",
-            "time_range": {
-              "end": null,
-              "kind": "RELATIVE",
-              "start": null,
-              "value": "all_time"
-            },
-            "unresolved": [],
-            "version": "v0.1"
-          },
+          "expected_requirement_state": null,
           "initial_requirement_state": {
             "assumptions": [],
             "comparison": null,

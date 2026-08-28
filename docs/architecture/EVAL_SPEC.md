@@ -217,6 +217,13 @@ decision, and canonical state. It requires:
 - unnecessary clarification count on those cases = 0;
 - necessary clarification recall on true-ambiguity controls = 1.00;
 - false READY count on true-ambiguity controls = 0;
+- insufficient-provider-evidence false READY count = 0;
+- the three legacy cases without exact resolved/unresolved subject evidence (`simple-paid-users`,
+  `join-units-order`, and `join-units-attempts-order`) produce typed invalid evidence, not a
+  decision, while a separate structurally complete control for the empty-state case preserves both
+  requested metrics and the requested dimension before reaching READY;
+- an ASK question target removed by blocker reclassification is rejected, while the same proposal
+  bound to the surviving blocker is accepted;
 - action, exact canonical state, stable reason-code, and optional-scope preservation accuracy =
   1.00.
 

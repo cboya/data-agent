@@ -34,11 +34,36 @@ class FixedDialogueModel:
         proposal = DialogueProposal.from_decision(decision)
         payload = proposal.model_dump(mode="json")
         latest_user_message = str(json.loads(messages[-1]["content"])["latest_user_message"])
+        first_blocking: dict[str, object] | None = None
         for ambiguity in payload["resolution"]["unresolved_replace"]:
             if ambiguity["blocking"]:
+                if first_blocking is None:
+                    first_blocking = ambiguity
                 ambiguity["subject_term"] = latest_user_message
                 if len(ambiguity["options"]) < 2:
                     ambiguity["options"] = ["interpretation_a", "interpretation_b"]
+                if ambiguity["field"] in {"metric", "dimension"}:
+                    collection = (
+                        payload["patch"]["metrics_upsert"]
+                        if ambiguity["field"] == "metric"
+                        else payload["patch"]["dimensions_upsert"]
+                    )
+                    item = {
+                        "term": latest_user_message,
+                        "resolved_name": None,
+                        "status": "UNRESOLVED",
+                    }
+                    if ambiguity["field"] == "metric":
+                        item["definition"] = None
+                    collection.append(item)
+        payload["question_target"] = (
+            {
+                "field": first_blocking["field"],
+                "subject_term": latest_user_message,
+            }
+            if decision.action.value == "ASK_CLARIFICATION" and first_blocking is not None
+            else None
+        )
         return response_type.model_validate(payload)
 
 

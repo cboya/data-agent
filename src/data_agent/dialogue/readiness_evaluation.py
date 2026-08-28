@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+from enum import StrEnum
 from pathlib import Path
 from typing import Literal, cast
 
@@ -11,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, model_validator
 
 from data_agent.contracts.dialogue import DialogueAction, DialogueGrainMutation, DialogueProposal
 from data_agent.contracts.requirement import PatchOp, RequirementState
+from data_agent.dialogue.errors import InvalidProviderEvidenceError
 from data_agent.dialogue.policy import BlockingReasonCode
 from data_agent.dialogue.service import DialogueEngine
 from data_agent.model_runtime.ports import ChatModel
@@ -24,19 +26,34 @@ class _EvaluationModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, allow_inf_nan=False)
 
 
+class ReadinessExpectedOutcome(StrEnum):
+    DECISION = "DECISION"
+    INVALID_PROVIDER_EVIDENCE = "INVALID_PROVIDER_EVIDENCE"
+
+
 class ReadinessEvalTurn(_EvaluationModel):
     turn_number: int = Field(ge=1)
     latest_user_message: str = Field(min_length=1, pattern=r"\S")
     initial_requirement_state: RequirementState
     provider_proposal: DialogueProposal
-    expected_action: DialogueAction
-    expected_requirement_state: RequirementState
+    expected_outcome: ReadinessExpectedOutcome = ReadinessExpectedOutcome.DECISION
+    expected_action: DialogueAction | None
+    expected_requirement_state: RequirementState | None
     expected_reason_codes: tuple[BlockingReasonCode, ...]
+
+    @model_validator(mode="after")
+    def expected_outcome_is_complete(self) -> ReadinessEvalTurn:
+        if self.expected_outcome is ReadinessExpectedOutcome.DECISION:
+            if self.expected_action is None or self.expected_requirement_state is None:
+                raise ValueError("decision expectation requires action and requirement state")
+        elif self.expected_action is not None or self.expected_requirement_state is not None:
+            raise ValueError("invalid-provider-evidence expectation cannot carry decision state")
+        return self
 
 
 class ReadinessEvalCase(_EvaluationModel):
     id: str = Field(min_length=1, pattern=r"\S")
-    category: Literal["KNOWN_FALSE_CLARIFICATION", "KNOWN_AMBIGUOUS"]
+    category: Literal["KNOWN_FALSE_CLARIFICATION", "KNOWN_AMBIGUOUS", "KNOWN_COMPLETE_READY"]
     turns: tuple[ReadinessEvalTurn, ...] = Field(min_length=1)
 
 
@@ -70,8 +87,10 @@ class ReadinessEvalSuite(_EvaluationModel):
 
 class ReadinessTurnResult(_EvaluationModel):
     turn_number: int
-    expected_action: DialogueAction
-    actual_action: DialogueAction
+    expected_outcome: ReadinessExpectedOutcome
+    actual_outcome: ReadinessExpectedOutcome
+    expected_action: DialogueAction | None
+    actual_action: DialogueAction | None
     action_correct: bool
     state_correct: bool
     reason_codes_correct: bool
@@ -92,6 +111,9 @@ class ReadinessEvalMetrics(_EvaluationModel):
     turn_count: int
     frozen_false_clarification_case_count: int
     true_ambiguity_case_count: int
+    complete_ready_control_count: int
+    insufficient_provider_evidence_case_count: int
+    insufficient_provider_evidence_false_ready_count: int
     unnecessary_clarification_count: int
     necessary_clarification_recall: float = Field(ge=0, le=1)
     false_ready_count: int
@@ -168,28 +190,60 @@ def run_readiness_evaluation(suite: ReadinessEvalSuite) -> ReadinessEvalReport:
     for case in suite.cases:
         turn_results: list[ReadinessTurnResult] = []
         for turn in case.turns:
-            outcome = engine.resolve_proposal(
-                requirement=turn.initial_requirement_state,
-                proposal=turn.provider_proposal,
-                latest_user_message=turn.latest_user_message,
-            )
-            if outcome.blocking is None:
-                raise AssertionError("proposal resolution must include blocking-policy evidence")
-            reason_codes = tuple(
-                assessment.reason_code for assessment in outcome.blocking.assessments
-            )
+            actual_outcome = ReadinessExpectedOutcome.DECISION
+            actual_action: DialogueAction | None = None
+            actual_requirement: RequirementState | None = None
+            scope_preserved = True
+            confirmed_facts_preserved = True
+            try:
+                outcome = engine.resolve_proposal(
+                    requirement=turn.initial_requirement_state,
+                    proposal=turn.provider_proposal,
+                    latest_user_message=turn.latest_user_message,
+                )
+                if outcome.blocking is None:
+                    raise AssertionError(
+                        "proposal resolution must include blocking-policy evidence"
+                    )
+                actual_action = outcome.decision.action
+                actual_requirement = outcome.requirement
+                reason_codes = tuple(
+                    assessment.reason_code for assessment in outcome.blocking.assessments
+                )
+                scope_preserved = _scope_was_preserved(turn, outcome.requirement)
+                confirmed_facts_preserved = _confirmed_facts_were_preserved(
+                    turn, outcome.requirement
+                )
+            except InvalidProviderEvidenceError as error:
+                actual_outcome = ReadinessExpectedOutcome.INVALID_PROVIDER_EVIDENCE
+                reason_codes = tuple(BlockingReasonCode(value) for value in error.reason_codes)
+            outcome_correct = actual_outcome is turn.expected_outcome
             turn_results.append(
                 ReadinessTurnResult(
                     turn_number=turn.turn_number,
+                    expected_outcome=turn.expected_outcome,
+                    actual_outcome=actual_outcome,
                     expected_action=turn.expected_action,
-                    actual_action=outcome.decision.action,
-                    action_correct=outcome.decision.action is turn.expected_action,
-                    state_correct=outcome.requirement == turn.expected_requirement_state,
-                    reason_codes_correct=reason_codes == turn.expected_reason_codes,
-                    scope_preserved=_scope_was_preserved(turn, outcome.requirement),
-                    confirmed_facts_preserved=_confirmed_facts_were_preserved(
-                        turn, outcome.requirement
+                    actual_action=actual_action,
+                    action_correct=(
+                        outcome_correct
+                        and (
+                            turn.expected_outcome
+                            is ReadinessExpectedOutcome.INVALID_PROVIDER_EVIDENCE
+                            or actual_action is turn.expected_action
+                        )
                     ),
+                    state_correct=(
+                        outcome_correct
+                        and (
+                            turn.expected_outcome
+                            is ReadinessExpectedOutcome.INVALID_PROVIDER_EVIDENCE
+                            or actual_requirement == turn.expected_requirement_state
+                        )
+                    ),
+                    reason_codes_correct=reason_codes == turn.expected_reason_codes,
+                    scope_preserved=scope_preserved,
+                    confirmed_facts_preserved=confirmed_facts_preserved,
                     actual_reason_codes=reason_codes,
                 )
             )
@@ -210,9 +264,22 @@ def run_readiness_evaluation(suite: ReadinessEvalSuite) -> ReadinessEvalReport:
         )
 
     turns = [turn for case in case_results for turn in case.turns]
-    expected_ready = [turn for turn in turns if turn.expected_action is DialogueAction.READY]
+    false_clarification_turns = [
+        turn
+        for case in case_results
+        if case.category == "KNOWN_FALSE_CLARIFICATION"
+        for turn in case.turns
+    ]
+    expected_ready = [
+        turn for turn in false_clarification_turns if turn.expected_action is DialogueAction.READY
+    ]
     expected_ask = [
         turn for turn in turns if turn.expected_action is DialogueAction.ASK_CLARIFICATION
+    ]
+    expected_invalid = [
+        turn
+        for turn in turns
+        if turn.expected_outcome is ReadinessExpectedOutcome.INVALID_PROVIDER_EVIDENCE
     ]
     metrics = ReadinessEvalMetrics(
         case_count=len(case_results),
@@ -221,6 +288,19 @@ def run_readiness_evaluation(suite: ReadinessEvalSuite) -> ReadinessEvalReport:
             case.category == "KNOWN_FALSE_CLARIFICATION" for case in case_results
         ),
         true_ambiguity_case_count=sum(case.category == "KNOWN_AMBIGUOUS" for case in case_results),
+        complete_ready_control_count=sum(
+            case.category == "KNOWN_COMPLETE_READY" for case in case_results
+        ),
+        insufficient_provider_evidence_case_count=sum(
+            any(
+                turn.expected_outcome is ReadinessExpectedOutcome.INVALID_PROVIDER_EVIDENCE
+                for turn in case.turns
+            )
+            for case in case_results
+        ),
+        insufficient_provider_evidence_false_ready_count=sum(
+            turn.actual_action is DialogueAction.READY for turn in expected_invalid
+        ),
         unnecessary_clarification_count=sum(
             turn.actual_action is DialogueAction.ASK_CLARIFICATION for turn in expected_ready
         ),
@@ -243,6 +323,9 @@ def run_readiness_evaluation(suite: ReadinessEvalSuite) -> ReadinessEvalReport:
         cases=tuple(case_results),
         passed=(
             metrics.frozen_false_clarification_case_count == 35
+            and metrics.complete_ready_control_count == 1
+            and metrics.insufficient_provider_evidence_case_count == 3
+            and metrics.insufficient_provider_evidence_false_ready_count == 0
             and metrics.unnecessary_clarification_count == 0
             and metrics.necessary_clarification_recall == 1.0
             and metrics.false_ready_count == 0
@@ -279,6 +362,8 @@ def format_readiness_eval_summary(report: ReadinessEvalReport) -> str:
         f"unnecessary_clarification={metrics.unnecessary_clarification_count}, "
         f"necessary_recall={metrics.necessary_clarification_recall:.3f}, "
         f"false_ready={metrics.false_ready_count}, "
+        f"insufficient_evidence_false_ready="
+        f"{metrics.insufficient_provider_evidence_false_ready_count}, "
         f"state={metrics.state_accuracy:.3f}, "
         f"scope={metrics.scope_preservation_accuracy:.3f}, "
         f"facts={metrics.confirmed_fact_preservation_accuracy:.3f}"

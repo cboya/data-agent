@@ -85,6 +85,15 @@ must enumerate at least two concrete competing interpretations, and a metric/dim
 must carry a matching `UNRESOLVED` structured item. These fields are evidence candidates; the
 Harness still owns their materiality and final action.
 
+The live v0.21 response additionally requires nullable provider-only `question_target`. For ASK it
+must identify exactly one proposed blocker by `field` and `subject_term`; for READY or
+CANNOT_RESOLVE it is null. `DialogueProposalV021` mechanically enforces these wire requirements
+before policy evaluation. After provisional merge and reclassification, the Harness authorizes the
+question only if its target remains a proven blocker. Missing/invalid blocker evidence or a target
+that was resolved, stale, or otherwise removed yields a typed provider-evidence failure with no
+retry and no public decision. Legacy v0.20 proposals are retained only for deterministic diagnosis
+replay and never define the live provider contract.
+
 ---
 
 ## 3. Interaction B — Retrieval query formulation

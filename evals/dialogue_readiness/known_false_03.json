@@ -729,39 +729,12 @@
       "id": "join-units-order",
       "turns": [
         {
-          "expected_action": "READY",
+          "expected_action": null,
+          "expected_outcome": "INVALID_PROVIDER_EVIDENCE",
           "expected_reason_codes": [
-            "NON_MATERIAL"
+            "INSUFFICIENT_EVIDENCE"
           ],
-          "expected_requirement_state": {
-            "assumptions": [],
-            "comparison": null,
-            "confirmed_terms": {},
-            "dimensions": [
-              {
-                "resolved_name": "order_status",
-                "status": "CONFIRMED",
-                "term": "order_status"
-              }
-            ],
-            "filters": [],
-            "goal": null,
-            "grain": null,
-            "limit": null,
-            "metrics": [
-              {
-                "definition": null,
-                "resolved_name": "unit_sales",
-                "status": "CONFIRMED",
-                "term": "unit_sales"
-              }
-            ],
-            "sort": null,
-            "status": "READY",
-            "time_range": null,
-            "unresolved": [],
-            "version": "v0.1"
-          },
+          "expected_requirement_state": null,
           "initial_requirement_state": {
             "assumptions": [],
             "comparison": null,
@@ -847,27 +820,13 @@
       "id": "join-units-attempts-order",
       "turns": [
         {
-          "expected_action": "READY",
+          "expected_action": null,
+          "expected_outcome": "INVALID_PROVIDER_EVIDENCE",
           "expected_reason_codes": [
-            "NON_MATERIAL",
-            "NON_MATERIAL"
+            "INSUFFICIENT_EVIDENCE",
+            "INSUFFICIENT_EVIDENCE"
           ],
-          "expected_requirement_state": {
-            "assumptions": [],
-            "comparison": null,
-            "confirmed_terms": {},
-            "dimensions": [],
-            "filters": [],
-            "goal": null,
-            "grain": null,
-            "limit": null,
-            "metrics": [],
-            "sort": null,
-            "status": "READY",
-            "time_range": null,
-            "unresolved": [],
-            "version": "v0.1"
-          },
+          "expected_requirement_state": null,
           "initial_requirement_state": {
             "assumptions": [],
             "comparison": null,

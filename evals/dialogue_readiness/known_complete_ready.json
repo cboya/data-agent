@@ -1,0 +1,127 @@
+{
+  "cases": [
+    {
+      "category": "KNOWN_COMPLETE_READY",
+      "id": "complete-units-attempts-order",
+      "turns": [
+        {
+          "expected_action": "READY",
+          "expected_reason_codes": [],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [
+              {
+                "resolved_name": "order_id",
+                "status": "CONFIRMED",
+                "term": "order_id"
+              }
+            ],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "unit_sales",
+                "status": "CONFIRMED",
+                "term": "销售件数"
+              },
+              {
+                "definition": null,
+                "resolved_name": "payment_attempt_count",
+                "status": "CONFIRMED",
+                "term": "支付尝试次数"
+              }
+            ],
+            "sort": null,
+            "status": "READY",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "按订单统计销售件数和支付尝试次数，避免明细连接重复，输出 order_id、unit_sales、payment_attempt_count",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [
+                {
+                  "resolved_name": "order_id",
+                  "status": "CONFIRMED",
+                  "term": "order_id"
+                }
+              ],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "unit_sales",
+                  "status": "CONFIRMED",
+                  "term": "销售件数"
+                },
+                {
+                  "definition": null,
+                  "resolved_name": "payment_attempt_count",
+                  "status": "CONFIRMED",
+                  "term": "支付尝试次数"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "question_target": null,
+            "resolution": {
+              "action": "READY",
+              "question": null,
+              "reason": "all explicitly requested analytical facts are structured",
+              "unresolved_replace": []
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    }
+  ],
+  "source_diagnosis_fingerprint": "provider-free-complete-ready-control-v0.1",
+  "version": "v0.1"
+}
