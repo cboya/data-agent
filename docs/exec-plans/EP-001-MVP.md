@@ -537,8 +537,10 @@ set passes 12 tests and the complete M8 contracts/dialogue/persistence/conversat
 Clean isolated `task bootstrap`
 reproduces ten tables, ten orders, paid amount `1545.00`, successful refunds `110.00`, and retrieval
 index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; `task quality` passes
-461 tests with 7 explicit host-only skips. Final remote evidence remains pending. No 30B replay or
-full M15 suite was run.
+461 tests with 7 explicit host-only skips. PR #17 remediation head
+`8df6eb9f8c561f3647e396fcb3a665d1cfc249d3` passes remote `Delivery / Quality` in workflow run
+`33130421475`. No 30B replay or full M15 suite was run. M8 remains open pending focused
+substantive re-review; merge is not authorized and Draft PR #15 remains paused.
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
