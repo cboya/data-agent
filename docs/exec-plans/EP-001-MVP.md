@@ -534,7 +534,9 @@ fact accuracy each `1.000`. The narrow policy/eval set passes 8 tests and the co
 contracts/dialogue/persistence/conversation set passes 60. Clean isolated `task bootstrap`
 reproduces ten tables, ten orders, paid amount `1545.00`, successful refunds `110.00`, and retrieval
 index `f9da78a01e6d030185c4510ba394b860e0d79bd39c06ea625b95599aed76b9e4`; `task quality` passes
-457 tests with 7 explicit host-only skips.
+457 tests with 7 explicit host-only skips. Implementation head
+`b2f0d87e3c260d0d1e092d333f67c21304a48a1b` passes remote `Delivery / Quality` in workflow run
+`33245092669`.
 
 The earlier question-to-surviving-blocker protocol and dedicated `DialogueProposalV021` validator
 were removed after review reclassified them as dialogue-quality optimization beyond the MVP
