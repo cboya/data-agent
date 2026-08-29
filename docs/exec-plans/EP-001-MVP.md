@@ -1,6 +1,6 @@
 # EP-001 — Conversational Data Agent MVP
 
-**Status:** Active
+**Status:** Active — M15 evaluation infrastructure pending final substantive review; canonical behavioral verdict REJECTED
 **Owner:** Codex implementation agent(s), human architecture review
 **Architecture baseline:** v0.1.0
 
@@ -432,8 +432,10 @@ Acceptance:
   dependency, and Python identities under one environment fingerprint;
 - canonical `task eval` preserves every stage gate, adds Golden E2E and trace integrity metrics,
   writes human-readable output plus ignored `evals/reports/latest.json`, and attributes failures;
-- clean `task reset`, `task bootstrap`, `task quality`, and `task eval` all pass without generated
-  source drift.
+- clean `task reset`, `task bootstrap`, and `task quality` pass, and `task eval` completes one
+  canonical adjudication without generated source drift;
+- the canonical adjudication is classified as `ACCEPTED`, `REJECTED`, or `INVALID / ABORTED`
+  without modifying any frozen gate. Product MVP completion still requires `ACCEPTED`.
 
 ---
 
@@ -460,7 +462,15 @@ Codex must update this section as milestones complete.
 [x] M12 targeted false-acceptance remediation — complete and frozen via PR #16
 [x] M8 targeted deterministic-readiness remediation — complete and frozen via PR #17
 [x] M8 targeted time-range admission remediation — complete and frozen via PR #18
-[ ] M15 Trace + Golden Dataset eval — resumed final acceptance / Draft PR #15
+[ ] M15 Evaluation Infrastructure — IMPLEMENTED / final substantive review pending in Draft PR #15
+[x] M15 Canonical Evaluation — COMPLETE / behavioral verdict REJECTED
+```
+
+```text
+Architecture / Harness Baseline   VALIDATED
+Product NL2SQL MVP                NOT ACCEPTED
+Further behavioral remediation   NOT AUTHORIZED
+MVP release / tag                 NOT AUTHORIZED
 ```
 
 M12 targeted-remediation activation (2026-08-27): M14 is squash-merged at
@@ -1238,10 +1248,23 @@ canonical report binds EvaluationEnvironment
 This valid behavioral FAIL leaves M15 incomplete, PR #15 Draft, and the MVP unaccepted. It does not
 authorize remediation, another canonical run, Ready-for-Review, merge, release, or tag.
 
-M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
-APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
-focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag
-are terminal closure evidence; no post-merge closure-only PR is required.
+M15 final adjudication semantics (2026-08-29): D-035 separates completion of acceptance from
+acceptance of the Product NL2SQL MVP. A complete canonical run whose frozen gates all pass is
+`ACCEPTED`; a complete run with any failed frozen gate is `REJECTED`; an attempt that cannot
+produce a complete canonical report is `INVALID / ABORTED`. The earlier MySQL/trace timeout is
+`INVALID / ABORTED`. The final 59/59 report is `REJECTED`. This classification changes no
+threshold and does not convert behavioral FAIL into PASS. M15 evaluation infrastructure is
+implemented and awaits final substantive review; canonical evaluation is complete; the
+Architecture/Harness baseline is validated by the zero architecture/control-flow failures and
+fully green deterministic authority gates. The Product NL2SQL MVP remains `NOT ACCEPTED`, further
+behavioral remediation is not authorized, and no release/tag may be created.
+
+M15 evaluation-infrastructure closure rule: this deliverable becomes COMPLETE only when final
+substantive review is APPROVED, remote `Delivery / Quality` is PASS, a complete canonical
+adjudication exists, and the focused protected-main PR is squash-merged. That adjudication may be
+`ACCEPTED` or `REJECTED`; only `ACCEPTED` authorizes Product MVP completion and release/tag. An
+`INVALID / ABORTED` attempt cannot close the evaluation deliverable. The immutable merge SHA is
+infrastructure closure evidence; no post-merge closure-only PR is required.
 
 ## 6. Decision log
 
@@ -1614,6 +1637,21 @@ zero dialogue-store mutation on rejection.
 Consequences: Scalar SET remains a proposal rather than proof of resolution. No public M8
 contract, prompt, clarification-targeting rule, M9–M15 behavior, Golden/Oracle asset, model/runtime
 bound, or acceptance threshold changes.
+
+2026-08-29 — M15 final acceptance adjudication states
+Decision: A complete canonical acceptance attempt terminates as `ACCEPTED` when every frozen gate
+passes or `REJECTED` when any frozen gate fails. An attempt without a complete canonical report is
+`INVALID / ABORTED`. Review and closure of the evaluation infrastructure are separate from the
+bound model's product verdict.
+Evidence: The earlier MySQL/trace timeout wrote no complete report and is `INVALID / ABORTED`.
+The final run at `431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec` completed 59/59 and bound
+EvaluationEnvironment `c711d8bc5d7d25d0dddde7536e4ee8f17a6f4f8678a6e616893d85f7942fc607`;
+its frozen behavioral gates failed while every deterministic safety and epistemic-integrity hard
+gate passed, so it is `REJECTED`.
+Consequences: M15 evaluation infrastructure may proceed to substantive review without claiming
+product acceptance. Thresholds and truth sources remain frozen. Product MVP completion and
+release/tag remain unauthorized unless a future separately authorized canonical result is
+`ACCEPTED`.
 
 ## 7. Deviation rule
 

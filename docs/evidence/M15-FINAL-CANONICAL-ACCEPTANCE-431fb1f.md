@@ -6,6 +6,10 @@ The one authorized environmental rerun completed all 59 Golden cases and wrote a
 report. The earlier MySQL/trace abort did not recur, including at the previously interrupted case.
 This is therefore a valid behavioral acceptance result, not another infrastructure abort.
 
+The canonical adjudication is **REJECTED**. This means the acceptance process completed and the
+Product NL2SQL MVP did not pass; it does not rename behavioral failure as success. Separately, the
+M15 evaluation infrastructure is implemented and may enter final substantive review.
+
 ```text
 source Git head                 431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec
 EvaluationEnvironment          c711d8bc5d7d25d0dddde7536e4ee8f17a6f4f8678a6e616893d85f7942fc607
@@ -102,11 +106,17 @@ partition rather than altering the attribution schema after observing the run.
 
 ```text
 previous environmental abort       did not recur
-M15 Behavioral Acceptance          FAIL
-M15 Final Substantive Review        PENDING SUBSTANTIVE DECISION
+earlier MySQL timeout adjudication  INVALID / ABORTED
+final canonical adjudication       REJECTED
+M15 Evaluation Infrastructure      IMPLEMENTED / REVIEW PENDING
+M15 Canonical Evaluation           COMPLETE
+M15 Behavioral Verdict              REJECTED
+Architecture / Harness Baseline     VALIDATED
+Product NL2SQL MVP                  NOT ACCEPTED
+M15 Final Substantive Review        PENDING
 PR #15                              DRAFT
-MVP Baseline                        NOT ACCEPTED
 Remediation                         NOT AUTHORIZED / NOT PERFORMED
+MVP release / tag                   NOT AUTHORIZED
 ```
 
 This publication records the observed result only. It does not authorize another canonical rerun,

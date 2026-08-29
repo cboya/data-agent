@@ -358,6 +358,21 @@ unnecessary clarification rate `<= 0.10`, while preserving all prior stage targe
 Recall@5/Recall@10. `evals/reports/latest.json` includes case stage, Run IDs, trace assertion
 failures, stage reports, and the canonical `EvaluationEnvironment` fingerprint.
 
+Final acceptance is an adjudication process. Its terminal outcome is classified without changing
+any gate:
+
+| Outcome | Meaning |
+|---|---|
+| `ACCEPTED` | A complete canonical report exists and every frozen hard, stage, and behavioral gate passes. |
+| `REJECTED` | A complete canonical report exists, but one or more frozen acceptance gates fail. |
+| `INVALID / ABORTED` | A complete canonical adjudication could not be produced, for example because the environment or run terminated early. |
+
+`REJECTED` means the acceptance process completed and the product did not pass; it must never be
+reported as behavioral success. `INVALID / ABORTED` does not adjudicate product behavior and must
+not treat a stale report as evidence for the interrupted attempt. M15 evaluation-infrastructure
+correctness may be reviewed independently, but Product NL2SQL MVP completion and release/tag
+require `ACCEPTED` under the unchanged targets above.
+
 The frozen model-neutral profile contains 59 cases: 55 Oracle-backed results over 54 distinct
 semantic/result Oracles, plus four safe terminal failures. Category coverage is 15 simple, 22
 aggregation/time, 11 relationship/trap, four multi-turn clarification/correction, three

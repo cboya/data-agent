@@ -616,3 +616,39 @@ control-plane authority to an unconstrained free-form value.
 natural-language temporal parser. Canonical and exactly bounded existing representations continue
 to compose with M9, while vague values fail before state mutation. M9–M15 behavior, Golden/Oracle
 truth, model/resource settings, and acceptance thresholds remain frozen.
+
+---
+
+## D-035 — Final acceptance completion is distinct from product acceptance
+
+**Decision:** Treat final acceptance as an adjudication process with exactly three terminal
+outcomes:
+
+```text
+ACCEPTED
+    a complete canonical run exists and every frozen acceptance gate passes
+
+REJECTED
+    a complete canonical run exists and one or more frozen acceptance gates fail
+
+INVALID / ABORTED
+    no complete canonical adjudication can be produced
+```
+
+Completion and substantive correctness of the M15 trace/evaluation infrastructure are reviewed
+independently of whether the bound model earns `ACCEPTED`. A `REJECTED` adjudication is a valid
+completed evaluation result, never a behavioral pass. The Product NL2SQL MVP and its release/tag
+remain unauthorized unless the canonical adjudication is `ACCEPTED`.
+
+**Reason:** The final frozen-environment run completed all 59 cases with a fully bound report and
+correctly rejected the current product behavior: E2E `10/59`, result Oracle `6/55`, while trace
+integrity was `1.000` and every deterministic safety/epistemic-integrity violation count remained
+zero. Requiring a passing product score before the evaluation infrastructure can close would make
+an acceptance system incomplete precisely when it successfully proves the candidate unfit for
+release.
+
+**Consequences:** The earlier MySQL/trace timeout attempt is `INVALID / ABORTED`; the complete
+59-case run is `REJECTED`. No Golden case, Oracle, threshold, model, prompt, policy, timeout, or
+token bound changes. M15 evaluation infrastructure may be substantively approved and merged after
+its own correctness gate while the behavioral verdict remains `REJECTED`, the Product NL2SQL MVP
+remains `NOT ACCEPTED`, and no MVP release/tag is created.
