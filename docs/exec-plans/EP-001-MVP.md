@@ -1224,6 +1224,20 @@ acceptance now proceeds through deterministic integration sanity, the exact six-
 control-plane smoke, and then the canonical clean `reset → bootstrap → quality → eval` sequence
 without reopening an upstream milestone.
 
+M15 canonical environmental-rerun result (2026-08-29): one authorized clean rerun at exact Draft
+PR #15 head `431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec` completed all 59 cases; the previous
+MySQL/trace interruption did not recur. `task reset`, `task bootstrap`, and `task quality` passed
+(`493 passed / 7 skipped`), while the complete `task eval` failed the unchanged behavioral gates:
+E2E `10/59` (`0.1695`) and result Oracle `6/55` (`0.1091`). Trace integrity remained `1.000`,
+unnecessary clarification `0.000`, and unauthorized execution, failed-verification synthesis,
+numeric-grounding violations, repair-bound violations, and verified/Oracle mismatches all remained
+zero. Dialogue was the only failing standalone stage; all other standalone stages passed. The
+canonical report binds EvaluationEnvironment
+`c711d8bc5d7d25d0dddde7536e4ee8f17a6f4f8678a6e616893d85f7942fc607` and is frozen in
+`docs/evidence/M15-FINAL-CANONICAL-ACCEPTANCE-431fb1f.json` plus its human-readable companion.
+This valid behavioral FAIL leaves M15 incomplete, PR #15 Draft, and the MVP unaccepted. It does not
+authorize remediation, another canonical run, Ready-for-Review, merge, release, or tag.
+
 M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
 APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
 focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag
