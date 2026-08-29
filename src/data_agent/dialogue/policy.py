@@ -2,7 +2,9 @@
 
 from __future__ import annotations
 
+import re
 from dataclasses import dataclass
+from datetime import UTC, date, datetime, time
 from enum import StrEnum
 
 from data_agent.contracts.dialogue import (
@@ -18,6 +20,7 @@ from data_agent.contracts.requirement import (
     RequirementState,
     RequirementStatus,
     ResolutionStatus,
+    TimeRange,
 )
 from data_agent.dialogue.errors import DialoguePolicyError
 
@@ -48,6 +51,61 @@ class BlockingReasonCode(StrEnum):
     STALE_BLOCKER = "STALE_BLOCKER"
     NON_MATERIAL = "NON_MATERIAL"
     INSUFFICIENT_EVIDENCE = "INSUFFICIENT_EVIDENCE"
+
+
+class TimeRangeAdmissionReasonCode(StrEnum):
+    NOT_OPERATIONALLY_CONCRETE = "TIME_RANGE_NOT_OPERATIONALLY_CONCRETE"
+
+
+TIME_RANGE_ADMISSION_POLICY_VERSION = "time-range-admission-policy-v0.1"
+
+_CANONICAL_RELATIVE_RANGE = re.compile(r"last_[1-9][0-9]*_(?:days|months)")
+_CANONICAL_RELATIVE_LITERALS = frozenset({"all_time", "yesterday"})
+
+
+def _parse_exact_endpoint(value: str) -> datetime | None:
+    try:
+        if "T" not in value:
+            parsed_date = date.fromisoformat(value)
+            return datetime.combine(parsed_date, time.min, tzinfo=UTC)
+        parsed_datetime = datetime.fromisoformat(value.replace("Z", "+00:00"))
+    except ValueError:
+        return None
+    if parsed_datetime.tzinfo is None or parsed_datetime.utcoffset() is None:
+        return None
+    return parsed_datetime.astimezone(UTC)
+
+
+def _parse_exact_interval(value: str) -> tuple[datetime, datetime] | None:
+    if value.count("/") == 1:
+        start_value, end_value = value.split("/", maxsplit=1)
+    elif value.count(" to ") == 1:
+        start_value, end_value = value.split(" to ", maxsplit=1)
+    else:
+        return None
+    start = _parse_exact_endpoint(start_value)
+    end = _parse_exact_endpoint(end_value)
+    if start is None or end is None or end < start:
+        return None
+    return start, end
+
+
+class TimeRangeAdmissionPolicy:
+    """Admit only already-supported operational time representations."""
+
+    def admits(self, value: TimeRange) -> bool:
+        if value.start is not None or value.end is not None:
+            return value.start is not None and value.end is not None
+
+        normalized = str(value.value)
+        if _parse_exact_interval(normalized) is not None:
+            return True
+        if value.kind != "RELATIVE":
+            return False
+        return bool(
+            _CANONICAL_RELATIVE_RANGE.fullmatch(normalized)
+            or normalized in _CANONICAL_RELATIVE_LITERALS
+        )
 
 
 @dataclass(frozen=True)

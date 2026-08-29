@@ -92,6 +92,12 @@ ASK requires at least one surviving proven blocker. Exact question-to-blocker bi
 clarification-wording optimization are deferred behavioral work and do not expand the MVP wire or
 public contracts.
 
+A provider `time_range SET` is also only evidence. Before provisional merge, internal
+`time-range-admission-policy-v0.1` requires an already-supported canonical relative value, an exact
+bounded date/datetime interval, or explicit validated bounds. Free-form relative language such as
+`recent` is not operational evidence and fails typed with no decision or persistence. The Harness
+does not parse that phrase, choose a window, or alter the provider prompt.
+
 ---
 
 ## 3. Interaction B — Retrieval query formulation
