@@ -577,6 +577,11 @@ successful refunds `110.00`, and retrieval index
 461 tests with 7 explicit host-only skips. No 30B inference or 59-case M15 eval ran, and Draft PR
 #15 remained unchanged at `0438bc35f599984d34d5c801289e9fe551d9f092`.
 
+M8 time-range-admission delivery evidence (2026-08-29): focused PR #18 is open at implementation
+commit `2be082a81e29aa8809bf5026ebe02dce03ac7c46`; requested reviewer is `cboya`. Remote
+`Delivery / Quality` passed in workflow run `33246939668`. The PR remains unmerged for substantive
+review, this targeted M8 remediation is not complete, and Draft PR #15 remains untouched.
+
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
 focused M2 suite 50 passed; complete `task quality` 57 passed; remote `Delivery / Quality` passed;
