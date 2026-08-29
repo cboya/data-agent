@@ -166,13 +166,42 @@ def _trace_gate_counts(events: tuple[TraceEvent, ...]) -> tuple[int, int, int]:
     return unauthorized, failed_verification_synthesis, repair_bound
 
 
+def _verified_oracle_mismatch(
+    *,
+    oracle_passed: bool | None,
+    events: tuple[TraceEvent, ...],
+) -> int:
+    if oracle_passed is not False:
+        return 0
+    final_synthesis = next(
+        (
+            event
+            for event in reversed(events)
+            if event.event_type is TraceEventType.SYNTHESIS_COMPLETED
+            and event.payload.get("outcome") == "SUCCEEDED"
+        ),
+        None,
+    )
+    if final_synthesis is None:
+        return 0
+    return int(
+        any(
+            event.event_type is TraceEventType.VERIFICATION_COMPLETED
+            and event.attempt == final_synthesis.attempt
+            and event.sequence < final_synthesis.sequence
+            and event.payload.get("outcome") == "PASSED"
+            for event in events
+        )
+    )
+
+
 def _run_case(
     *,
     client: TestClient,
     settings: Settings,
     case: GoldenCase,
     oracles: OracleSuite,
-) -> tuple[GoldenCaseResult, int, int, int, int, int]:
+) -> tuple[GoldenCaseResult, int, int, int, int, int, int]:
     errors: list[str] = []
     response_types: list[str] = []
     run_ids: list[str] = []
@@ -190,17 +219,21 @@ def _run_case(
         raise RuntimeError(f"public session creation failed: {created.status_code}")
     session_id = str(created.json()["id"])
     final_payload: dict[str, Any] = {}
+    final_events: tuple[TraceEvent, ...] = ()
     for turn_number, turn in enumerate(case.turns, start=1):
         response = client.post(
             f"/sessions/{session_id}/messages",
             json={"content": turn.content},
         )
         if response.status_code != 200:
+            final_payload = {}
+            final_events = ()
             errors.append(f"turn {turn_number}: HTTP {response.status_code}")
             trace_passed = False
             continue
         payload = cast(dict[str, Any], response.json())
         final_payload = payload
+        final_events = ()
         actual_type = str(payload.get("type"))
         response_types.append(actual_type)
         if actual_type != turn.expected_type:
@@ -227,6 +260,7 @@ def _run_case(
             )
             continue
         trace_passed = trace_passed and valid
+        final_events = events
         errors.extend(f"turn {turn_number}: {value}" for value in trace_errors)
         run_statuses.append(run.status.value)
         run_error_codes.append(run.error_code)
@@ -247,6 +281,7 @@ def _run_case(
         errors.append("exactly one bounded repair was required for this case")
 
     oracle_passed: bool | None = None
+    verified_oracle_mismatch = 0
     observed_tables: tuple[str, ...] = ()
     observed_columns: tuple[str, ...] = ()
     if case.turns[-1].expected_type == "result" and final_payload.get("type") == "result":
@@ -271,6 +306,10 @@ def _run_case(
         )
         if not oracle_passed:
             errors.append("public result did not match the trusted result Oracle")
+        verified_oracle_mismatch = _verified_oracle_mismatch(
+            oracle_passed=oracle_passed,
+            events=final_events,
+        )
     elif case.turns[-1].expected_type == "result":
         oracle_passed = False
         errors.append("result Oracle was not reached")
@@ -312,6 +351,21 @@ def _run_case(
         repair_bound,
         unexpected_clarifications,
         numeric_violations,
+        verified_oracle_mismatch,
+    )
+
+
+def _passes_golden_gates(metrics: GoldenMetrics) -> bool:
+    return (
+        metrics.trace_integrity_rate == 1.0
+        and metrics.unauthorized_execution_count == 0
+        and metrics.failed_verification_synthesis_count == 0
+        and metrics.numeric_grounding_violation_count == 0
+        and metrics.repair_bound_violation_count == 0
+        and metrics.verified_oracle_mismatch_count == 0
+        and metrics.e2e_pass_rate >= 0.90
+        and metrics.result_oracle_pass_rate >= 0.90
+        and metrics.unnecessary_clarification_rate <= 0.10
     )
 
 
@@ -326,6 +380,7 @@ def run_golden(
     results: list[GoldenCaseResult] = []
     unauthorized = failed_synthesis = repair_bound = unexpected_clarifications = 0
     numeric_violations = 0
+    verified_oracle_mismatches = 0
     for case in suite.cases:
         (
             result,
@@ -334,6 +389,7 @@ def run_golden(
             repair_count,
             clarification_count,
             numeric_count,
+            verified_oracle_mismatch_count,
         ) = _run_case(
             client=client,
             settings=settings,
@@ -346,6 +402,7 @@ def run_golden(
         repair_bound += repair_count
         unexpected_clarifications += clarification_count
         numeric_violations += numeric_count
+        verified_oracle_mismatches += verified_oracle_mismatch_count
         print(f"Golden {case.id}: {'PASS' if result.passed else 'FAIL'}")
 
     result_cases = [result for result in results if result.oracle_passed is not None]
@@ -362,17 +419,9 @@ def run_golden(
         failed_verification_synthesis_count=failed_synthesis,
         numeric_grounding_violation_count=numeric_violations,
         repair_bound_violation_count=repair_bound,
+        verified_oracle_mismatch_count=verified_oracle_mismatches,
     )
-    passed = (
-        metrics.trace_integrity_rate == 1.0
-        and metrics.unauthorized_execution_count == 0
-        and metrics.failed_verification_synthesis_count == 0
-        and metrics.numeric_grounding_violation_count == 0
-        and metrics.repair_bound_violation_count == 0
-        and metrics.e2e_pass_rate >= 0.90
-        and metrics.result_oracle_pass_rate >= 0.90
-        and metrics.unnecessary_clarification_rate <= 0.10
-    )
+    passed = _passes_golden_gates(metrics)
     return GoldenReport(
         environment=environment,
         metrics=metrics,

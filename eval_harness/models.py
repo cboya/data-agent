@@ -127,6 +127,7 @@ class GoldenMetrics(_EvalModel):
     failed_verification_synthesis_count: int = Field(ge=0)
     numeric_grounding_violation_count: int = Field(ge=0)
     repair_bound_violation_count: int = Field(ge=0)
+    verified_oracle_mismatch_count: int = Field(ge=0)
 
 
 class GoldenReport(_EvalModel):

@@ -348,6 +348,7 @@ would change result truth.
 Final hard gates are:
 
 - trace integrity and terminal completeness = `1.00`;
+- verified + Oracle mismatch count = `0`;
 - unauthorized execution count = `0`;
 - synthesis after failed verification count = `0`;
 - numeric grounding violation count = `0`;

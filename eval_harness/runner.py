@@ -133,7 +133,8 @@ def run_final_acceptance(settings: Settings) -> FinalAcceptanceReport:
         f"Golden E2E {'PASS' if golden.passed else 'FAIL'}: cases={metrics.case_count}, "
         f"e2e={metrics.e2e_pass_rate:.3f}, oracle={metrics.result_oracle_pass_rate:.3f}, "
         f"trace={metrics.trace_integrity_rate:.3f}, "
-        f"unnecessary_clarification={metrics.unnecessary_clarification_rate:.3f}"
+        f"unnecessary_clarification={metrics.unnecessary_clarification_rate:.3f}, "
+        f"verified_oracle_mismatch={metrics.verified_oracle_mismatch_count}"
     )
     for case in golden.cases:
         if case.passed:

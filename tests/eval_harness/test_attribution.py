@@ -94,6 +94,7 @@ def _source_report(
             failed_verification_synthesis_count=0,
             numeric_grounding_violation_count=0,
             repair_bound_violation_count=0,
+            verified_oracle_mismatch_count=0,
         ),
         cases=tuple(results),
         passed=True,

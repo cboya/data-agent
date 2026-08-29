@@ -462,7 +462,7 @@ Codex must update this section as milestones complete.
 [x] M12 targeted false-acceptance remediation — complete and frozen via PR #16
 [x] M8 targeted deterministic-readiness remediation — complete and frozen via PR #17
 [x] M8 targeted time-range admission remediation — complete and frozen via PR #18
-[ ] M15 Evaluation Infrastructure — IMPLEMENTED / final substantive review pending in Draft PR #15
+[ ] M15 Evaluation Infrastructure — IMPLEMENTED / final substantive re-review pending in Draft PR #15
 [x] M15 Canonical Evaluation — COMPLETE / behavioral verdict REJECTED
 ```
 
@@ -1258,6 +1258,22 @@ implemented and awaits final substantive review; canonical evaluation is complet
 Architecture/Harness baseline is validated by the zero architecture/control-flow failures and
 fully green deterministic authority gates. The Product NL2SQL MVP remains `NOT ACCEPTED`, further
 behavioral remediation is not authorized, and no release/tag may be created.
+
+M15 verified/Oracle canonical-gate remediation (2026-08-29): final substantive review found one
+evaluation-infrastructure omission: standalone M12 and the checked-in canonical evidence reported
+`verified_oracle_mismatch_count=0`, but `GoldenMetrics` and the canonical `GoldenReport.passed`
+predicate did not mechanically require it. The evaluator now counts a mismatch only when the
+final public result disagrees with its trusted Oracle and persisted trace proves a
+`VERIFICATION_COMPLETED/PASSED` event on the same attempt before the successful final synthesis
+branch. `GoldenReport.passed` requires the aggregate count to be exactly zero,
+independently of the probabilistic E2E and Oracle-rate thresholds, and the human-readable runner
+summary exposes the count. A persisted attempt-1 PASSED-verification/Oracle-failure regression,
+an otherwise-passing-rate verdict regression, and a complete `run_golden` aggregation regression
+freeze the invariant. Focused evaluator/CLI/acceptance-boundary coverage passes 28 tests; complete
+`task quality` passes 496 tests with 7 explicit host-only skips. No model call or 59-case rerun was
+performed. The prior canonical adjudication remains `REJECTED`, because its source evidence
+already proves the new exact count is zero and its unchanged behavioral rates fail independently.
+M15 evaluation infrastructure remains implemented and awaits re-review; PR #15 remains Draft.
 
 M15 evaluation-infrastructure closure rule: this deliverable becomes COMPLETE only when final
 substantive review is APPROVED, remote `Delivery / Quality` is PASS, a complete canonical
