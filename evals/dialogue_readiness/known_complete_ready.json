@@ -108,7 +108,6 @@
               "unresolved_replace": null,
               "version": "v0.2"
             },
-            "question_target": null,
             "resolution": {
               "action": "READY",
               "question": null,

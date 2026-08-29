@@ -64,7 +64,6 @@ def test_dialogue_wire_prompt_requires_structured_materiality_without_defaults()
     assert "time_range and grain are optional analytical scope" in DIALOGUE_SYSTEM_PROMPT
     assert "at least two distinct, concrete options" in DIALOGUE_SYSTEM_PROMPT
     assert "resolved_name=null, and status=UNRESOLVED" in DIALOGUE_SYSTEM_PROMPT
-    assert "question_target" in DIALOGUE_SYSTEM_PROMPT
 
 
 def test_context_fails_instead_of_silently_truncating_latest_message() -> None:
@@ -96,14 +95,6 @@ def _proposal(
         {
             "version": "v0.1",
             "patch": patch_payload,
-            "question_target": (
-                {
-                    "field": unresolved[0]["field"],
-                    "subject_term": unresolved[0]["subject_term"],
-                }
-                if action == "ASK_CLARIFICATION" and unresolved
-                else None
-            ),
             "resolution": {
                 "action": action,
                 "unresolved_replace": unresolved,
@@ -200,7 +191,7 @@ def test_resolved_collection_sibling_survives_bounded_clarification_turns() -> N
     assert [
         item["resolved_name"] for item in second_context["current_requirement_state"]["metrics"]
     ] == ["paid_amount"]
-    assert model.calls[0][1].__name__ == "DialogueProposalV021"
+    assert model.calls[0][1] is DialogueProposal
 
 
 def test_policy_accepts_clarification_only_for_blocking_ambiguity() -> None:

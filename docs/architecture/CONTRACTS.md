@@ -275,15 +275,14 @@ blocking. Only proven blockers suppress their attributable mutation and cross th
 Collection removes that cannot be safely attributed and a filter replacement paired with a proven
 filter blocker fail closed instead of silently dropping facts.
 
-The live `dialogue-understanding-v0.21` boundary uses a narrower `DialogueProposalV021` validator.
-Every blocker must carry at least two distinct options; a metric/dimension blocker must also carry
-exactly one matching unresolved collection item. Legacy v0.20 diagnosis proposals remain readable
-only by the provider-free regression path. If their structured evidence cannot prove either a
-blocking or nonblocking outcome, resolution raises typed `InvalidProviderEvidenceError` and emits
-no `DialogueDecision`; insufficient evidence never certifies READY. An ASK proposal also carries a
-provider-only `question_target` (`field` + `subject_term`). The Harness may reuse the question only
-when that exact candidate survives deterministic classification as blocking; otherwise it fails
-closed. Neither wire field crosses into public `DialogueDecision v0.1` or `RequirementState v0.1`.
+Prompt `dialogue-understanding-v0.21` asks the provider for the structured alternatives and
+unresolved collection evidence needed by deterministic policy, but does not create a second
+semantic authority or a specialized proof protocol. If the submitted evidence proves neither a
+blocking nor a nonblocking outcome, resolution raises typed `InvalidProviderEvidenceError` and
+emits no `DialogueDecision`; insufficient evidence never certifies READY. An ASK outcome requires
+at least one Harness-proven blocker. Clarification wording and exact question-to-blocker targeting
+remain behavioral concerns outside this MVP control-plane gate. Public `DialogueDecision v0.1`
+and `RequirementState v0.1` remain unchanged.
 
 ---
 

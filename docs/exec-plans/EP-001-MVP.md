@@ -513,34 +513,36 @@ PR #17 is open for substantive M8 review at implementation head
 `33093127780`. The remediation is not authorized for merge, M8 remains open pending substantive
 review, and Draft PR #15 remains paused and untouched.
 
-M8 targeted-readiness substantive remediation (2026-08-28): exact PR #17 review accepted the
-provisional-state authority inversion but found two fail-closed gaps. A legacy provider proposal
-could claim metric blockers without options or matching unresolved facts and fall through to an
-empty READY state; an ASK question could also remain bound only to the original candidate set after
-its intended blocker was removed by policy. Live `DialogueProposalV021` now mechanically requires
-distinct options, exactly matching unresolved metric/dimension evidence, and a provider-only
-`question_target`. Deterministic policy classifies unprovable metric/dimension candidates as
-`INVALID_CANDIDATE / INSUFFICIENT_EVIDENCE`; final resolution emits no decision for invalid
-evidence or for a question target that is not a surviving blocker. Three legacy proposals
-(`simple-paid-users`, `join-units-order`, and `join-units-attempts-order`) that cannot establish an
-exact resolved or unresolved subject identity are now typed invalid-evidence regressions. A
-separate complete proposal for the empty-state case proves READY preserves `order_id`,
-`unit_sales`, and `payment_attempt_count`.
-The expanded provider-free suite has 40 cases / 41 turns, fingerprint
-`0158baec9d8ca89d81334c86a37d51ba8253d495e4bd9f32ccc8dc2b1ed90c70`, unnecessary clarification
-`0`, necessary recall `1.000`, true-ambiguity false READY `0`, three expected insufficient-evidence
-cases, insufficient-evidence false READY `0`, and action/state/reason/scope/fact accuracy each
-`1.000`. A mixed-blocker regression rejects a
-question targeting a reclassified scalar and accepts the same proposal only after targeting the
-surviving metric blocker. Public M8 contracts and M9–M15 remain unchanged. The two-blocker focused
-set passes 12 tests and the complete M8 contracts/dialogue/persistence/conversation set passes 64.
-Clean isolated `task bootstrap`
+M8 targeted-readiness substantive remediation (2026-08-29): exact PR #17 review accepted the
+provisional-state authority inversion and ultimately retained one narrow control-plane blocker: a
+provider candidate whose structured evidence proves neither blocking nor safely nonblocking must
+never authorize READY. Deterministic policy classifies such candidates as
+`INVALID_CANDIDATE / INSUFFICIENT_EVIDENCE`; final resolution emits no public decision and does not
+persist state. This is intentionally a simple UNKNOWN-to-failure rule, not a general semantic-proof
+protocol. Three exact legacy proposals (`simple-paid-users`, `join-units-order`, and
+`join-units-attempts-order`) that cannot establish an exact resolved or unresolved subject identity
+remain typed invalid-evidence regressions. The last case explicitly proves that the Harness neither
+declares an empty state READY nor invents `order_id`, `unit_sales`, or `payment_attempt_count`. A
+separate structurally complete proposal proves those requested facts are preserved when READY is
+legitimate.
+
+The final provider-free suite remains 40 cases / 41 turns with fingerprint
+`f90759d7b0ce41e99425a2d1fb7c053803f4482910f6208dbd5d40f72187c194`: unnecessary clarification
+`0`, necessary clarification recall `1.000`, true-ambiguity false READY `0`, three expected
+insufficient-evidence cases, insufficient-evidence false READY `0`, and action/state/reason/scope/
+fact accuracy each `1.000`. The narrow policy/eval set passes 8 tests and the complete M8
+contracts/dialogue/persistence/conversation set passes 60. Clean isolated `task bootstrap`
 reproduces ten tables, ten orders, paid amount `1545.00`, successful refunds `110.00`, and retrieval
-index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`; `task quality` passes
-461 tests with 7 explicit host-only skips. PR #17 remediation head
-`8df6eb9f8c561f3647e396fcb3a665d1cfc249d3` passes remote `Delivery / Quality` in workflow run
-`33130421475`. No 30B replay or full M15 suite was run. M8 remains open pending focused
-substantive re-review; merge is not authorized and Draft PR #15 remains paused.
+index `f9da78a01e6d030185c4510ba394b860e0d79bd39c06ea625b95599aed76b9e4`; `task quality` passes
+457 tests with 7 explicit host-only skips.
+
+The earlier question-to-surviving-blocker protocol and dedicated `DialogueProposalV021` validator
+were removed after review reclassified them as dialogue-quality optimization beyond the MVP
+control-plane boundary. ASK still requires at least one Harness-proven blocker; exact question
+targeting and wording remain deferred unless later end-to-end convergence evidence justifies
+reopening them. Public M8 contracts and M9–M15 remain unchanged. No 30B replay or full M15 suite is
+authorized for this remediation. M8 remains open pending focused substantive re-review; merge is
+not authorized and Draft PR #15 remains paused.
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
@@ -1379,23 +1381,22 @@ state/scope preservation `1.000`.
 Consequences: Model explanation prose and M15 expected answers are not readiness inputs. No default
 time/grain is injected, no resolved sibling is erased, and M9–M15 behavior/thresholds remain frozen.
 
-2026-08-28 — M8 v0.21 evidence and clarification-target fail-closed amendment
-Decision: Retain legacy `DialogueProposal v0.1` only for provider-free diagnosis replay and use
-`DialogueProposalV021` at the live model boundary. Require two distinct options for every blocker,
-one exact unresolved patch item for each metric/dimension blocker, and nullable provider-only
-`question_target`. Treat metric/dimension evidence proving neither blocking nor nonblocking as
-typed invalid provider evidence. Reuse an ASK question only when its target identity survives
-policy classification as blocking.
+2026-08-29 — M8 insufficient-evidence fail-closed amendment
+Decision: Keep the live boundary on `DialogueProposal v0.1` and let
+`blocking-ambiguity-policy-v0.1` evaluate provider evidence after provisional merge. Evidence that
+proves neither blocking nor nonblocking is typed invalid provider evidence and produces no public
+decision. UNKNOWN must never authorize READY. Do not add a dedicated v0.21 proof validator or a
+question-target protocol; ASK only requires at least one Harness-proven blocker.
 Evidence: Exact patch review found `join-units-attempts-order` reached READY with empty metric and
 dimension state because two optionless provider blockers were classified nonmaterial. Applying the
 same fail-closed rule mechanically also identifies `simple-paid-users` and `join-units-order` as
-legacy proposals without an exact resolved/unresolved subject match. The review also proved a
-question for a removed blocker could be emitted while a different blocker survived. The 40-case /
-41-turn provider-free suite now freezes all three malformed-evidence outcomes, a complete READY
-counterpart, and both sides of mixed-blocker question authorization.
-Consequences: Insufficient structured evidence and invalid question attribution produce no public
-decision, no state persistence, and no model retry. Public M8 contracts, M6 semantic authority,
-and M9–M15 behavior remain unchanged.
+legacy proposals without an exact resolved/unresolved subject match. The provider-free suite
+freezes all three invalid outcomes and a complete READY counterpart that preserves every requested
+fact.
+Consequences: Insufficient structured evidence produces no public decision, no state persistence,
+and no model retry. Question-to-surviving-blocker binding, perfect ambiguity semantics, and further
+prompt optimization are deferred behavioral refinements. Public M8 contracts, M6 semantic
+authority, and M9–M15 behavior remain unchanged.
 
 ## 7. Deviation rule
 

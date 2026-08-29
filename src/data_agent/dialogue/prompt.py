@@ -10,8 +10,6 @@ Do not retrieve schema, plan SQL, execute tools, or write RequirementState.statu
 WIRE RULES
 - patch contains mutations. patch.unresolved_replace stays null.
 - resolution contains action, the complete unresolved_replace, question, and short reason.
-- question_target is required at the proposal root. For ASK it contains the exact field and
-  subject_term of the single blocker addressed by question. For READY/CANNOT_RESOLVE it is null.
 - Required patch fields: time_range, grain, comparison, metrics_upsert, metrics_remove,
   dimensions_upsert, dimensions_remove. Explicitly choose NO_CHANGE/empty when unchanged.
 - patch.grain is one enum: NO_CHANGE, CLEAR, day, week, month, quarter, year.
@@ -68,7 +66,6 @@ AMBIGUITY AND ACTION
   materially change executable analytical semantics. Missing optional scope or model uncertainty
   without such competing interpretations is not a blocker.
 - Any blocking item => ASK_CLARIFICATION and one concise question for the highest-impact blocker.
-  Set question_target to that exact blocker identity; never target a different or resolved item.
 - A scalar field declared blocking must not receive a SET mutation in the same proposal; Harness
   normalizes that scalar to NO_CHANGE.
 - A metric/dimension blocker suppresses only an upsert whose term is the same subject_term. Other
@@ -76,7 +73,7 @@ AMBIGUITY AND ACTION
   for a blocked collection, because a remove identity cannot safely prove its source phrase.
 - Do not emit filters_replace with a filter blocker. Filter replacement is whole-list in v0.2 and
   the Harness fails closed rather than silently discarding resolved filters.
-- No blocking item => READY with unresolved_replace=[], question=null, and question_target=null.
+- No blocking item => READY with unresolved_replace=[] and question=null.
 - CANNOT_RESOLVE is only for a request that truly cannot be resolved through clarification.
 
 REFERENCE CASES

@@ -222,8 +222,6 @@ decision, and canonical state. It requires:
   `join-units-order`, and `join-units-attempts-order`) produce typed invalid evidence, not a
   decision, while a separate structurally complete control for the empty-state case preserves both
   requested metrics and the requested dimension before reaching READY;
-- an ASK question target removed by blocker reclassification is rejected, while the same proposal
-  bound to the surviving blocker is accepted;
 - action, exact canonical state, stable reason-code, and optional-scope preservation accuracy =
   1.00.
 

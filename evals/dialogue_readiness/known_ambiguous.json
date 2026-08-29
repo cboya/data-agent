@@ -53,10 +53,6 @@
           },
           "latest_user_message": "sales",
           "provider_proposal": {
-            "question_target": {
-              "field": "metric",
-              "subject_term": "sales"
-            },
             "patch": {
               "assumptions_add": [],
               "comparison": "NO_CHANGE",
@@ -176,10 +172,6 @@
           },
           "latest_user_message": "Break down paid amount by location.",
           "provider_proposal": {
-            "question_target": {
-              "field": "dimension",
-              "subject_term": "location"
-            },
             "patch": {
               "assumptions_add": [],
               "comparison": "NO_CHANGE",
@@ -305,10 +297,6 @@
           },
           "latest_user_message": "Show paid amount recently.",
           "provider_proposal": {
-            "question_target": {
-              "field": "time_range",
-              "subject_term": "recently"
-            },
             "patch": {
               "assumptions_add": [],
               "comparison": "NO_CHANGE",
@@ -433,10 +421,6 @@
           },
           "latest_user_message": "Show the paid amount trend; grain is undecided.",
           "provider_proposal": {
-            "question_target": {
-              "field": "grain",
-              "subject_term": "grain is undecided"
-            },
             "patch": {
               "assumptions_add": [],
               "comparison": "NO_CHANGE",
