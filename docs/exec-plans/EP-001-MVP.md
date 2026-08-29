@@ -1,6 +1,6 @@
 # EP-001 — Conversational Data Agent MVP
 
-**Status:** Active — M15 evaluation infrastructure pending final substantive review; canonical behavioral verdict REJECTED
+**Status:** M15 evaluation infrastructure closure approved; canonical behavioral verdict REJECTED; Product NL2SQL MVP NOT ACCEPTED
 **Owner:** Codex implementation agent(s), human architecture review
 **Architecture baseline:** v0.1.0
 
@@ -462,7 +462,7 @@ Codex must update this section as milestones complete.
 [x] M12 targeted false-acceptance remediation — complete and frozen via PR #16
 [x] M8 targeted deterministic-readiness remediation — complete and frozen via PR #17
 [x] M8 targeted time-range admission remediation — complete and frozen via PR #18
-[ ] M15 Evaluation Infrastructure — IMPLEMENTED / final substantive re-review pending in Draft PR #15
+[x] M15 Evaluation Infrastructure — COMPLETE / FROZEN upon approved PR #15 squash merge
 [x] M15 Canonical Evaluation — COMPLETE / behavioral verdict REJECTED
 ```
 
@@ -1254,7 +1254,7 @@ acceptance of the Product NL2SQL MVP. A complete canonical run whose frozen gate
 produce a complete canonical report is `INVALID / ABORTED`. The earlier MySQL/trace timeout is
 `INVALID / ABORTED`. The final 59/59 report is `REJECTED`. This classification changes no
 threshold and does not convert behavioral FAIL into PASS. M15 evaluation infrastructure is
-implemented and awaits final substantive review; canonical evaluation is complete; the
+implemented and substantively approved; canonical evaluation is complete; the
 Architecture/Harness baseline is validated by the zero architecture/control-flow failures and
 fully green deterministic authority gates. The Product NL2SQL MVP remains `NOT ACCEPTED`, further
 behavioral remediation is not authorized, and no release/tag may be created.
@@ -1273,7 +1273,19 @@ freeze the invariant. Focused evaluator/CLI/acceptance-boundary coverage passes 
 `task quality` passes 496 tests with 7 explicit host-only skips. No model call or 59-case rerun was
 performed. The prior canonical adjudication remains `REJECTED`, because its source evidence
 already proves the new exact count is zero and its unchanged behavioral rates fail independently.
-M15 evaluation infrastructure remains implemented and awaits re-review; PR #15 remains Draft.
+M15 evaluation infrastructure remains implemented; the narrow final re-review is approved.
+
+M15 final substantive approval and closure staging (2026-08-29): PR #15 implementation head
+`ff8d13be6a5a22c8b77ac177986857a7fc5c7799` received final substantive APPROVE after the
+verified/Oracle exact-gate remediation. Focused evaluator/CLI/acceptance-boundary coverage passed
+28 tests; exact-head `task quality` passed 496 tests with 7 explicit host-only skips; remote
+`Delivery / Quality` passed in workflow `33258774857`. This closure-metadata-only commit changes no
+runtime/evaluator behavior, truth source, model, prompt, policy, threshold, timeout, or token bound.
+When the approved PR is squash-merged, M15 Evaluation Infrastructure is COMPLETE/FROZEN and the
+immutable merge commit in GitHub PR #15 is its terminal repository evidence. M15 Canonical
+Evaluation remains COMPLETE with verdict `REJECTED`; Architecture/Harness remains VALIDATED;
+Product NL2SQL MVP remains `NOT ACCEPTED`; behavioral remediation and MVP release/tag remain
+unauthorized.
 
 M15 evaluation-infrastructure closure rule: this deliverable becomes COMPLETE only when final
 substantive review is APPROVED, remote `Delivery / Quality` is PASS, a complete canonical

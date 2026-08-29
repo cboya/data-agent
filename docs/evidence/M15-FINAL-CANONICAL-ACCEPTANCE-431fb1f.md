@@ -8,7 +8,8 @@ This is therefore a valid behavioral acceptance result, not another infrastructu
 
 The canonical adjudication is **REJECTED**. This means the acceptance process completed and the
 Product NL2SQL MVP did not pass; it does not rename behavioral failure as success. Separately, the
-M15 evaluation infrastructure is implemented and may enter final substantive review.
+M15 evaluation infrastructure is implemented, substantively approved, and may close through the
+approved PR #15 squash merge.
 
 ```text
 source Git head                 431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec
@@ -108,16 +109,18 @@ partition rather than altering the attribution schema after observing the run.
 previous environmental abort       did not recur
 earlier MySQL timeout adjudication  INVALID / ABORTED
 final canonical adjudication       REJECTED
-M15 Evaluation Infrastructure      IMPLEMENTED / REVIEW PENDING
+M15 Evaluation Infrastructure      COMPLETE / FROZEN ON PR #15 MERGE
 M15 Canonical Evaluation           COMPLETE
 M15 Behavioral Verdict              REJECTED
 Architecture / Harness Baseline     VALIDATED
 Product NL2SQL MVP                  NOT ACCEPTED
-M15 Final Substantive Review        PENDING
-PR #15                              DRAFT
+M15 Final Substantive Review        APPROVED
+PR #15                              APPROVED FOR SQUASH MERGE
 Remediation                         NOT AUTHORIZED / NOT PERFORMED
 MVP release / tag                   NOT AUTHORIZED
 ```
 
-This publication records the observed result only. It does not authorize another canonical rerun,
-any M8–M15 behavior change, a remediation PR, Ready-for-Review transition, merge, release, or tag.
+This publication records the observed result and the separate infrastructure approval. It
+authorizes Ready/formal approval/squash merge of PR #15 only. It does not authorize another
+canonical rerun, any M8–M15 behavior change, behavioral remediation, Product MVP acceptance,
+release, or tag.

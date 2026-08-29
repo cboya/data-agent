@@ -319,17 +319,17 @@
     "previous_abort_classification": "NON_RECURRENT_ENVIRONMENTAL_ACCEPTANCE_ABORT",
     "earlier_mysql_timeout_adjudication": "INVALID_ABORTED",
     "canonical_adjudication": "REJECTED",
-    "m15_evaluation_infrastructure": "IMPLEMENTED_PENDING_SUBSTANTIVE_REVIEW",
+    "m15_evaluation_infrastructure": "COMPLETE_FROZEN_ON_PR15_MERGE",
     "m15_canonical_evaluation": "COMPLETE",
     "m15_behavioral_acceptance": "FAIL",
     "architecture_harness_baseline": "VALIDATED",
     "product_nl2sql_mvp": "NOT_ACCEPTED",
-    "m15_final_substantive_review": "PENDING",
-    "pr_15": "DRAFT",
+    "m15_final_substantive_review": "APPROVED",
+    "pr_15": "APPROVED_FOR_SQUASH_MERGE",
     "mvp_baseline": "NOT_ACCEPTED",
     "mvp_release_tag": "NOT_AUTHORIZED",
     "remediation_authorized": false,
     "remediation_performed": false,
-    "recommended_next_decision": "Perform final substantive review of PR #15 as an evaluation/control-plane deliverable. Do not rerun, remediate, mark Ready, merge, release, or tag before the corresponding explicit gate."
+    "recommended_next_decision": "Squash-merge approved PR #15 to close the evaluation infrastructure. Preserve the REJECTED product verdict and do not create an MVP release or tag."
   }
 }
