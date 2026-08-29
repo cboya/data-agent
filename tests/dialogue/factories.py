@@ -8,11 +8,42 @@ from typing import Any
 from pydantic import BaseModel
 
 from data_agent.contracts.dialogue import DialogueDecision, DialogueProposal
-from data_agent.contracts.requirement import RequirementState, RequirementStatus
+from data_agent.contracts.requirement import (
+    PatchOp,
+    RequirementPatch,
+    RequirementState,
+    RequirementStatus,
+    SetScalarPatch,
+    TimeRange,
+)
 
 
 def empty_requirement() -> RequirementState:
     return RequirementState(version="v0.1", status=RequirementStatus.INCOMPLETE)
+
+
+def ready_time_proposal(value: TimeRange) -> DialogueProposal:
+    patch = RequirementPatch(
+        version="v0.2",
+        time_range=SetScalarPatch(op=PatchOp.SET, value=value),
+    ).model_dump(mode="json")
+    patch.update(
+        grain="NO_CHANGE",
+        comparison="NO_CHANGE",
+        unresolved_replace=None,
+    )
+    return DialogueProposal.model_validate(
+        {
+            "version": "v0.1",
+            "patch": patch,
+            "resolution": {
+                "action": "READY",
+                "unresolved_replace": [],
+                "question": None,
+                "reason": "time range proposed as resolved",
+            },
+        }
+    )
 
 
 class FixedDialogueModel:

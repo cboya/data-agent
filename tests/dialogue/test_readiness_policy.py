@@ -3,12 +3,13 @@ from typing import cast
 import pytest
 
 from data_agent.contracts.dialogue import DialogueAction, DialogueProposal
-from data_agent.contracts.requirement import PatchOp
+from data_agent.contracts.requirement import PatchOp, RequirementStatus, TimeRange
 from data_agent.dialogue.errors import InvalidProviderEvidenceError
-from data_agent.dialogue.policy import BlockingReasonCode
+from data_agent.dialogue.policy import BlockingReasonCode, TimeRangeAdmissionReasonCode
 from data_agent.dialogue.readiness_evaluation import load_readiness_eval_suite
 from data_agent.dialogue.service import DialogueEngine
 from data_agent.model_runtime.ports import ChatModel
+from tests.dialogue.factories import empty_requirement, ready_time_proposal
 
 
 def _engine() -> DialogueEngine:
@@ -135,3 +136,42 @@ def test_structurally_complete_ready_control_preserves_every_requested_fact() ->
         "payment_attempt_count",
     ]
     assert [str(item.resolved_name) for item in outcome.requirement.dimensions] == ["order_id"]
+
+
+def test_vague_relative_time_set_cannot_authorize_ready() -> None:
+    with pytest.raises(InvalidProviderEvidenceError) as raised:
+        _engine().resolve_proposal(
+            requirement=empty_requirement(),
+            proposal=ready_time_proposal(TimeRange(kind="RELATIVE", value="recent")),
+            latest_user_message="Show recent paid amount",
+        )
+
+    assert raised.value.reason_codes == (
+        TimeRangeAdmissionReasonCode.NOT_OPERATIONALLY_CONCRETE.value,
+    )
+
+
+def test_canonical_relative_time_set_remains_admitted() -> None:
+    outcome = _engine().resolve_proposal(
+        requirement=empty_requirement(),
+        proposal=ready_time_proposal(TimeRange(kind="RELATIVE", value="last_30_days")),
+        latest_user_message="Show paid amount for the last 30 days",
+    )
+
+    assert outcome.decision.action is DialogueAction.READY
+    assert outcome.requirement.status is RequirementStatus.READY
+    assert outcome.requirement.time_range == TimeRange(kind="RELATIVE", value="last_30_days")
+
+
+def test_exact_bounded_date_interval_set_remains_admitted() -> None:
+    outcome = _engine().resolve_proposal(
+        requirement=empty_requirement(),
+        proposal=ready_time_proposal(TimeRange(kind="ABSOLUTE", value="2026-08-01 to 2026-08-31")),
+        latest_user_message="Show paid amount from 2026-08-01 to 2026-08-31",
+    )
+
+    assert outcome.decision.action is DialogueAction.READY
+    assert outcome.requirement.status is RequirementStatus.READY
+    assert outcome.requirement.time_range == TimeRange(
+        kind="ABSOLUTE", value="2026-08-01 to 2026-08-31"
+    )

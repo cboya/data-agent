@@ -525,3 +525,30 @@ provider evidence. The empty-state case that omitted every requested analytical 
 complete-READY control. The gate fixes insufficient-evidence false READY at zero. Clarification
 question targeting remains deferred unless later end-to-end evidence proves it prevents
 convergence.
+
+---
+
+## D-032 — Provider time-range mutation requires deterministic operational admission
+
+**Decision:** A provider `time_range SET` remains an untrusted proposal even after public
+`TimeRange v0.1` validation. Before provisional merge or blocker classification, internal
+`time-range-admission-policy-v0.1` admits only the already-supported operational forms: canonical
+relative values `last_<positive integer>_days`, `last_<positive integer>_months`, `yesterday`, or
+`all_time`; an existing exact bounded date/datetime interval encoded with `to` or `/`; or explicit
+validated `start` and `end` bounds. The policy does not rewrite the value or infer a default.
+
+Any other SET value, including vague free-form relative language such as `recent`, raises typed
+`InvalidProviderEvidenceError(TIME_RANGE_NOT_OPERATIONALLY_CONCRETE)`. It emits no public
+`DialogueDecision` and therefore cannot reach dialogue-turn persistence. Public
+`RequirementState v0.1`, `TimeRange v0.1`, `RequirementPatch v0.2`, the provider prompt, and
+clarification-question targeting remain unchanged.
+
+**Reason:** M15 live smoke observed the provider encode a genuinely ambiguous relative phrase as
+`TimeRange(kind=RELATIVE, value=recent)`. The old policy treated object existence as semantic
+resolution and authorized READY. Contract shape proves only structural validity; it cannot grant
+control-plane authority to an unconstrained free-form value.
+
+**Consequences:** The Harness closes this specific false-READY path without becoming a general
+natural-language temporal parser. Canonical and exactly bounded existing representations continue
+to compose with M9, while vague values fail before state mutation. M9–M15 behavior, Golden/Oracle
+truth, model/resource settings, and acceptance thresholds remain frozen.

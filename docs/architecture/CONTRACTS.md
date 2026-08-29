@@ -284,6 +284,14 @@ at least one Harness-proven blocker. Clarification wording and exact question-to
 remain behavioral concerns outside this MVP control-plane gate. Public `DialogueDecision v0.1`
 and `RequirementState v0.1` remain unchanged.
 
+Public validation of a provider `TimeRange` proves its shape, not semantic resolution. Internal
+`time-range-admission-policy-v0.1` must admit every provider `time_range SET` before provisional
+merge. It accepts the project's canonical relative values, its existing exact bounded
+date/datetime interval representation, or explicit validated `start` plus `end`; vague free-form
+relative values fail with typed invalid provider evidence. Rejection emits no public decision and
+cannot mutate durable state. The policy does not normalize vague text, inject a default, or change
+public `TimeRange v0.1`.
+
 ---
 
 ## 7. CatalogDocument
