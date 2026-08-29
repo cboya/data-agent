@@ -1177,6 +1177,18 @@ focused diagnosis/attribution suite passes 13 tests; complete host `task quality
 with seven explicit host-only skips after the sandbox-only MySQL denial was rerun with the required
 host socket access. The 30B model was unloaded after the bounded replay.
 
+M15 final-acceptance resume note (2026-08-29): protected `main` baseline
+`a937546cb2d0c032ffa8dd76a8a4fbeec0227c95` contains the completed/frozen M12 and M8 targeted
+remediations from PR #16 and PR #17. It was integrated into the existing Draft PR #15 lineage by
+merge commit `d74b323f67844a480b0ad7cff0b6c8556ebaa16a`; the prior attribution and diagnosis commits and
+all checked-in evidence artifacts remain intact. The only integration conflicts were append-only
+documentation collisions: M15 decisions retain D-030/D-031 and the later M12/M8 decisions are
+mechanically numbered D-032/D-033. Golden truth, Oracle truth, thresholds, bound model, timeout,
+output-token ceiling, prompts, and M8–M14 behavioral contracts remain frozen. Final acceptance now
+proceeds through deterministic integration sanity, a minimal bound-model dialogue wire smoke, and
+then the canonical clean `reset → bootstrap → quality → eval` sequence without reopening an
+upstream milestone.
+
 M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
 APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
 focused protected-main PR is squash-merged. The immutable merge SHA plus the project release/tag
