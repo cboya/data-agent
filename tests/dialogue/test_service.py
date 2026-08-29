@@ -2,9 +2,17 @@ import asyncio
 from dataclasses import dataclass
 from datetime import UTC, datetime
 
+import pytest
+
 from data_agent.contracts.dialogue import DialogueAction, DialogueDecision
-from data_agent.contracts.requirement import Ambiguity, RequirementPatch, RequirementStatus
+from data_agent.contracts.requirement import (
+    Ambiguity,
+    RequirementPatch,
+    RequirementStatus,
+    TimeRange,
+)
 from data_agent.contracts.session import Session, SessionStatus
+from data_agent.dialogue.errors import InvalidProviderEvidenceError
 from data_agent.dialogue.service import DialogueEngine, DialogueService
 from data_agent.persistence.ports import (
     DialogueTurnSnapshot,
@@ -12,7 +20,12 @@ from data_agent.persistence.ports import (
     StoredMessage,
     StoredSession,
 )
-from tests.dialogue.factories import FixedDialogueModel, empty_requirement
+from tests.dialogue.factories import (
+    FixedDialogueModel,
+    FixedProposalModel,
+    empty_requirement,
+    ready_time_proposal,
+)
 
 NOW = datetime(2026, 8, 25, 16, 0, tzinfo=UTC)
 
@@ -102,3 +115,37 @@ def test_service_persists_one_atomic_clarification_outcome() -> None:
     assert result.stored.assistant_message is not None
     assert result.stored.assistant_message.message.content == decision.question
     assert len(model.calls[0][0]) == 2
+
+
+def test_invalid_time_proposal_emits_no_decision_or_durable_mutation() -> None:
+    session = Session(
+        id="session-invalid-time",
+        status=SessionStatus.ACTIVE,
+        requirement=empty_requirement(),
+        created_at=NOW,
+        updated_at=NOW,
+    )
+    store = RecordingTurnStore(
+        DialogueTurnSnapshot(
+            session=StoredSession(session=session, revision=0), last_assistant=None
+        )
+    )
+    model = FixedProposalModel(ready_time_proposal(TimeRange(kind="RELATIVE", value="recent")))
+    service = DialogueService(
+        engine=DialogueEngine(chat_model=model),
+        store=store,
+        clock=lambda: NOW,
+        id_factory=lambda prefix: f"{prefix}-unused",
+    )
+
+    with pytest.raises(InvalidProviderEvidenceError):
+        asyncio.run(
+            service.process_turn(
+                session_id="session-invalid-time",
+                user_content="Show recent paid amount",
+            )
+        )
+
+    assert store.committed is None
+    assert store.snapshot.session.session == session
+    assert store.snapshot.session.revision == 0

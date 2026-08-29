@@ -459,6 +459,7 @@ Codex must update this section as milestones complete.
 [x] M14 Answer synthesis + API — complete and frozen via PR #14
 [x] M12 targeted false-acceptance remediation — complete and frozen via PR #16
 [x] M8 targeted deterministic-readiness remediation — complete and frozen via PR #17
+[x] M8 targeted time-range admission remediation — complete and frozen via PR #18
 [ ] M15 Trace + Golden Dataset eval — resumed final acceptance / Draft PR #15
 ```
 
@@ -565,6 +566,41 @@ authorized for this remediation. PR #17 accepted final head
 `main` as `a937546cb2d0c032ffa8dd76a8a4fbeec0227c95`. M8 targeted remediation is
 complete/frozen. Draft PR #15 may resume final M15 acceptance without reopening an upstream
 milestone.
+
+M8 targeted-readiness closure (2026-08-29): accepted PR #17 head
+`b2f0d87e3c260d0d1e092d333f67c21304a48a1b` was substantively approved and squash-merged to
+protected `main` as `a937546cb2d0c032ffa8dd76a8a4fbeec0227c95`. M8 was complete/frozen again;
+Draft PR #15 remained paused and untouched.
+
+M8 time-range-admission activation (2026-08-29): the minimal M15 live wire smoke then exposed one
+new control-plane trust defect: a provider SET of `TimeRange(kind=RELATIVE, value=recent)` was
+treated as resolved solely because a valid public object existed, allowing false READY. Reopen M8
+only to add internal `time-range-admission-policy-v0.1` before provisional merge. Existing
+canonical relative values and exact bounded date intervals remain admitted; vague free-form
+relative values fail typed with no public decision or durable mutation. This is not a natural-
+language temporal parser and introduces no default semantics. Draft PR #15, the provider prompt,
+public M8 contracts, clarification targeting, M9–M15 behavior, Golden/Oracle truth, model/runtime,
+timeout/token bounds, and acceptance thresholds remain unchanged. No 30B or 59-case M15 run is
+authorized in this remediation.
+
+M8 time-range-admission local evidence (2026-08-29): provider proposal resolution now rejects an
+inadmissible time SET before provisional merge with stable code
+`TIME_RANGE_NOT_OPERATIONALLY_CONCRETE`. The permanent regressions prove `RELATIVE/recent` emits no
+decision and leaves a loaded Session/revision uncommitted, while `RELATIVE/last_30_days` and the
+existing `ABSOLUTE/2026-08-01 to 2026-08-31` form still reach READY. Focused policy/service coverage
+passes 11 tests; the unchanged provider-free readiness suite passes 40 cases / 41 turns with zero
+unnecessary clarification, true-ambiguity recall `1.000`, false READY `0`, and insufficient-
+evidence false READY `0`; complete M8 contracts/dialogue/persistence/conversation coverage passes
+64 tests. Isolated `task bootstrap` reproduces ten tables, ten orders, paid amount `1545.00`,
+successful refunds `110.00`, and retrieval index
+`f9da78a01e6d030185c4510ba394b860e0d79bd39c06ea625b95599aed76b9e4`; `task quality` passes
+461 tests with 7 explicit host-only skips. No 30B inference or 59-case M15 eval ran, and Draft PR
+#15 remained unchanged at `0438bc35f599984d34d5c801289e9fe551d9f092`.
+
+M8 time-range-admission delivery evidence (2026-08-29): focused PR #18 is open at implementation
+commit `2be082a81e29aa8809bf5026ebe02dce03ac7c46`; requested reviewer is `cboya`. Remote
+`Delivery / Quality` passed in workflow run `33246939668`. The PR remains unmerged for substantive
+review, this targeted M8 remediation is not complete, and Draft PR #15 remains untouched.
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
@@ -1551,6 +1587,20 @@ Consequences: Insufficient structured evidence produces no public decision, no s
 and no model retry. Question-to-surviving-blocker binding, perfect ambiguity semantics, and further
 prompt optimization are deferred behavioral refinements. Public M8 contracts, M6 semantic
 authority, and M9–M15 behavior remain unchanged.
+
+2026-08-29 — M8 operational TimeRange SET admission
+Decision: Add internal `time-range-admission-policy-v0.1` at the provider-proposal trust boundary.
+Admit only existing canonical relative forms (`last_N_days`, `last_N_months`, `yesterday`, and
+`all_time`), deterministic exact bounded date/datetime interval representations, or explicit
+validated start/end bounds. Reject vague values such as `recent` before provisional merge with
+typed `TIME_RANGE_NOT_OPERATIONALLY_CONCRETE`; do not normalize or default them.
+Evidence: M15's minimal live smoke produced structurally valid `RELATIVE/recent` and the old policy
+authorized READY because the TimeRange object existed. Permanent provider-free regressions cover
+that exact false-READY path, canonical relative admission, exact bounded interval admission, and
+zero dialogue-store mutation on rejection.
+Consequences: Scalar SET remains a proposal rather than proof of resolution. No public M8
+contract, prompt, clarification-targeting rule, M9–M15 behavior, Golden/Oracle asset, model/runtime
+bound, or acceptance threshold changes.
 
 ## 7. Deviation rule
 

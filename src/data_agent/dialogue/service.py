@@ -8,7 +8,7 @@ from datetime import datetime
 
 from data_agent.contracts.dialogue import DialogueAction, DialogueDecision, DialogueProposal
 from data_agent.contracts.message import Message, MessageRole
-from data_agent.contracts.requirement import RequirementState, RequirementStatus
+from data_agent.contracts.requirement import PatchOp, RequirementState, RequirementStatus
 from data_agent.contracts.session import Session, SessionStatus
 from data_agent.dialogue.context import DialogueContextBuilder
 from data_agent.dialogue.errors import InvalidProviderEvidenceError
@@ -18,6 +18,8 @@ from data_agent.dialogue.policy import (
     BlockingPolicyResult,
     DialogueOutcome,
     DialoguePolicy,
+    TimeRangeAdmissionPolicy,
+    TimeRangeAdmissionReasonCode,
 )
 from data_agent.dialogue.prompt import DIALOGUE_PROMPT_VERSION
 from data_agent.model_runtime.ports import ChatModel
@@ -33,12 +35,16 @@ class DialogueEngine:
         merger: RequirementMerger | None = None,
         policy: DialoguePolicy | None = None,
         blocking_policy: BlockingAmbiguityPolicy | None = None,
+        time_range_admission_policy: TimeRangeAdmissionPolicy | None = None,
     ) -> None:
         self._chat_model = chat_model
         self._context_builder = context_builder or DialogueContextBuilder()
         self._merger = merger or RequirementMerger()
         self._policy = policy or DialoguePolicy()
         self._blocking_policy = blocking_policy or BlockingAmbiguityPolicy()
+        self._time_range_admission_policy = (
+            time_range_admission_policy or TimeRangeAdmissionPolicy()
+        )
 
     async def understand(
         self,
@@ -101,6 +107,14 @@ class DialogueEngine:
         proposal: DialogueProposal,
         latest_user_message: str,
     ) -> DialogueOutcome:
+        proposed_time_range = proposal.patch.time_range
+        if proposed_time_range.op is PatchOp.SET and not self._time_range_admission_policy.admits(
+            proposed_time_range.value
+        ):
+            raise InvalidProviderEvidenceError(
+                "provider time range is not operationally concrete",
+                reason_codes=(TimeRangeAdmissionReasonCode.NOT_OPERATIONALLY_CONCRETE.value,),
+            )
         candidate_patch = proposal.to_candidate_patch()
         candidate_merged = self._merger.merge(requirement, candidate_patch)
         blocking = self._blocking_policy.evaluate(

@@ -232,6 +232,13 @@ clarification threshold. Runtime policy never reads Golden expected answers.
 Time-ambiguity cases must also prove that a guessed concrete time range does not survive into
 canonical state merely because the model correctly chose ASK.
 
+Permanent provider-free time-range admission regressions additionally require:
+
+- `RELATIVE/recent` cannot authorize READY and produces typed invalid provider evidence;
+- canonical `RELATIVE/last_30_days` remains admitted;
+- the existing exact bounded date-interval representation remains admitted;
+- the rejected proposal emits no public `DialogueDecision` and causes no durable state mutation.
+
 Collection-ambiguity cases must prove that blocking one metric/dimension subject does not erase a
 different resolved member from the same collection. Any subsequent clarification turn must
 recover that member from canonical `RequirementState`, not replayed raw history.
