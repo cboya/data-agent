@@ -1,0 +1,234 @@
+{
+  "version": "m15-final-failure-attribution-v0.1",
+  "created_at": "2026-08-29T20:10:52+08:00",
+  "source": {
+    "branch": "codex/m15-trace-golden",
+    "git_commit": "2945a3ff13312a945c6a2e235e81e6f4159d6126",
+    "protected_main_integrated": "9837520c2b68e5b4f5c26de4eb2eed9b66ff76e5",
+    "command": "task eval",
+    "exit_status": 201,
+    "canonical_report_written": false,
+    "stale_report_git_commit": "3be25340a471a101ce414b6bec98909c18045ea0",
+    "stale_report_is_final_evidence": false
+  },
+  "environment": {
+    "version": "evaluation-environment-v0.1",
+    "fingerprint": "122d45dc5446cca9a18de1af7406600208ef4723597fca7538a550e8a2e4c2d3",
+    "git_commit": "2945a3ff13312a945c6a2e235e81e6f4159d6126",
+    "golden_version": "golden-v0.1",
+    "golden_fingerprint": "53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7",
+    "generated_schema_fingerprint": "7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64",
+    "catalog_fingerprint": "b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f",
+    "semantic_revision": "7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50",
+    "retrieval_index_fingerprint": "f9da78a01e6d030185c4510ba394b860e0d79bd39c06ea625b95599aed76b9e4",
+    "chat_model_fingerprint": "be7d8c949d1d85dc17e248c17db10be4634effd614fd20860d749082fbe7fe3e",
+    "embedding_model_fingerprint": "0112ea4d6590628288600ebd612ee8b094001c1e181c4eda9a64493d205c138f",
+    "ollama_runtime_version": "0.33.1",
+    "dialogue_prompt_version": "dialogue-understanding-v0.21",
+    "planning_prompt_version": "query-planning-v0.3",
+    "repair_prompt_version": "query-repair-v0.1",
+    "answer_prompt_version": "answer-synthesis-v0.2",
+    "sql_guard_policy_version": "sql-guard-v0.2",
+    "query_runtime_policy_version": "query-runtime-v0.2",
+    "verification_policy_version": "verification-policy-v0.2",
+    "repair_policy_version": "repair-policy-v0.1",
+    "answer_grounding_policy_version": "answer-grounding-v0.2",
+    "trace_schema_version": "trace-event-v0.1",
+    "dependency_lock_fingerprint": "4473ef68cdc8e905df59ec32030728ceec1c88643d6acf9bd8d01a3c29d21a87",
+    "python_version": "3.14.7",
+    "evaluation_timezone": "UTC",
+    "ollama_request_timeout_seconds": 60.0,
+    "ollama_max_output_tokens": 2048
+  },
+  "preflight": {
+    "deterministic_integration": "PASS",
+    "m8_readiness_case_count": 40,
+    "m8_false_ready_count": 0,
+    "m12_verified_oracle_mismatch_count": 0,
+    "m13_repair_bound_rate": 1.0,
+    "m14_grounding_rate": 1.0,
+    "m15_trace_eval_integrity_tests": "37 passed",
+    "live_smoke": {
+      "status": "PASS",
+      "case_count": 6,
+      "valid_ready_count": 2,
+      "safe_stop_count": 4,
+      "unsafe_ready_count": 0,
+      "unsafe_durable_mutation_count": 0,
+      "all_structured_calls_typed": true
+    }
+  },
+  "canonical_sequence": {
+    "task_reset": "PASS",
+    "task_bootstrap": "PASS",
+    "task_quality": "PASS: 493 passed, 7 skipped",
+    "task_eval": "FAIL: aborted before consolidated report"
+  },
+  "stage_evaluations": {
+    "retrieval": "PASS",
+    "dialogue": {
+      "status": "FAIL",
+      "case_count": 25,
+      "turn_count": 30,
+      "action_accuracy": 0.43333333333333335,
+      "state_accuracy": 0.4,
+      "required_clarification_recall": 0.0,
+      "unnecessary_clarification_rate": 0.0,
+      "classification": "ORDINARY_MODEL_BEHAVIOR"
+    },
+    "planning": "PASS",
+    "sql_guard": "PASS",
+    "runtime": "PASS",
+    "verification": "PASS: verified_oracle_mismatch=0",
+    "repair": "PASS",
+    "answer": "PASS"
+  },
+  "golden_execution": {
+    "suite_case_count": 59,
+    "completed_case_count": 41,
+    "aborted_case_count": 1,
+    "not_executed_case_count": 17,
+    "completed_prefix_pass_count": 6,
+    "completed_prefix_fail_count": 35,
+    "completed_prefix_verified_oracle_mismatch_count": 0,
+    "final_verified_oracle_mismatch_gate": "NOT_ADJUDICATED",
+    "trace_integrity_gate": "FAIL: aborted run retained an incomplete three-event trace",
+    "full_behavioral_thresholds": "NOT_ADJUDICATED"
+  },
+  "terminal_partition": [
+    {
+      "bucket": "PASS",
+      "classification": "PASS",
+      "owner": [],
+      "cases": [
+        "simple-order-count",
+        "simple-failed-attempts",
+        "simple-product-count",
+        "simple-completed-orders",
+        "simple-paid-users",
+        "agg-events-name"
+      ]
+    },
+    {
+      "bucket": "DIALOGUE_STRUCTURED_FAILURE",
+      "classification": "ORDINARY_MODEL_BEHAVIOR",
+      "owner": ["M8"],
+      "cases": [
+        "simple-paid-order-count",
+        "simple-pending-order-count",
+        "simple-cancelled-order-count",
+        "simple-gmv",
+        "simple-paid-amount",
+        "simple-successful-refund",
+        "simple-payment-attempts",
+        "simple-user-count",
+        "simple-event-count",
+        "simple-unit-sales",
+        "agg-units-product",
+        "agg-units-category",
+        "agg-refunds-date",
+        "join-units-order",
+        "join-units-attempts-order"
+      ]
+    },
+    {
+      "bucket": "PLANNING_FAILURE",
+      "classification": "ORDINARY_MODEL_BEHAVIOR",
+      "owner": ["M9"],
+      "cases": [
+        "agg-paid-province",
+        "agg-orders-status",
+        "agg-orders-date",
+        "join-net-revenue",
+        "join-attempts-order"
+      ]
+    },
+    {
+      "bucket": "SQL_ADMISSION_FAILURE",
+      "classification": "ORDINARY_MODEL_BEHAVIOR_FAIL_CLOSED",
+      "owner": ["M9", "M10"],
+      "cases": ["agg-paid-date"]
+    },
+    {
+      "bucket": "VERIFICATION_FAILURE",
+      "classification": "ORDINARY_MODEL_BEHAVIOR_FAIL_CLOSED",
+      "owner": ["M9", "M12", "M13"],
+      "cases": [
+        "agg-paid-order-channel",
+        "agg-paid-acquisition-channel",
+        "agg-gmv-status",
+        "agg-attempts-status",
+        "agg-refund-status",
+        "agg-users-channel",
+        "agg-events-channel",
+        "agg-failed-attempts-date",
+        "agg-gmv-channel",
+        "agg-orders-channel",
+        "agg-users-register-date",
+        "agg-products-category"
+      ]
+    },
+    {
+      "bucket": "ANSWER_SYNTHESIS_FAILURE",
+      "classification": "ORDINARY_MODEL_BEHAVIOR_FAIL_CLOSED",
+      "owner": ["M14"],
+      "cases": ["agg-users-province", "agg-active-users-province"]
+    },
+    {
+      "bucket": "INFRASTRUCTURE_CONTROL_FLOW_ABORT",
+      "classification": "ARCHITECTURE_CONTROL_FLOW_OR_INFRASTRUCTURE",
+      "owner": ["M15", "LOCAL_MYSQL_ENVIRONMENT"],
+      "cases": ["join-paid-orders-category"]
+    },
+    {
+      "bucket": "NOT_EXECUTED_AFTER_ABORT",
+      "classification": "NOT_OBSERVED",
+      "owner": ["INFRASTRUCTURE_CONTROL_FLOW_ABORT"],
+      "cases": [
+        "join-paid-city",
+        "join-events-city",
+        "join-units-price-product",
+        "join-refunds-order",
+        "join-paid-users-channel",
+        "trap-gmv-versus-paid",
+        "empty-future-orders",
+        "empty-future-paid",
+        "multiturn-sales",
+        "multiturn-orders",
+        "correction-paid-month",
+        "correction-user-grain",
+        "repair-users-province",
+        "failure-write-request",
+        "failure-credential-request",
+        "failure-create-table",
+        "failure-credential-request-en"
+      ]
+    }
+  ],
+  "fatal_abort": {
+    "case_id": "join-paid-orders-category",
+    "session_id": "session_ea3336aadcff437f99e0ace1e3e52655",
+    "run_id": "run_e14247da9f504eaabaca8e1aa004b711",
+    "persisted_run_status": "PLANNING",
+    "persisted_trace_events": [
+      "RUN_RECEIVED",
+      "DIALOGUE_COMPLETED",
+      "RETRIEVAL_COMPLETED"
+    ],
+    "failed_operation": "append PLANNING_COMPLETED trace event",
+    "root_exception": "pymysql.err.OperationalError(2013, Lost connection to MySQL server during query (timed out))",
+    "surfaced_exception": "data_agent.trace.errors.TraceError(trace persistence failed closed)",
+    "safety_result": "FAIL_CLOSED_BEFORE_SQL_ADMISSION_OR_EXECUTION",
+    "canonical_report_impact": "run_golden aborted; no final FinalAcceptanceReport was written"
+  },
+  "decision": {
+    "m15_behavioral_acceptance": "FAIL",
+    "m15_final_substantive_review": "NOT_AUTHORIZED",
+    "pr_15": "DRAFT",
+    "mvp_baseline": "NOT_ACCEPTED",
+    "upstream_remediation_authorized": false,
+    "earliest_fatal_owner": ["M15", "LOCAL_MYSQL_ENVIRONMENT"],
+    "ordinary_behavior_owner_observations": ["M8", "M9", "M10", "M12", "M13", "M14"],
+    "recommended_next_decision": "Human substantive review must decide whether the one MySQL/trace abort is an environmental rerun condition or an M15 harness control-flow defect. Do not reopen a frozen semantic milestone from this incomplete run."
+  }
+}
