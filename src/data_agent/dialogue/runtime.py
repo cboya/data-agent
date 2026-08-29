@@ -1,4 +1,4 @@
-"""Composition helpers for the current bound Ollama dialogue runtime and eval."""
+"""Composition helpers for the current configured dialogue runtime and eval."""
 
 from data_agent.config import Settings
 from data_agent.dialogue.evaluation import (
@@ -8,12 +8,13 @@ from data_agent.dialogue.evaluation import (
     write_dialogue_eval_report,
 )
 from data_agent.dialogue.service import DialogueEngine
-from data_agent.model_runtime.ollama import OllamaChatModel, OllamaStartupDiagnostics
+from data_agent.model_runtime.composition import start_model_runtime
 
 
 async def evaluate_current_dialogue(settings: Settings) -> DialogueEvalReport:
-    diagnostics = await OllamaStartupDiagnostics(settings).diagnose()
-    engine = DialogueEngine(chat_model=OllamaChatModel(settings, fingerprint=diagnostics.chat))
+    runtime = await start_model_runtime(settings)
+    diagnostics = runtime.diagnostics
+    engine = DialogueEngine(chat_model=runtime.chat_model)
     report = await run_dialogue_evaluation(
         engine,
         suite=load_dialogue_eval_suite(),

@@ -632,14 +632,22 @@ Adapters may expose observability metadata separately without leaking transport 
 
 Startup diagnostics are exposed through a provider-neutral `ModelRuntimeProbe`. Its result
 contains runtime version plus chat/embedding `ModelFingerprint` values built from provider,
-configured model name, immutable model digest, declared capabilities, and bounded descriptive
-metadata. Ollama request/response DTOs remain inside the adapter.
+configured model/deployment name, declared capabilities, and bounded descriptive metadata.
+Identity additionally records the base-endpoint identity, an actual immutable digest or provider
+revision when one is exposed, and assurance (`IMMUTABLE_PROVIDER_REVISION`,
+`PINNED_DEPLOYMENT`, or `ALIAS_ONLY`). A provider that exposes only a mutable alias has no digest;
+it must not be represented as immutable. Provider request/response DTOs remain inside adapters.
 
 The composition root must bind each runtime adapter to the corresponding startup fingerprint;
 an adapter must not execute from an unbound mutable model tag. If a provider cannot execute a
 digest-qualified reference, the provider adapter must revalidate the configured tag-to-digest
 mapping immediately before every model request and fail closed with a typed identity-drift error
 when the mapping no longer matches.
+
+The M16 OpenAI-compatible profile revalidates its model descriptor before every request. When the
+descriptor exposes a revision/snapshot, drift fails closed. When it exposes only an alias, that
+limitation remains explicit as `ALIAS_ONLY`; the adapter cannot claim to detect underlying weights
+movement that the provider does not reveal.
 
 ---
 

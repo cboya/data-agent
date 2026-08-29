@@ -17,6 +17,10 @@ class ModelResponseError(ModelAdapterError):
     """The provider returned a malformed or unsuccessful response envelope."""
 
 
+class ModelProviderError(ModelResponseError):
+    """The provider returned an explicit unsuccessful HTTP or model outcome."""
+
+
 class ModelUnavailableError(ModelAdapterError):
     """A configured model is absent or lacks its required capability."""
 

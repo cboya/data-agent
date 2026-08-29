@@ -157,7 +157,7 @@ class DialogueEvalIdentity(_EvaluationModel):
     prompt_version: str
     provider: str
     model: str
-    model_digest: str
+    model_digest: str | None
     model_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     runtime_version: str
 

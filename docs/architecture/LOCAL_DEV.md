@@ -130,6 +130,34 @@ The remote Delivery workflow supplies a deterministic CI-only Ollama HTTP stub f
 identity and index plumbing; substantive embedding quality evidence comes from the explicitly
 reported host Ollama retrieval eval, not from stub vectors.
 
+### 2.1 OpenAI-compatible remote profile (Phase 2 / M16)
+
+Select the remote profile only through configuration:
+
+```text
+MODEL_RUNTIME_PROVIDER=openai_compatible
+OPENAI_COMPATIBLE_BASE_URL=https://provider.example/v1
+OPENAI_COMPATIBLE_API_KEY=<secret>
+OPENAI_COMPATIBLE_CHAT_MODEL=<model-or-deployment-id>
+OPENAI_COMPATIBLE_EMBED_MODEL=<model-or-deployment-id>
+```
+
+The profile deliberately requires Chat Completions strict JSON Schema, Embeddings, Bearer auth,
+and `GET /models/{id}`. It is not a universal compatibility shim. Separate settings bound request
+timeout, response bytes, output tokens, and embedding batch size. No hidden retry is performed.
+The base URL must not contain credentials, query parameters, or fragments.
+
+Run the opt-in live conformance smoke only when a reviewed remote environment is configured:
+
+```bash
+RUN_OPENAI_COMPATIBLE_INTEGRATION=1 \
+  uv run pytest tests/integration/test_openai_compatible_runtime.py
+```
+
+The smoke grades adapter/control-flow portability rather than answer quality. Do not place the API
+key in the command line, test report, trace, or checked-in environment file. An alias-only provider
+identity may pass M16 but is not strong reproducibility evidence.
+
 ## 3. MySQL
 
 Use an official/pinned MySQL 8.4 image.

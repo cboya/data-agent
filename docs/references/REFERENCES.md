@@ -34,6 +34,18 @@ The current local API supports:
 
 Verify behavior against the installed Ollama version during bootstrap.
 
+## OpenAI-compatible REST profile
+
+- Official OpenAI API reference — Chat Completions
+  https://developers.openai.com/api/reference/cli/resources/chat/subresources/completions
+
+- Official OpenAI API reference — Embeddings
+  https://developers.openai.com/api/reference/ruby/resources/embeddings/methods/create
+
+M16 uses these wire shapes as one narrow conformance baseline and still performs local contract,
+identity, size, timeout, and vector validation. “OpenAI-compatible” does not imply support for
+every vendor extension or omission.
+
 ## MySQL
 
 - MySQL 8.4 Reference Manual — Privileges Provided by MySQL

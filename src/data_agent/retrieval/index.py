@@ -12,7 +12,11 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from data_agent.catalog.introspection import GENERATED_CATALOG_ROOT
 from data_agent.catalog.semantic import AssembledSemanticCatalog
-from data_agent.model_runtime.ports import EmbeddingModel, ModelFingerprint
+from data_agent.model_runtime.ports import (
+    EmbeddingModel,
+    ModelFingerprint,
+    ModelIdentityAssurance,
+)
 from data_agent.retrieval.document import (
     RETRIEVAL_DOCUMENT_BUILDER_VERSION,
     RetrievalDocument,
@@ -20,7 +24,7 @@ from data_agent.retrieval.document import (
 )
 from data_agent.retrieval.errors import RetrievalIndexError, RetrievalIndexStaleError
 
-RETRIEVAL_INDEX_FORMAT_VERSION: Literal["retrieval-index-v0.1"] = "retrieval-index-v0.1"
+RETRIEVAL_INDEX_FORMAT_VERSION: Literal["retrieval-index-v0.2"] = "retrieval-index-v0.2"
 RETRIEVAL_INDEX_ROOT = GENERATED_CATALOG_ROOT / "index"
 RETRIEVAL_INDEX_PATH = RETRIEVAL_INDEX_ROOT / "retrieval.json"
 
@@ -42,9 +46,12 @@ class _IndexModel(BaseModel):
 class EmbeddingModelIdentity(_IndexModel):
     provider: str = Field(min_length=1, pattern=r"\S")
     model: str = Field(min_length=1, pattern=r"\S")
-    digest: str = Field(min_length=1, pattern=r"\S")
+    digest: str | None
     capabilities: tuple[str, ...] = Field(min_length=1)
     metadata: tuple[tuple[str, str], ...] = ()
+    endpoint_identity: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    provider_revision: str | None = Field(default=None, min_length=1, pattern=r"\S")
+    identity_assurance: ModelIdentityAssurance = ModelIdentityAssurance.IMMUTABLE_PROVIDER_REVISION
     fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
 
     @classmethod
@@ -55,6 +62,9 @@ class EmbeddingModelIdentity(_IndexModel):
             digest=fingerprint.digest,
             capabilities=fingerprint.capabilities,
             metadata=fingerprint.metadata,
+            endpoint_identity=fingerprint.endpoint_identity,
+            provider_revision=fingerprint.provider_revision,
+            identity_assurance=fingerprint.identity_assurance,
             fingerprint=fingerprint.value,
         )
 
@@ -66,6 +76,9 @@ class EmbeddingModelIdentity(_IndexModel):
             digest=self.digest,
             capabilities=self.capabilities,
             metadata=self.metadata,
+            endpoint_identity=self.endpoint_identity,
+            provider_revision=self.provider_revision,
+            identity_assurance=self.identity_assurance,
         )
         if rebuilt.value != self.fingerprint:
             raise ValueError("embedding model fingerprint does not match complete identity")
@@ -78,7 +91,7 @@ class RetrievalIndexIdentity(_IndexModel):
     semantic_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
     embedding_model: EmbeddingModelIdentity
     model_runtime_version: str = Field(min_length=1, pattern=r"\S")
-    index_format_version: Literal["retrieval-index-v0.1"]
+    index_format_version: Literal["retrieval-index-v0.2"]
     document_builder_version: Literal["retrieval-document-v0.1"]
 
 

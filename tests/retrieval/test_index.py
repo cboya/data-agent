@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pytest
 
+from data_agent.model_runtime.ports import ModelFingerprint, ModelIdentityAssurance
 from data_agent.retrieval.errors import RetrievalIndexError, RetrievalIndexStaleError
 from data_agent.retrieval.index import (
     RetrievalIndex,
@@ -50,8 +51,79 @@ def test_index_identity_and_artifact_bytes_are_deterministic(tmp_path: Path) -> 
     assert first.identity.semantic_revision == SEMANTIC_REVISION
     assert first.identity.embedding_model.fingerprint == embedding_fingerprint().value
     assert first.identity.model_runtime_version == "test-runtime"
-    assert first.identity.index_format_version == "retrieval-index-v0.1"
+    assert first.identity.index_format_version == "retrieval-index-v0.2"
     assert first.identity.document_builder_version == "retrieval-document-v0.1"
+
+
+def test_index_identity_binds_alias_only_remote_endpoint_without_fake_digest() -> None:
+    remote = ModelFingerprint(
+        provider="openai_compatible",
+        model="embed-deployment",
+        digest=None,
+        capabilities=("embedding",),
+        endpoint_identity="d" * 64,
+        identity_assurance=ModelIdentityAssurance.ALIAS_ONLY,
+    )
+
+    index = asyncio.run(
+        build_retrieval_index(
+            catalog(),
+            current_generated_schema_fingerprint=GENERATED_FINGERPRINT,
+            current_semantic_revision=SEMANTIC_REVISION,
+            embedding_model=DeterministicEmbeddingModel(),
+            embedding_fingerprint=remote,
+            model_runtime_version="not-exposed",
+            embedding_batch_size=2,
+        )
+    )
+
+    assert index.identity.embedding_model.digest is None
+    assert index.identity.embedding_model.endpoint_identity == "d" * 64
+    assert index.identity.embedding_model.identity_assurance is ModelIdentityAssurance.ALIAS_ONLY
+    assert index.identity.embedding_model.fingerprint == remote.value
+
+
+def test_alias_only_remote_index_rejects_endpoint_identity_drift(tmp_path: Path) -> None:
+    original = ModelFingerprint(
+        provider="openai_compatible",
+        model="embed-deployment",
+        digest=None,
+        capabilities=("embedding",),
+        endpoint_identity="d" * 64,
+        identity_assurance=ModelIdentityAssurance.ALIAS_ONLY,
+    )
+    drifted = ModelFingerprint(
+        provider="openai_compatible",
+        model="embed-deployment",
+        digest=None,
+        capabilities=("embedding",),
+        endpoint_identity="e" * 64,
+        identity_assurance=ModelIdentityAssurance.ALIAS_ONLY,
+    )
+    index = asyncio.run(
+        build_retrieval_index(
+            catalog(),
+            current_generated_schema_fingerprint=GENERATED_FINGERPRINT,
+            current_semantic_revision=SEMANTIC_REVISION,
+            embedding_model=DeterministicEmbeddingModel(),
+            embedding_fingerprint=original,
+            model_runtime_version="not-exposed",
+            embedding_batch_size=2,
+        )
+    )
+    generated_root = tmp_path / "catalog" / "generated"
+    output_path = generated_root / "index" / "retrieval.json"
+    write_retrieval_index(index, output_path=output_path, generated_root=generated_root)
+
+    with pytest.raises(RetrievalIndexStaleError):
+        load_retrieval_index(
+            catalog=catalog(),
+            current_generated_schema_fingerprint=GENERATED_FINGERPRINT,
+            current_semantic_revision=SEMANTIC_REVISION,
+            embedding_fingerprint=drifted,
+            model_runtime_version="not-exposed",
+            path=output_path,
+        )
 
 
 def test_load_rejects_tampered_index_content(tmp_path: Path) -> None:

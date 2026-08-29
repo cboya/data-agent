@@ -1,0 +1,270 @@
+# EP-002 — Portability Validation
+
+**Status:** ACTIVE — M16 Model Provider Portability
+**Owner:** Codex implementation agent(s), human architecture review
+**Phase-1 baseline:** `main@795b86f412630ba36238c0de1baa1e291ba13863`
+
+## 1. Goal
+
+Validate that the frozen harness can replace its model runtime and analytics MySQL source through
+adapter/composition changes rather than behavioral rewrites.
+
+Phase 2 has exactly two milestones:
+
+```text
+M16 — Model Provider Portability
+M17 — External MySQL Portability
+```
+
+M16 must merge and freeze before M17 begins.
+
+## 2. Frozen Phase-1 state
+
+```text
+M0–M15                        COMPLETE / FROZEN
+M15 Canonical Evaluation      COMPLETE
+M15 Behavioral Verdict        REJECTED
+Architecture/Harness Baseline VALIDATED
+
+Product NL2SQL MVP            NOT ACCEPTED
+Behavioral remediation        NOT AUTHORIZED
+MVP release/tag               NOT AUTHORIZED
+```
+
+The Phase-1 Golden Dataset, Oracle Dataset, behavioral thresholds, prompts, security policies,
+public RequirementState/QueryPlan/ExecutionResult contracts, M8–M15 authorities, and historical
+acceptance evidence remain unchanged. Phase 2 does not optimize against the 59 Golden cases.
+
+## 3. Non-goals
+
+Do not add:
+
+- PostgreSQL, ClickHouse, DuckDB, Trino, or another SQL dialect;
+- multi-source querying;
+- native non-SQL querying;
+- document/RAG support;
+- an external vector database;
+- multi-agent behavior;
+- behavioral Golden fitting;
+- a release or tag.
+
+One milestone is delivered through one focused PR and stops for substantive review before merge.
+
+## 4. M16 — Model Provider Portability
+
+### Objective
+
+Prove that the application can select either the existing Ollama reference runtime or one narrow
+OpenAI-compatible REST conformance profile without provider-specific behavior entering dialogue,
+retrieval, planning, repair, answer, verification, conversation orchestration, or evaluation.
+
+### Scope
+
+Implement only:
+
+- provider-neutral runtime composition selected by configuration;
+- `OpenAICompatibleChatModel`;
+- `OpenAICompatibleEmbeddingModel`;
+- `OpenAICompatibleStartupDiagnostics`;
+- bounded authenticated JSON transport;
+- honest remote identity/fingerprint assurance;
+- deterministic conformance tests;
+- one bounded real-provider control-flow smoke.
+
+Ollama remains the default/reference provider and retains its immutable digest drift protection.
+
+### Remote conformance profile
+
+The first profile is deliberately narrow:
+
+```text
+POST /chat/completions
+    messages
+    response_format.type = json_schema
+    response_format.json_schema.strict = true
+    bounded max_completion_tokens
+
+POST /embeddings
+    array input
+    float vectors indexed one-for-one with inputs
+
+GET /models/{model_id}
+    model presence and the strongest identity metadata actually exposed
+
+Authorization: Bearer <secret>
+```
+
+The adapter does not claim compatibility with every product using the “OpenAI-compatible” label.
+Provider responses remain untrusted and must pass the existing Pydantic/domain policies.
+
+### Identity invariant
+
+Do not fabricate a weights digest. A remote fingerprint binds at least:
+
+```text
+provider
+base-endpoint identity
+model/deployment ID
+provider revision/snapshot when exposed
+identity assurance
+declared adapter capabilities
+bounded descriptive provider metadata
+```
+
+Initial assurance classes are:
+
+```text
+IMMUTABLE_PROVIDER_REVISION
+PINNED_DEPLOYMENT
+ALIAS_ONLY
+```
+
+If the conformance endpoint exposes no revision/snapshot, the adapter records `ALIAS_ONLY` and no
+digest/revision. Such evidence may validate portability but cannot be represented as strong
+reproducibility or Product acceptance. Existing Ollama fingerprint values continue to bind a real
+digest and fail closed on tag drift.
+
+### Transport and contract invariants
+
+- base URL is an absolute credential-free HTTP(S) URL;
+- timeout, response bytes, output tokens, and embedding batch size are configured bounds;
+- there is no hidden retry;
+- every response is a bounded JSON object;
+- transport, timeout, provider-status, envelope, and contract failures are typed;
+- API keys never appear in errors, logs, traces, model context, or fingerprints;
+- structured output is revalidated through the requested Pydantic type;
+- embeddings are non-empty, finite, count-exact, index-exact, and dimension-consistent.
+
+### Deterministic acceptance
+
+Tests cover at least:
+
+- provider selection and Ollama default preservation;
+- remote chat request and JSON Schema shape;
+- malformed/schema-invalid chat output;
+- response-size and timeout bounds;
+- provider HTTP error mapping and API-key redaction;
+- embedding batch, count, index, finite-value, and dimension checks;
+- remote diagnostics and stable fingerprint identity;
+- alias-only identity honesty and revision drift failure;
+- absence of OpenAI-compatible adapter imports/branches from M8–M15 business modules.
+
+Run:
+
+```text
+focused M16 tests
+task quality
+```
+
+### Real REST smoke
+
+After deterministic gates, run one bounded provider smoke under the exact selected remote
+configuration. It grades transport/control flow, not product quality:
+
+```text
+startup diagnostics                  PASS
+one structured Dialogue call         PASS or typed fail-closed
+one embedding/retrieval call         PASS
+one structured Planner call          PASS or typed fail-closed
+one public HTTP conversation path    terminates safely
+unsafe READY                         0
+unauthorized SQL execution           0
+secret leakage                       0
+```
+
+Do not change prompts or run the complete M15 suite to make this smoke pass. A full remote-model
+M15 run requires separate explicit authorization and a new complete EvaluationEnvironment.
+
+### M16 merge gate
+
+```text
+focused M16 tests              PASS
+task quality                   PASS
+bounded remote REST smoke      PASS control-plane criteria
+Delivery / Quality             PASS
+substantive review             APPROVE
+PR                             CLEAN
+```
+
+Stop before merge and do not begin M17.
+
+## 5. M17 — External MySQL Portability
+
+**Status:** NOT AUTHORIZED — begins only after M16 squash merge.
+
+M17 will replace only the Analytics/Data Plane MySQL while retaining control-plane persistence.
+Its first responsibilities are control/analytics endpoint separation, external-safe non-mutating
+bootstrap/preflight, explicit table scope, and an independent catalog workspace. Detailed M17
+implementation remains frozen until its activation turn; no M17 code belongs in the M16 PR.
+
+## 6. Progress
+
+```text
+[~] M16 Model Provider Portability — IMPLEMENTED; REAL REST SMOKE PENDING
+[ ] M17 External MySQL Portability — NOT AUTHORIZED
+```
+
+### M16 implementation evidence — 2026-08-30
+
+```text
+Phase-1 baseline                    795b86f412630ba36238c0de1baa1e291ba13863
+provider-neutral composition       PASS
+Ollama default/digest protection   PASS
+remote transport/contracts         PASS
+remote identity assurance          PASS
+provider-isolation invariant       PASS
+focused M16 regression             74 passed
+task bootstrap                     PASS
+retrieval-index-v0.2 fingerprint   318a5423d255eae477d41f4c5da5dfb71e2d1a31dcb27bf88b1e4147480862c4
+task quality                       PASS — 532 passed, 8 skipped
+30B / M15 59-case evaluation       NOT RUN
+bounded real-provider smoke        PENDING CONFIGURED REMOTE ENVIRONMENT
+remote Delivery / Quality          PENDING PR
+substantive review                 NOT YET AUTHORIZED
+```
+
+The deterministic implementation gate is complete. M16 remains active and cannot move to review
+or merge until the opt-in real REST smoke and remote Delivery / Quality gates pass. No Golden,
+Oracle, prompt, threshold, or M8–M15 behavioral file changed.
+
+## 7. Decision log
+
+### 2026-08-30 — M16 OpenAI-compatible profile and honest identity
+
+**Decision:** Keep the existing model Ports. Select providers only through model-runtime
+composition. Implement one Chat Completions + Embeddings + model-descriptor conformance profile
+using bounded standard-library HTTP. Preserve Ollama as the default. Evolve internal
+`ModelFingerprint` identity metadata only as necessary to represent endpoint, optional provider
+revision, and assurance; an alias-only remote model has no fabricated digest.
+
+**Evidence:** Phase-1 services already accept provider-neutral `ChatModel`, `EmbeddingModel`, and
+`ModelRuntimeDiagnostics`. The remaining hard bindings are composition helpers and Ollama-only
+configuration. Standard remote model descriptors do not guarantee a weights digest or runtime
+version, so pretending that a mutable model alias is immutable would weaken M7/M15 identity.
+
+**Consequences:** Remote portability can be proven without changing M8–M15 behavioral authority.
+Remote indexes bind the weaker but explicit identity and stale-check against it. A future provider
+profile that exposes a verifiable immutable revision may raise assurance; `ALIAS_ONLY` evidence
+cannot independently authorize Product acceptance.
+
+### 2026-08-30 — M16 retrieval identity format amendment
+
+**Decision:** Advance only the generated retrieval-index identity format from
+`retrieval-index-v0.1` to `retrieval-index-v0.2` so the persisted embedding identity includes
+optional digest, endpoint identity, optional provider revision, and assurance.
+
+**Evidence:** The v0.1 Pydantic identity required a non-empty digest and could not serialize an
+honest alias-only remote model. Adding fields while retaining the same format version would make
+old and new canonical fingerprints ambiguous.
+
+**Consequences:** Existing generated v0.1 indexes fail closed and rebuild. M7 document projection,
+cosine search, BM25, RRF, seed selection, relationship expansion, and eval gates are unchanged.
+
+## 8. Deviation rule
+
+If a frozen boundary proves impossible to compose:
+
+1. stop that implementation branch;
+2. record the concrete failing assumption and a regression;
+3. propose the smallest architecture amendment;
+4. do not change behavior or truth sources without substantive authorization.

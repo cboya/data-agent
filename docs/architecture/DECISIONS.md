@@ -652,3 +652,36 @@ release.
 token bound changes. M15 evaluation infrastructure may be substantively approved and merged after
 its own correctness gate while the behavioral verdict remains `REJECTED`, the Product NL2SQL MVP
 remains `NOT ACCEPTED`, and no MVP release/tag is created.
+
+---
+
+## D-036 — Model provider portability is a composition concern with honest identity assurance
+
+**Decision:** Phase 2 retains `ChatModel`, `EmbeddingModel`, `ModelRuntimeProbe`, and
+`ModelRuntimeDiagnostics` as the only harness-facing model boundaries. Configuration-owned
+composition selects either the existing Ollama reference adapter or one narrow
+OpenAI-compatible REST profile. Provider branches and DTOs remain inside `model_runtime`.
+
+The remote profile supports bounded authenticated Chat Completions with strict JSON Schema,
+Embeddings with exact indexed vector validation, and `GET /models/{id}` diagnostics. Every remote
+request has explicit timeout/response-byte/token-or-batch bounds and no hidden retry. Provider
+error bodies and API keys do not enter errors, logs, fingerprints, traces, or model context.
+
+`ModelFingerprint` may represent a real immutable digest, an exposed provider revision/snapshot,
+a pinned deployment, or an alias only. Its assurance is explicit as
+`IMMUTABLE_PROVIDER_REVISION`, `PINNED_DEPLOYMENT`, or `ALIAS_ONLY`. Endpoint identity and the
+strongest provider revision actually exposed are fingerprinted. A remote alias with no revision
+has `digest = null` and `ALIAS_ONLY`; the adapter never invents a weights digest. Existing Ollama
+digest/tag drift protection is unchanged.
+
+**Reason:** Phase 1 already proved that behavior and authority services consume provider-neutral
+Ports, while direct Ollama construction remained in application/runtime composition. Remote APIs
+do not universally expose immutable weights or runtime revisions, so treating a model alias as a
+digest would overstate reproducibility and weaken M7/M15 identity evidence.
+
+**Consequences:** Provider portability can pass independently of model behavioral quality.
+Alias-only evidence is sufficient for M16 control-flow conformance but cannot by itself be
+represented as strong reproducibility or Product acceptance. A complete remote-model M15 run is
+not part of M16 and still requires explicit authorization under a fully bound new evaluation
+environment. D-003 remains the frozen Phase-1/default local-runtime decision rather than a ban on
+Phase-2 adapters.
