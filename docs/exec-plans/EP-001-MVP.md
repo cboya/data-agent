@@ -567,11 +567,6 @@ authorized for this remediation. PR #17 accepted final head
 complete/frozen. Draft PR #15 may resume final M15 acceptance without reopening an upstream
 milestone.
 
-M8 targeted-readiness closure (2026-08-29): accepted PR #17 head
-`b2f0d87e3c260d0d1e092d333f67c21304a48a1b` was substantively approved and squash-merged to
-protected `main` as `a937546cb2d0c032ffa8dd76a8a4fbeec0227c95`. M8 was complete/frozen again;
-Draft PR #15 remained paused and untouched.
-
 M8 time-range-admission activation (2026-08-29): the minimal M15 live wire smoke then exposed one
 new control-plane trust defect: a provider SET of `TimeRange(kind=RELATIVE, value=recent)` was
 treated as resolved solely because a valid public object existed, allowing false READY. Reopen M8
@@ -597,10 +592,12 @@ successful refunds `110.00`, and retrieval index
 461 tests with 7 explicit host-only skips. No 30B inference or 59-case M15 eval ran, and Draft PR
 #15 remained unchanged at `0438bc35f599984d34d5c801289e9fe551d9f092`.
 
-M8 time-range-admission delivery evidence (2026-08-29): focused PR #18 is open at implementation
-commit `2be082a81e29aa8809bf5026ebe02dce03ac7c46`; requested reviewer is `cboya`. Remote
-`Delivery / Quality` passed in workflow run `33246939668`. The PR remains unmerged for substantive
-review, this targeted M8 remediation is not complete, and Draft PR #15 remains untouched.
+M8 time-range-admission closure evidence (2026-08-29): focused PR #18 implementation commit
+`2be082a81e29aa8809bf5026ebe02dce03ac7c46` and accepted final head
+`08159f1f6bbaf270d81827fac96f78fab81887f2` received substantive approval. Final remote
+`Delivery / Quality` passed in workflow run `33247019114`; PR #18 was squash-merged to protected
+`main` as `9837520c2b68e5b4f5c26de4eb2eed9b66ff76e5`. The M8 TimeRange-admission remediation is
+complete/frozen and M15 final acceptance is authorized without another upstream change.
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
@@ -1214,16 +1211,18 @@ with seven explicit host-only skips after the sandbox-only MySQL denial was reru
 host socket access. The 30B model was unloaded after the bounded replay.
 
 M15 final-acceptance resume note (2026-08-29): protected `main` baseline
-`a937546cb2d0c032ffa8dd76a8a4fbeec0227c95` contains the completed/frozen M12 and M8 targeted
-remediations from PR #16 and PR #17. It was integrated into the existing Draft PR #15 lineage by
-merge commit `d74b323f67844a480b0ad7cff0b6c8556ebaa16a`; the prior attribution and diagnosis commits and
-all checked-in evidence artifacts remain intact. The only integration conflicts were append-only
-documentation collisions: M15 decisions retain D-030/D-031 and the later M12/M8 decisions are
-mechanically numbered D-032/D-033. Golden truth, Oracle truth, thresholds, bound model, timeout,
-output-token ceiling, prompts, and M8–M14 behavioral contracts remain frozen. Final acceptance now
-proceeds through deterministic integration sanity, a minimal bound-model dialogue wire smoke, and
-then the canonical clean `reset → bootstrap → quality → eval` sequence without reopening an
-upstream milestone.
+`9837520c2b68e5b4f5c26de4eb2eed9b66ff76e5` contains the completed/frozen M12, deterministic M8
+readiness, and M8 TimeRange-admission remediations from PR #16, PR #17, and PR #18. The earlier
+main baseline through PR #17 entered the existing Draft PR #15 lineage at merge commit
+`d74b323f67844a480b0ad7cff0b6c8556ebaa16a`; final protected main entered the same unre-written
+lineage at merge commit `b61921694cab39394411c76aa9919fa22ba93dfa`. Prior attribution and diagnosis
+commits and all checked-in evidence artifacts remain intact. Integration conflicts were append-
+only documentation collisions: M15 decisions retain D-030/D-031 and the later M12/M8 decisions
+are mechanically numbered D-032/D-033/D-034. Golden truth, Oracle truth, thresholds, bound model,
+timeout, output-token ceiling, prompts, and M8–M14 behavioral contracts remain frozen. Final
+acceptance now proceeds through deterministic integration sanity, the exact six-case bound-model
+control-plane smoke, and then the canonical clean `reset → bootstrap → quality → eval` sequence
+without reopening an upstream milestone.
 
 M15 terminal closure rule: this milestone becomes COMPLETE only when final substantive review is
 APPROVED, remote `Delivery / Quality` is PASS, clean-state final acceptance is PASS, and the
