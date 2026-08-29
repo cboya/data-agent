@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import hashlib
+import json
 from typing import Literal, Self
 
 from pydantic import Field, model_validator
@@ -25,3 +27,13 @@ class AnswerProposal(ContractModel):
         if len(keys) != len(set(keys)):
             raise ValueError("answer evidence references must be unique")
         return self
+
+
+def answer_proposal_fingerprint(proposal: AnswerProposal) -> str:
+    canonical = json.dumps(
+        proposal.model_dump(mode="json"),
+        ensure_ascii=True,
+        separators=(",", ":"),
+        sort_keys=True,
+    )
+    return hashlib.sha256(canonical.encode("utf-8")).hexdigest()

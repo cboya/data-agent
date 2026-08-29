@@ -22,6 +22,8 @@ def test_synthesizer_makes_one_model_call_and_returns_grounded_language() -> Non
 
     assert result.mode is AnswerSynthesisMode.MODEL
     assert result.answer == "首日广东实付金额为 100.00。"
+    assert result.proposal_fingerprint is not None
+    assert len(result.proposal_fingerprint) == 64
     assert len(model.calls) == 1
 
 
@@ -48,4 +50,5 @@ def test_oversized_context_uses_deterministic_zero_call_fallback() -> None:
 
     assert result.mode is AnswerSynthesisMode.DETERMINISTIC_FALLBACK
     assert result.reason == "RESULT_TOO_LARGE"
+    assert result.proposal_fingerprint is None
     assert model.calls == []

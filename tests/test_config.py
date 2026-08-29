@@ -12,6 +12,7 @@ def test_settings_validate_runtime_limits(settings: Settings) -> None:
     assert settings.mysql_query_read_timeout_seconds == 10
     assert settings.ollama_request_timeout_seconds == 60
     assert settings.planner_eval_request_timeout_seconds == 180
+    assert settings.ollama_max_output_tokens == 2_048
     assert settings.mysql_root_password.get_secret_value() == "change-me-local-only"
     assert settings.max_retrieved_tables == 8
     assert settings.max_relationship_hops == 1

@@ -8,7 +8,11 @@ from enum import StrEnum
 from data_agent.answer.context import AnswerSynthesisContext
 from data_agent.answer.grounding import AnswerGroundingPolicy
 from data_agent.answer.prompt import ANSWER_PROMPT_VERSION, answer_messages
-from data_agent.answer.proposal import AnswerProposal, CellReference
+from data_agent.answer.proposal import (
+    AnswerProposal,
+    CellReference,
+    answer_proposal_fingerprint,
+)
 from data_agent.model_runtime.ports import ChatModel
 
 
@@ -23,6 +27,7 @@ class AnswerSynthesisResult:
     evidence_refs: tuple[CellReference, ...]
     mode: AnswerSynthesisMode
     reason: str | None = None
+    proposal_fingerprint: str | None = None
 
 
 class AnswerSynthesizer:
@@ -66,4 +71,5 @@ class AnswerSynthesizer:
             answer=str(grounded.answer),
             evidence_refs=tuple(grounded.evidence_refs),
             mode=AnswerSynthesisMode.MODEL,
+            proposal_fingerprint=answer_proposal_fingerprint(proposal),
         )

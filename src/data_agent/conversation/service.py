@@ -22,7 +22,7 @@ from data_agent.conversation.models import (
     build_result_response,
 )
 from data_agent.dialogue.service import DialogueService
-from data_agent.persistence.ports import ConversationUnitOfWork, RunRepository
+from data_agent.persistence.ports import ConversationUnitOfWork, RunRepository, TraceRepository
 from data_agent.planning.errors import PlannerError
 from data_agent.planning.service import PlanningTrace
 from data_agent.query_runtime.errors import RuntimeExecutionError
@@ -40,6 +40,20 @@ from data_agent.retrieval.service import RetrievalTrace
 from data_agent.run_state import TERMINAL_RUN_STATUSES
 from data_agent.sql_guard.capability import GuardedQuery
 from data_agent.sql_guard.service import SQLAdmissionService
+from data_agent.trace.errors import TraceError
+from data_agent.trace.model import TraceEventDraft, TraceEventType, TraceStage
+from data_agent.trace.policy import TraceCompletenessPolicy
+from data_agent.trace.projection import (
+    admission_payload,
+    admitted_query_payload,
+    dialogue_payload,
+    execution_payload,
+    planning_payload,
+    repair_payload,
+    retrieval_payload,
+    synthesis_payload,
+    verification_payload,
+)
 from data_agent.verification.context import build_verification_context
 from data_agent.verification.errors import VerificationIntegrityError
 from data_agent.verification.evidence import VerificationTrace
@@ -93,6 +107,17 @@ _SAFE_FAILURE_MESSAGES = {
     RunStatus.FAILED: "本次请求未能安全完成。",
 }
 
+_FAILURE_EVENT_BY_STATUS: dict[RunStatus, tuple[TraceEventType, TraceStage]] = {
+    RunStatus.RECEIVED: (TraceEventType.DIALOGUE_COMPLETED, TraceStage.DIALOGUE),
+    RunStatus.UNDERSTANDING: (TraceEventType.DIALOGUE_COMPLETED, TraceStage.DIALOGUE),
+    RunStatus.RETRIEVING: (TraceEventType.RETRIEVAL_COMPLETED, TraceStage.RETRIEVAL),
+    RunStatus.PLANNING: (TraceEventType.PLANNING_COMPLETED, TraceStage.PLANNING),
+    RunStatus.VALIDATING: (TraceEventType.SQL_ADMISSION_COMPLETED, TraceStage.SQL_ADMISSION),
+    RunStatus.EXECUTING: (TraceEventType.EXECUTION_COMPLETED, TraceStage.EXECUTION),
+    RunStatus.VERIFYING: (TraceEventType.VERIFICATION_COMPLETED, TraceStage.VERIFICATION),
+    RunStatus.SYNTHESIZING: (TraceEventType.SYNTHESIS_COMPLETED, TraceStage.SYNTHESIS),
+}
+
 
 class ConversationOrchestrator:
     """Own lifecycle sequencing; every stage retains its existing policy authority."""
@@ -114,6 +139,7 @@ class ConversationOrchestrator:
         synthesizer: AnswerSynthesizer,
         clock: Callable[[], datetime],
         id_factory: Callable[[str], str],
+        traces: TraceRepository,
     ) -> None:
         self._dialogue = dialogue
         self._uow = unit_of_work
@@ -129,6 +155,7 @@ class ConversationOrchestrator:
         self._synthesizer = synthesizer
         self._clock = clock
         self._id_factory = id_factory
+        self._traces = traces
 
     async def process_message(self, *, session_id: str, content: str) -> ConversationResponse:
         started_at = self._clock()
@@ -140,12 +167,26 @@ class ConversationOrchestrator:
                 started_at=started_at,
             )
         )
+        self._append(
+            self._event(
+                run,
+                event_type=TraceEventType.RUN_RECEIVED,
+                stage=TraceStage.RUN,
+                payload={"outcome": "RECEIVED", "initial_status": RunStatus.RECEIVED.value},
+            )
+        )
         self._runs.transition(str(run.id), RunStatus.UNDERSTANDING, transitioned_at=self._clock())
         try:
             prepared = await self._dialogue.prepare_turn(
                 session_id=session_id, user_content=content
             )
             if prepared.outcome.decision.action is DialogueAction.ASK_CLARIFICATION:
+                dialogue_event = self._event(
+                    run,
+                    event_type=TraceEventType.DIALOGUE_COMPLETED,
+                    stage=TraceStage.DIALOGUE,
+                    payload=dialogue_payload(prepared),
+                )
                 committed = self._uow.commit_dialogue_with_run(
                     session=prepared.session,
                     expected_revision=prepared.expected_revision,
@@ -153,6 +194,14 @@ class ConversationOrchestrator:
                     assistant_message=prepared.assistant_message,
                     run_id=str(run.id),
                     target=RunStatus.CLARIFYING,
+                    trace_events=(
+                        dialogue_event,
+                        self._terminal_event(
+                            run,
+                            status=RunStatus.CLARIFYING,
+                            error_code=None,
+                        ),
+                    ),
                 )
                 question = prepared.outcome.decision.question
                 if question is None:
@@ -164,6 +213,12 @@ class ConversationOrchestrator:
                     requirement=prepared.outcome.requirement.model_dump(mode="json"),
                 )
             if prepared.outcome.decision.action is DialogueAction.CANNOT_RESOLVE:
+                dialogue_event = self._event(
+                    run,
+                    event_type=TraceEventType.DIALOGUE_COMPLETED,
+                    stage=TraceStage.DIALOGUE,
+                    payload=dialogue_payload(prepared),
+                )
                 committed = self._uow.commit_dialogue_with_run(
                     session=prepared.session,
                     expected_revision=prepared.expected_revision,
@@ -171,6 +226,14 @@ class ConversationOrchestrator:
                     assistant_message=None,
                     run_id=str(run.id),
                     target=RunStatus.FAILED,
+                    trace_events=(
+                        dialogue_event,
+                        self._terminal_event(
+                            run,
+                            status=RunStatus.FAILED,
+                            error_code="DIALOGUE_CANNOT_RESOLVE",
+                        ),
+                    ),
                 )
                 return self._failure(committed.run)
 
@@ -181,17 +244,35 @@ class ConversationOrchestrator:
                 assistant_message=None,
                 run_id=str(run.id),
                 target=RunStatus.RETRIEVING,
+                trace_events=(
+                    self._event(
+                        run,
+                        event_type=TraceEventType.DIALOGUE_COMPLETED,
+                        stage=TraceStage.DIALOGUE,
+                        payload=dialogue_payload(prepared),
+                    ),
+                ),
             )
             return await self._run_query(
                 run=committed.run,
                 requirement=prepared.outcome.requirement,
             )
+        except TraceError:
+            raise
         except Exception:
-            return self._failure(self._terminalize(str(run.id), code="PIPELINE_FAILED"))
+            return self._failure(self._terminalize_pipeline_failure(str(run.id)))
 
     async def _run_query(self, *, run: Run, requirement: RequirementState) -> ConversationResponse:
         try:
             retrieval = await self._retriever.retrieve(requirement_retrieval_query(requirement))
+            self._append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.RETRIEVAL_COMPLETED,
+                    stage=TraceStage.RETRIEVAL,
+                    payload=retrieval_payload(retrieval),
+                )
+            )
             run = self._runs.transition(
                 str(run.id), RunStatus.PLANNING, transitioned_at=self._clock()
             )
@@ -201,12 +282,28 @@ class ConversationOrchestrator:
                 catalog=self._catalog,
                 expected_retrieval_index_fingerprint=self._retrieval_index_fingerprint,
             )
+            self._append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.PLANNING_COMPLETED,
+                    stage=TraceStage.PLANNING,
+                    payload=planning_payload(planning),
+                )
+            )
             run = self._runs.transition(
                 str(run.id), RunStatus.VALIDATING, transitioned_at=self._clock()
             )
             admission = self._admission.admit(
                 planning.plan,
                 planner_context_fingerprint=planning.planner_context_fingerprint,
+            )
+            self._append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.SQL_ADMISSION_COMPLETED,
+                    stage=TraceStage.SQL_ADMISSION,
+                    payload=admission_payload(admission),
+                )
             )
             if admission.guarded_query is None:
                 return await self._repair_or_finish(
@@ -221,13 +318,28 @@ class ConversationOrchestrator:
             try:
                 execution = self._query_runtime.execute_with_evidence(guarded)
             except RuntimeExecutionError as error:
+                failure = failure_from_runtime(planning, guarded, error, source_run_id=str(run.id))
+                self._append(
+                    self._event(
+                        run,
+                        event_type=TraceEventType.EXECUTION_COMPLETED,
+                        stage=TraceStage.EXECUTION,
+                        payload=execution_payload(None, guarded=guarded, failure=failure),
+                    )
+                )
                 return await self._repair_or_finish(
                     run=run,
                     original=planning,
-                    failure=failure_from_runtime(
-                        planning, guarded, error, source_run_id=str(run.id)
-                    ),
+                    failure=failure,
                 )
+            self._append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.EXECUTION_COMPLETED,
+                    stage=TraceStage.EXECUTION,
+                    payload=execution_payload(execution.metadata, result=execution.result),
+                )
+            )
             run = self._runs.transition(
                 str(run.id), RunStatus.VERIFYING, transitioned_at=self._clock()
             )
@@ -241,24 +353,48 @@ class ConversationOrchestrator:
                     )
                 )
             except VerificationIntegrityError:
+                failure = failure_from_verification_integrity(planning, source_run_id=str(run.id))
+                self._append(
+                    self._event(
+                        run,
+                        event_type=TraceEventType.VERIFICATION_COMPLETED,
+                        stage=TraceStage.VERIFICATION,
+                        payload=verification_payload(None, failure=failure),
+                    )
+                )
                 return await self._repair_or_finish(
                     run=run,
                     original=planning,
-                    failure=failure_from_verification_integrity(
-                        planning, source_run_id=str(run.id)
-                    ),
+                    failure=failure,
                 )
             if verification.result.status != "PASSED":
+                failure = failure_from_verification(
+                    planning,
+                    guarded,
+                    verification,
+                    source_run_id=str(run.id),
+                )
+                self._append(
+                    self._event(
+                        run,
+                        event_type=TraceEventType.VERIFICATION_COMPLETED,
+                        stage=TraceStage.VERIFICATION,
+                        payload=verification_payload(verification, failure=failure),
+                    )
+                )
                 return await self._repair_or_finish(
                     run=run,
                     original=planning,
-                    failure=failure_from_verification(
-                        planning,
-                        guarded,
-                        verification,
-                        source_run_id=str(run.id),
-                    ),
+                    failure=failure,
                 )
+            self._append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.VERIFICATION_COMPLETED,
+                    stage=TraceStage.VERIFICATION,
+                    payload=verification_payload(verification),
+                )
+            )
             run = self._runs.transition(
                 str(run.id), RunStatus.SYNTHESIZING, transitioned_at=self._clock()
             )
@@ -270,8 +406,10 @@ class ConversationOrchestrator:
                 verification=verification,
                 repair_outcome=None,
             )
+        except TraceError:
+            raise
         except (RetrievalError, PlannerError, AnswerError, ValueError):
-            return self._failure(self._terminalize(str(run.id), code="PIPELINE_FAILED"))
+            return self._failure(self._terminalize_pipeline_failure(str(run.id)))
 
     async def _repair_or_finish(
         self,
@@ -286,11 +424,144 @@ class ConversationOrchestrator:
             failure=failure,
             occurred_at=self._clock(),
         )
+        attempt = outcome.trace.attempt
+        repair_events = [
+            self._event(
+                run,
+                event_type=TraceEventType.REPAIR_COMPLETED,
+                stage=TraceStage.REPAIR,
+                payload=repair_payload(outcome.trace),
+                attempt=attempt,
+            )
+        ]
+        if outcome.replacement_planning_trace is not None:
+            repair_events.append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.PLANNING_COMPLETED,
+                    stage=TraceStage.PLANNING,
+                    payload=planning_payload(outcome.replacement_planning_trace),
+                    attempt=1,
+                )
+            )
+            repair_events.append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.SQL_ADMISSION_COMPLETED,
+                    stage=TraceStage.SQL_ADMISSION,
+                    payload=(
+                        admitted_query_payload(outcome.guarded_query)
+                        if outcome.guarded_query is not None
+                        else {
+                            "outcome": "FAILED",
+                            "failure_code": outcome.terminal_error_code,
+                            "query_plan_fingerprint": (
+                                outcome.trace.replacement_query_plan_fingerprint
+                            ),
+                            "planner_context_fingerprint": (
+                                outcome.trace.planner_context_fingerprint
+                            ),
+                        }
+                    ),
+                    attempt=1,
+                )
+            )
+        if outcome.guarded_query is not None:
+            if outcome.execution_metadata is not None:
+                repair_events.append(
+                    self._event(
+                        run,
+                        event_type=TraceEventType.EXECUTION_COMPLETED,
+                        stage=TraceStage.EXECUTION,
+                        payload=execution_payload(
+                            outcome.execution_metadata,
+                            result=outcome.execution_result,
+                        ),
+                        attempt=1,
+                    )
+                )
+            elif outcome.trace.outcome is RepairOutcomeKind.EXECUTION_FAILED:
+                repair_events.append(
+                    self._event(
+                        run,
+                        event_type=TraceEventType.EXECUTION_COMPLETED,
+                        stage=TraceStage.EXECUTION,
+                        payload={
+                            "outcome": "FAILED",
+                            "failure_code": outcome.terminal_error_code,
+                            "guarded_query_fingerprint": (
+                                outcome.guarded_query.capability_fingerprint
+                            ),
+                            "sql_digest": outcome.guarded_query.sql_digest,
+                        },
+                        attempt=1,
+                    )
+                )
+        if outcome.verification_trace is not None:
+            repair_events.append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.VERIFICATION_COMPLETED,
+                    stage=TraceStage.VERIFICATION,
+                    payload=verification_payload(outcome.verification_trace),
+                    attempt=1,
+                )
+            )
+        elif (
+            outcome.execution_metadata is not None
+            and outcome.trace.outcome is RepairOutcomeKind.VERIFICATION_FAILED
+        ):
+            repair_events.append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.VERIFICATION_COMPLETED,
+                    stage=TraceStage.VERIFICATION,
+                    payload={
+                        "outcome": "FAILED",
+                        "failure_code": outcome.terminal_error_code,
+                        "execution_id": outcome.execution_metadata.execution_id,
+                        "result_fingerprint": outcome.execution_metadata.result_fingerprint,
+                    },
+                    attempt=1,
+                )
+            )
+        if outcome.trace.outcome is RepairOutcomeKind.SUCCEEDED and (
+            outcome.replacement_planning_trace is None
+            or outcome.guarded_query is None
+            or outcome.execution_metadata is None
+            or outcome.verification_trace is None
+        ):
+            return self._failure(
+                self._terminalize(
+                    str(run.id),
+                    code="REPAIR_EVIDENCE_INCOMPLETE",
+                    preceding_events=tuple(repair_events),
+                )
+            )
         if outcome.trace.outcome is not RepairOutcomeKind.SUCCEEDED:
             terminal = outcome.run
             if terminal.status not in TERMINAL_RUN_STATUSES:
-                terminal = self._terminalize(str(terminal.id), code=str(failure.code))
+                terminal = self._terminalize(
+                    str(terminal.id),
+                    code=outcome.terminal_error_code or str(failure.code),
+                    target=outcome.terminal_status or RunStatus.FAILED,
+                    preceding_events=tuple(repair_events),
+                )
+            else:
+                self._append_many(tuple(repair_events))
+                terminal_event = self._terminal_event(
+                    terminal,
+                    status=terminal.status,
+                    error_code=terminal.error_code,
+                    attempt=terminal.repair_count,
+                )
+                self._append(terminal_event)
+                TraceCompletenessPolicy().validate(
+                    terminal,
+                    tuple(self._traces.list_for_run(str(terminal.id))),
+                )
             return self._failure(terminal)
+        self._append_many(tuple(repair_events))
         if (
             outcome.replacement_planning_trace is None
             or outcome.guarded_query is None
@@ -336,16 +607,38 @@ class ConversationOrchestrator:
             )
             synthesis = await self._synthesizer.synthesize(context)
             completed_at = self._clock()
+            assistant_message = Message(
+                id=self._id_factory("message"),
+                session_id=str(run.session_id),
+                role=MessageRole.ASSISTANT,
+                content=synthesis.answer,
+                created_at=completed_at,
+            )
+            attempt = run.repair_count
             completed = self._uow.complete_run_with_message(
                 run_id=str(run.id),
-                assistant_message=Message(
-                    id=self._id_factory("message"),
-                    session_id=str(run.session_id),
-                    role=MessageRole.ASSISTANT,
-                    content=synthesis.answer,
-                    created_at=completed_at,
-                ),
+                assistant_message=assistant_message,
                 completed_at=completed_at,
+                trace_events=(
+                    self._event(
+                        run,
+                        event_type=TraceEventType.SYNTHESIS_COMPLETED,
+                        stage=TraceStage.SYNTHESIS,
+                        payload=synthesis_payload(
+                            synthesis,
+                            assistant_message_id=str(assistant_message.id),
+                        ),
+                        attempt=attempt,
+                        occurred_at=completed_at,
+                    ),
+                    self._terminal_event(
+                        run,
+                        status=RunStatus.COMPLETED,
+                        error_code=None,
+                        attempt=attempt,
+                        occurred_at=completed_at,
+                    ),
+                ),
             )
             return build_result_response(
                 session_id=str(run.session_id),
@@ -356,19 +649,132 @@ class ConversationOrchestrator:
                 verification_trace=verification,
                 synthesis=synthesis,
             )
+        except TraceError:
+            raise
         except Exception:
+            self._append(
+                self._event(
+                    run,
+                    event_type=TraceEventType.SYNTHESIS_COMPLETED,
+                    stage=TraceStage.SYNTHESIS,
+                    payload=synthesis_payload(None, error_code="SYNTHESIS_FAILED"),
+                    attempt=run.repair_count,
+                )
+            )
             return self._failure(self._terminalize(str(run.id), code="SYNTHESIS_FAILED"))
 
-    def _terminalize(self, run_id: str, *, code: str) -> Run:
+    def _terminalize(
+        self,
+        run_id: str,
+        *,
+        code: str,
+        target: RunStatus = RunStatus.FAILED,
+        preceding_events: tuple[TraceEventDraft, ...] = (),
+    ) -> Run:
         current = self._runs.get(run_id)
         if current.status in TERMINAL_RUN_STATUSES:
             return current
-        return self._runs.transition(
-            run_id,
-            RunStatus.FAILED,
-            transitioned_at=self._clock(),
+        completed_at = self._clock()
+        return self._uow.terminate_run_with_trace(
+            run_id=run_id,
+            target=target,
+            completed_at=completed_at,
             error_code=code,
+            trace_events=(
+                *preceding_events,
+                self._terminal_event(
+                    current,
+                    status=target,
+                    error_code=code,
+                    attempt=current.repair_count,
+                    occurred_at=completed_at,
+                ),
+            ),
         )
+
+    def _terminalize_pipeline_failure(self, run_id: str) -> Run:
+        current = self._runs.get(run_id)
+        event_type, stage = _FAILURE_EVENT_BY_STATUS.get(
+            current.status,
+            (TraceEventType.DIALOGUE_COMPLETED, TraceStage.DIALOGUE),
+        )
+        payload: dict[str, object] = {
+            "outcome": "FAILED",
+            "error_code": "PIPELINE_FAILED",
+        }
+        attempt = current.repair_count
+        return self._terminalize(
+            run_id,
+            code="PIPELINE_FAILED",
+            preceding_events=(
+                self._event(
+                    current,
+                    event_type=event_type,
+                    stage=stage,
+                    payload=payload,
+                    attempt=attempt,
+                ),
+            ),
+        )
+
+    def _event(
+        self,
+        run: Run,
+        *,
+        event_type: TraceEventType,
+        stage: TraceStage,
+        payload: dict[str, object],
+        attempt: int = 0,
+        occurred_at: datetime | None = None,
+    ) -> TraceEventDraft:
+        return TraceEventDraft(
+            id=self._id_factory("trace"),
+            session_id=str(run.session_id),
+            run_id=str(run.id),
+            attempt=attempt,
+            stage=stage,
+            event_type=event_type,
+            payload=payload,
+            occurred_at=occurred_at or self._clock(),
+        )
+
+    def _terminal_event(
+        self,
+        run: Run,
+        *,
+        status: RunStatus,
+        error_code: str | None,
+        attempt: int = 0,
+        occurred_at: datetime | None = None,
+    ) -> TraceEventDraft:
+        return self._event(
+            run,
+            event_type=TraceEventType.RUN_TERMINATED,
+            stage=TraceStage.RUN,
+            payload={
+                "outcome": "TERMINATED",
+                "terminal_status": status.value,
+                "error_code": error_code,
+            },
+            attempt=attempt,
+            occurred_at=occurred_at,
+        )
+
+    def _append(self, draft: TraceEventDraft) -> None:
+        try:
+            self._traces.append(draft)
+        except TraceError:
+            raise
+        except Exception as error:
+            raise TraceError("trace persistence failed closed") from error
+
+    def _append_many(self, drafts: tuple[TraceEventDraft, ...]) -> None:
+        try:
+            self._traces.append_many(drafts)
+        except TraceError:
+            raise
+        except Exception as error:
+            raise TraceError("trace persistence failed closed") from error
 
     @staticmethod
     def _failure(run: Run) -> FailureResponse:

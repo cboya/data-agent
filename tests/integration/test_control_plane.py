@@ -16,6 +16,7 @@ EXPECTED_CONTROL_TABLES = {
     "agent_message",
     "agent_run",
     "agent_artifact",
+    "agent_trace_event",
     "schema_migration",
 }
 EXPECTED_RUNTIME_PRIVILEGES = {
@@ -29,6 +30,8 @@ EXPECTED_RUNTIME_PRIVILEGES = {
     ("agent_run", "UPDATE"),
     ("agent_artifact", "SELECT"),
     ("agent_artifact", "INSERT"),
+    ("agent_trace_event", "SELECT"),
+    ("agent_trace_event", "INSERT"),
 }
 
 
@@ -42,6 +45,7 @@ def test_control_migrations_are_versioned_and_idempotent(settings: Settings) -> 
         "002_agent_message.sql",
         "003_agent_run.sql",
         "004_agent_artifact.sql",
+        "005_agent_trace_event.sql",
     ]
     assert all(len(migration.checksum) == 64 for migration in first)
 

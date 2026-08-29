@@ -40,7 +40,8 @@ Suggested distribution:
 | Clarification behavior | 7 |
 | Security/failure behavior | 5 |
 
-Early implementation may begin with the example cases under `evals/golden.example.yaml`.
+The frozen MVP suite is `evals/golden.yaml`; its trusted static result Oracles are isolated in
+`evals/oracles.yaml`. Neither source is runtime or model context.
 
 ## 4. Golden case contract
 
@@ -335,7 +336,112 @@ bounded repaired success, and terminal policy failure.
 
 These values are MVP engineering gates for the synthetic world, not claims about production accuracy.
 
-If the first 50-case calibration shows a target is structurally inappropriate, revise this file explicitly with rationale; do not silently lower a test.
+### Final M15 public-API acceptance
+
+The canonical runner executes every standalone stage gate, then at least 50 cases through
+`POST /sessions` and `POST /sessions/{id}/messages`. It inspects the typed response, publicly
+readable Run, and persisted append-only trace. Trusted result assertions compare typed values from
+static eval-only SELECT Oracles without exact SQL equality; Golden SQL never enters runtime or
+prompt context. Fixed absolute dates are required wherever wall-clock-relative interpretation
+would change result truth.
+
+Final hard gates are:
+
+- trace integrity and terminal completeness = `1.00`;
+- verified + Oracle mismatch count = `0`;
+- unauthorized execution count = `0`;
+- synthesis after failed verification count = `0`;
+- numeric grounding violation count = `0`;
+- repair-bound violation count = `0`.
+
+Behavioral gates are Golden E2E pass rate `>= 0.90`, result-Oracle pass rate `>= 0.90`, and
+unnecessary clarification rate `<= 0.10`, while preserving all prior stage targets including M7
+Recall@5/Recall@10. `evals/reports/latest.json` includes case stage, Run IDs, trace assertion
+failures, stage reports, and the canonical `EvaluationEnvironment` fingerprint.
+
+Final acceptance is an adjudication process. Its terminal outcome is classified without changing
+any gate:
+
+| Outcome | Meaning |
+|---|---|
+| `ACCEPTED` | A complete canonical report exists and every frozen hard, stage, and behavioral gate passes. |
+| `REJECTED` | A complete canonical report exists, but one or more frozen acceptance gates fail. |
+| `INVALID / ABORTED` | A complete canonical adjudication could not be produced, for example because the environment or run terminated early. |
+
+`REJECTED` means the acceptance process completed and the product did not pass; it must never be
+reported as behavioral success. `INVALID / ABORTED` does not adjudicate product behavior and must
+not treat a stale report as evidence for the interrupted attempt. M15 evaluation-infrastructure
+correctness may be reviewed independently, but Product NL2SQL MVP completion and release/tag
+require `ACCEPTED` under the unchanged targets above.
+
+The frozen model-neutral profile contains 59 cases: 55 Oracle-backed results over 54 distinct
+semantic/result Oracles, plus four safe terminal failures. Category coverage is 15 simple, 22
+aggregation/time, 11 relationship/trap, four multi-turn clarification/correction, three
+repair/empty cases, and four policy failures. Two result Oracles prove empty populations and one
+formulation permits the single allowed repair when needed. A stronger model is not required to
+fail its first branch merely to manufacture repair evidence; the standalone M13 eval retains the
+deterministic repair gate. Exact-result requests use fixed absolute dates.
+
+Case selection is not calibrated to the weakest available model. The initial 8B local-model run
+is diagnostic evidence; a stronger local Ollama model may provide final behavioral acceptance only
+under its own complete environment fingerprint. Model changes never change Golden sources,
+Oracles, or deterministic gates.
+
+`EvaluationEnvironment v0.1` must bind at least Git commit, Golden version/fingerprint, generated
+schema, semantic catalog fingerprint/revision, retrieval index, chat/embedding model fingerprints,
+Ollama runtime, dialogue/planning/repair/answer prompt versions, guard/EXPLAIN/runtime/
+verification/repair/grounding policies, trace schema, Python runtime, and dependency lock. A model
+acceptance result missing any bound identity is invalid rather than partially reproducible.
+The runner refuses to issue an environment identity from a dirty Git worktree and fixes Golden
+temporal interpretation to UTC with absolute-date result cases.
+
+If calibration shows a target is structurally inappropriate, revise this file explicitly with
+rationale; do not silently lower a test. Changing the frozen case source, model identity, prompt,
+catalog, or policy invalidates the earlier environment-bound acceptance result.
+
+### M15 behavioral-failure attribution
+
+`task m15-attribution` derives an eval-only diagnostic report from an already completed canonical
+report; it does not call a model, execute a query, or change acceptance status. The derived report
+must bind the source Git/environment/Golden fingerprints, provide a case-reached stage funnel, and
+assign every Golden case to exactly one terminal bucket so the bucket counts equal the frozen case
+count. Per-case evidence includes Run IDs, trace-event IDs, retained failure codes, and owning
+frozen milestone candidates.
+
+Stage-funnel counts mean "reached or passed at least once" and are not themselves a partition for
+multi-turn cases. Terminal buckets are the partition. Unknown evidence must stay unknown: if the
+source report did not retain clarification blocker fields, same-input standalone replay, or a
+typed model-failure cause, attribution records `EVIDENCE_UNAVAILABLE`, `NOT_REPLAYED`, or
+`UNCLASSIFIED` instead of inferring a field from user text or treating a zero classified count as
+proof that the failure did not occur. `M12 PASSED + Oracle FAILED` result branches are reported as
+a dedicated high-priority set.
+
+### M15 targeted behavioral diagnosis
+
+`task m15-behavioral-diagnosis` is an eval-only follow-up to a completed attribution report. It
+must not run the complete Golden suite or change runtime behavior, prompts/policies, Golden or
+Oracle truth, behavioral thresholds, model choice, timeout, or output-token bounds. Before any
+model call it fails closed unless the retained effect environment and live chat/embedding model
+fingerprints, Ollama version, dialogue prompt, timeout, and output ceiling match exactly; frozen
+runtime, Golden, and Oracle source must have no diff from the effect commit.
+
+The M8 replay case set is exactly the 35 cases assigned to unnecessary clarification by the bound
+attribution report. It records every replayed turn's expected/original/standalone action, blocking
+field and model-facing subject term, structured `DialogueProposal`, normalized
+`DialogueDecision`, `RequirementPatch`, merged `RequirementState`, typed structured-call outcome,
+and prompt/model/environment identity. No hidden reasoning is retained. Every case belongs to
+exactly one of four ownership classes, and their counts must sum to 35. A checkpoint is reusable
+only under the same full diagnostic identity.
+
+The false-accept forensic set is exactly the six retained `M12 PASSED + Oracle FAILED` cases. A
+model rerun is permitted only because the canonical source report did not retain the full
+`RequirementState → PlannerContext → QueryPlan → SQL → ExecutionResult → VerificationTrace`
+chain and clean reset removed the referenced control rows. Each targeted replay records that
+chain plus the static Oracle, whether the retained public shape was reproduced, earliest semantic
+divergence, and exclusive M9/M12/both/human-review ownership. It stops model activity after M12;
+an eval-only deterministic synthesis placeholder may complete persistence but creates no M14
+behavior claim. Machine-readable and human-readable reports remain diagnostic evidence: they do
+not make PR #15 ready or authorize remediation of a frozen milestone.
 
 ## 7. Semantic correctness
 

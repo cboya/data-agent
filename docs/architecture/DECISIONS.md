@@ -444,7 +444,71 @@ durable outcomes.
 
 ---
 
-## D-030 — M12 independently proves the governed public analytical shape
+## D-030 — Trace is append-only evidence; Golden truth is acceptance-only
+
+**Decision:** M15 persists observable pipeline outcomes in a dedicated append-only
+`agent_trace_event` table. Each event has a unique ID, Run/Session identity, contiguous per-Run
+sequence, bounded attempt (`0` or `1`), typed stage/event, schema version, bounded JSON payload,
+canonical payload fingerprint, and timestamp. Event-type/stage pairing, sensitive/raw-row field
+rejection, payload size, reload fingerprint, sequence, identity, ordering, attempt branches, and
+terminal completeness are deterministic policies. Required `COMPLETED`, `CLARIFYING`, and failure
+terminal events share the control-plane transaction that persists their terminal Run outcome; a
+trace write failure cannot be converted to a successful public response. Repair services retain
+their frozen standalone transition behavior, while production defers repair terminal transitions
+to this trace-aware unit of work.
+
+The source-controlled `evals/golden.yaml` contains 59 public Session/Message API cases. Trusted
+Oracle SQL is static and isolated in `evals/oracles.yaml`; it is validated as one read-only SELECT
+and used only by the top-level `eval_harness` package. Runtime packages and every model prompt are
+mechanically prohibited from importing either acceptance source. Golden result assertions compare
+typed result values independent of row order and do not require exact generated SQL text.
+`EvaluationEnvironment v0.1` binds Git, Golden, generated schema, semantic catalog/revision,
+retrieval index, both model fingerprints, Ollama, all prompt/policy versions, trace schema,
+dependency lock, and Python under one canonical fingerprint.
+Final report construction rejects a dirty Git worktree and records UTC as the evaluation timezone.
+
+**Reason:** A trace must make execution auditable without becoming a second semantic or policy
+authority, and it must not persist hidden chain-of-thought, credentials, answer duplicates, or raw
+result rows. Allowing Golden expectations or Oracle SQL into runtime/model context would leak the
+answer and invalidate acceptance evidence. Model scores without a complete environment identity
+cannot distinguish behavioral change from model, data, catalog, prompt, policy, or dependency
+drift.
+
+---
+
+## D-031 — Golden semantics are model-neutral; behavioral evidence is model-bound
+
+**Decision:** Freeze 59 meaningful controlled-world cases independently of whether the initially
+available local model passes them. The suite contains 55 Oracle-backed result cases over 54
+distinct semantic/result Oracles, including 15 simple, 22 aggregation/time, 11 relationship/trap,
+two empty-population, four multi-turn clarification/correction, one repair-eligible formulation,
+and four safe terminal-failure paths. Every result is judged against static typed values and
+governed table evidence; no prompt receives acceptance truth, no SQL text is compared, and no
+behavioral gate is lowered.
+
+The initial `gemma4:latest` is an 8B Q4 local model. Its pre-freeze 54-case challenge run achieved
+Golden E2E `0.352`, result-Oracle `0.365`, and trace integrity `1.000`. Common failure shapes were
+spurious grouping, omitted filters, and wrong governed dimensions. That result remains valid
+diagnostic evidence for that exact environment, not a reason to remove hard cases. Final release
+behavioral acceptance may use a stronger local Ollama chat model, but its immutable
+`ModelFingerprint` and all other environment identities must be recorded and the entire frozen
+suite rerun. Small-model failure is permitted only within the probabilistic behavior thresholds;
+deterministic safety and trace gates remain exact.
+
+All structured chat calls retain temperature zero, disable thinking where supported, and apply
+the configured 2,048-token generation ceiling. Final evaluation identity binds both this ceiling
+and the request timeout. This resource bound is model-family neutral: it prevents a capable larger
+model from turning a bounded JSON contract into an unbounded generation without changing any
+prompt, Oracle, or behavioral truth.
+
+**Reason:** Golden truth describes intended product semantics, while an environment-bound score
+describes one model's capability. Optimizing case selection around an 8B model would reverse that
+authority relationship and overstate generalization. A stronger model may improve behavior, but
+cannot change Oracle truth, catalog authority, safety policy, or the scored suite.
+
+---
+
+## D-032 — M12 independently proves the governed public analytical shape
 
 **Decision:** `verification-policy-v0.2` treats the READY `RequirementState`, not a mutually
 consistent `QueryPlan` and `ExecutionResult`, as the independent authority for the public
@@ -483,7 +547,7 @@ contracts remain unchanged.
 
 ---
 
-## D-031 — M8 readiness is derived from material structured ambiguity
+## D-033 — M8 readiness is derived from material structured ambiguity
 
 **Decision:** Reopen M8 narrowly with internal `blocking-ambiguity-policy-v0.1`. The model's action
 and ambiguity list are candidates. The Harness normalizes an unsuppressed `RequirementPatch`,
@@ -528,7 +592,7 @@ convergence.
 
 ---
 
-## D-032 — Provider time-range mutation requires deterministic operational admission
+## D-034 — Provider time-range mutation requires deterministic operational admission
 
 **Decision:** A provider `time_range SET` remains an untrusted proposal even after public
 `TimeRange v0.1` validation. Before provisional merge or blocker classification, internal
@@ -552,3 +616,39 @@ control-plane authority to an unconstrained free-form value.
 natural-language temporal parser. Canonical and exactly bounded existing representations continue
 to compose with M9, while vague values fail before state mutation. M9–M15 behavior, Golden/Oracle
 truth, model/resource settings, and acceptance thresholds remain frozen.
+
+---
+
+## D-035 — Final acceptance completion is distinct from product acceptance
+
+**Decision:** Treat final acceptance as an adjudication process with exactly three terminal
+outcomes:
+
+```text
+ACCEPTED
+    a complete canonical run exists and every frozen acceptance gate passes
+
+REJECTED
+    a complete canonical run exists and one or more frozen acceptance gates fail
+
+INVALID / ABORTED
+    no complete canonical adjudication can be produced
+```
+
+Completion and substantive correctness of the M15 trace/evaluation infrastructure are reviewed
+independently of whether the bound model earns `ACCEPTED`. A `REJECTED` adjudication is a valid
+completed evaluation result, never a behavioral pass. The Product NL2SQL MVP and its release/tag
+remain unauthorized unless the canonical adjudication is `ACCEPTED`.
+
+**Reason:** The final frozen-environment run completed all 59 cases with a fully bound report and
+correctly rejected the current product behavior: E2E `10/59`, result Oracle `6/55`, while trace
+integrity was `1.000` and every deterministic safety/epistemic-integrity violation count remained
+zero. Requiring a passing product score before the evaluation infrastructure can close would make
+an acceptance system incomplete precisely when it successfully proves the candidate unfit for
+release.
+
+**Consequences:** The earlier MySQL/trace timeout attempt is `INVALID / ABORTED`; the complete
+59-case run is `REJECTED`. No Golden case, Oracle, threshold, model, prompt, policy, timeout, or
+token bound changes. M15 evaluation infrastructure may be substantively approved and merged after
+its own correctness gate while the behavioral verdict remains `REJECTED`, the Product NL2SQL MVP
+remains `NOT ACCEPTED`, and no MVP release/tag is created.

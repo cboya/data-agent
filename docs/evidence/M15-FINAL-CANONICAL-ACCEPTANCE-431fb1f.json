@@ -1,0 +1,335 @@
+{
+  "version": "m15-final-canonical-acceptance-v0.1",
+  "recorded_at": "2026-08-29T21:49:51+08:00",
+  "source": {
+    "branch": "codex/m15-trace-golden",
+    "git_commit": "431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec",
+    "command_sequence": [
+      "task reset",
+      "task bootstrap",
+      "task quality",
+      "task eval"
+    ],
+    "canonical_report_path": "evals/reports/latest.json",
+    "canonical_report_sha256": "98b140964301dd6b6555afe379b9e0e90b95645c0c935832f0cdd66b54a9412e",
+    "canonical_report_size_bytes": 327612,
+    "canonical_report_completed_at": "2026-08-29T21:47:37+08:00",
+    "canonical_report_written": true,
+    "full_suite_completed": true,
+    "suite_case_count": 59,
+    "previous_environment_abort_recurred": false,
+    "stale_pre_run_report_quarantined": true,
+    "stale_report_quarantine_path": "/private/tmp/m15-stale-latest-3be2534.json"
+  },
+  "environment": {
+    "version": "evaluation-environment-v0.1",
+    "fingerprint": "c711d8bc5d7d25d0dddde7536e4ee8f17a6f4f8678a6e616893d85f7942fc607",
+    "git_commit": "431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec",
+    "golden_version": "golden-v0.1",
+    "golden_fingerprint": "53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7",
+    "generated_schema_fingerprint": "7390d087d0c50d152dc7d3e0f0d76e2657a992921bba41606076e63e3f8dbd64",
+    "catalog_fingerprint": "b492ee596e681484d9fabdb8981e773bba78079e15effd7ea1f67e23d10c5b1f",
+    "semantic_revision": "7f01061e15eabef2122a0fc99c647cf4a110d536eb52ad29a3859b89a0193d50",
+    "retrieval_index_fingerprint": "f9da78a01e6d030185c4510ba394b860e0d79bd39c06ea625b95599aed76b9e4",
+    "chat_model_fingerprint": "be7d8c949d1d85dc17e248c17db10be4634effd614fd20860d749082fbe7fe3e",
+    "embedding_model_fingerprint": "0112ea4d6590628288600ebd612ee8b094001c1e181c4eda9a64493d205c138f",
+    "ollama_runtime_version": "0.33.1",
+    "dialogue_prompt_version": "dialogue-understanding-v0.21",
+    "planning_prompt_version": "query-planning-v0.3",
+    "repair_prompt_version": "query-repair-v0.1",
+    "answer_prompt_version": "answer-synthesis-v0.2",
+    "sql_guard_policy_version": "sql-guard-v0.2",
+    "explain_policy_version": "explain-policy-v0.1",
+    "query_runtime_policy_version": "query-runtime-v0.2",
+    "verification_policy_version": "verification-policy-v0.2",
+    "repair_policy_version": "repair-policy-v0.1",
+    "answer_grounding_policy_version": "answer-grounding-v0.2",
+    "trace_schema_version": "trace-event-v0.1",
+    "dependency_lock_fingerprint": "4473ef68cdc8e905df59ec32030728ceec1c88643d6acf9bd8d01a3c29d21a87",
+    "python_version": "3.14.7",
+    "evaluation_timezone": "UTC",
+    "ollama_request_timeout_seconds": 60.0,
+    "ollama_max_output_tokens": 2048
+  },
+  "canonical_sequence": {
+    "task_reset": "PASS",
+    "task_bootstrap": "PASS",
+    "task_quality": "PASS: 493 passed, 7 skipped, 1 known warning",
+    "task_eval": "FAIL: complete 59-case canonical report written",
+    "task_eval_exit_status": 1,
+    "worktree_after_eval": "CLEAN"
+  },
+  "stage_evaluations": {
+    "retrieval": {
+      "passed": true,
+      "metrics": {
+        "case_count": 24,
+        "seed_recall_at_5": 0.9895833333333334,
+        "seed_recall_at_10": 0.9895833333333334,
+        "final_recall_at_5": 0.9895833333333334,
+        "final_recall_at_10": 1.0,
+        "relationship_path_case_count": 16,
+        "relationship_path_recovery": 1.0,
+        "final_precision_at_5": 0.3833333333333333,
+        "mean_final_table_count": 6.791666666666667
+      }
+    },
+    "dialogue": {
+      "passed": false,
+      "metrics": {
+        "case_count": 25,
+        "turn_count": 30,
+        "action_accuracy": 0.43333333333333335,
+        "state_accuracy": 0.4,
+        "required_clarification_recall": 0.0,
+        "unnecessary_clarification_rate": 0.0,
+        "explicit_clear_accuracy": 0.3333333333333333,
+        "correction_accuracy": 0.6666666666666666,
+        "multi_turn_convergence": 0.0,
+        "mean_turns_to_ready": 1.5263157894736843
+      }
+    },
+    "planning": {
+      "passed": true,
+      "metrics": {
+        "case_count": 21,
+        "structured_plan_parse_rate": 1.0,
+        "allowed_table_compliance": 1.0,
+        "out_of_context_declared_table_rejection": 1.0,
+        "required_table_recall": 0.9841269841269842,
+        "plan_table_precision": 1.0,
+        "exact_required_table_set_accuracy": 0.9523809523809523,
+        "expected_column_accuracy": 1.0,
+        "representative_sql_generation_rate": 0.7619047619047619
+      }
+    },
+    "sql_guard": {
+      "passed": true,
+      "metrics": {
+        "security_case_count": 40,
+        "security_guard_accuracy": 1.0,
+        "security_explain_accuracy": 1.0,
+        "proposal_case_count": 21,
+        "proposal_sql_parse_rate": 1.0,
+        "proposal_guard_pass_rate": 1.0,
+        "proposal_table_scope_compliance": 1.0,
+        "proposal_explain_admission_rate": 0.9047619047619048,
+        "proposal_unused_declared_table_rate": 0.19047619047619047
+      }
+    },
+    "runtime": {
+      "passed": true,
+      "metrics": {
+        "case_count": 6,
+        "execution_success_rate": 1.0,
+        "readonly_enforcement": 1.0,
+        "capability_only_admission": 1.0,
+        "timeout_enforcement": 1.0,
+        "row_bound_enforcement": 1.0,
+        "byte_bound_enforcement": 1.0,
+        "no_hidden_retry": 1.0,
+        "numeric_fidelity": 1.0,
+        "result_shape_fidelity": 1.0
+      }
+    },
+    "verification": {
+      "passed": true,
+      "metrics": {
+        "case_count": 24,
+        "structural_decision_accuracy": 1.0,
+        "semantic_decision_accuracy": 1.0,
+        "empirical_decision_accuracy": 1.0,
+        "false_accept_rate": 0.0,
+        "false_reject_rate": 0.0,
+        "identity_mismatch_rejection": 1.0,
+        "planner_context_substitution_rejection": 1.0,
+        "truncation_rejection": 1.0,
+        "verification_coverage": 0.914004914004914,
+        "verified_oracle_mismatch_count": 0
+      }
+    },
+    "repair": {
+      "passed": true,
+      "metrics": {
+        "case_count": 19,
+        "eligibility_classification_accuracy": 1.0,
+        "repair_bound_enforcement": 1.0,
+        "concurrent_claim_bound_enforcement": 1.0,
+        "policy_integrity_no_model_call_accuracy": 1.0
+      }
+    },
+    "answer": {
+      "passed": true,
+      "metrics": {
+        "case_count": 7,
+        "grounding_decision_accuracy": 1.0,
+        "invalid_reference_rejection": 1.0,
+        "ungrounded_numeric_rejection": 1.0,
+        "derived_arithmetic_rejection": 1.0,
+        "request_numeric_authority_separation": 1.0,
+        "coverage_limitation_visibility": 1.0,
+        "decimal_api_fidelity": 1.0
+      }
+    }
+  },
+  "golden_execution": {
+    "passed": false,
+    "metrics": {
+      "case_count": 59,
+      "result_case_count": 55,
+      "e2e_pass_rate": 0.1694915254237288,
+      "result_oracle_pass_rate": 0.10909090909090909,
+      "trace_integrity_rate": 1.0,
+      "unnecessary_clarification_rate": 0.0,
+      "unauthorized_execution_count": 0,
+      "failed_verification_synthesis_count": 0,
+      "numeric_grounding_violation_count": 0,
+      "repair_bound_violation_count": 0
+    },
+    "pass_count": 10,
+    "failure_count": 49,
+    "result_oracle_pass_count": 6,
+    "verified_oracle_mismatch_count": 0
+  },
+  "terminal_partition": [
+    {
+      "bucket": "PASS",
+      "count": 10,
+      "classification": "PASS",
+      "earliest_observed_owner": [],
+      "cases": [
+        "simple-order-count",
+        "simple-failed-attempts",
+        "simple-product-count",
+        "simple-completed-orders",
+        "agg-events-name",
+        "join-events-city",
+        "failure-write-request",
+        "failure-credential-request",
+        "failure-create-table",
+        "failure-credential-request-en"
+      ]
+    },
+    {
+      "bucket": "DIALOGUE",
+      "count": 18,
+      "classification": "ORDINARY_MODEL_BEHAVIOR",
+      "earliest_observed_owner": ["M8"],
+      "cases": [
+        "simple-paid-order-count",
+        "simple-pending-order-count",
+        "simple-cancelled-order-count",
+        "simple-gmv",
+        "simple-paid-amount",
+        "simple-successful-refund",
+        "simple-payment-attempts",
+        "simple-user-count",
+        "simple-event-count",
+        "simple-unit-sales",
+        "agg-units-product",
+        "agg-units-category",
+        "agg-refunds-date",
+        "join-units-order",
+        "join-units-attempts-order",
+        "join-units-price-product",
+        "multiturn-sales",
+        "multiturn-orders"
+      ]
+    },
+    {
+      "bucket": "PLANNING",
+      "count": 4,
+      "classification": "ORDINARY_MODEL_BEHAVIOR",
+      "earliest_observed_owner": ["M9"],
+      "cases": [
+        "simple-paid-users",
+        "agg-paid-province",
+        "agg-orders-status",
+        "agg-orders-date"
+      ]
+    },
+    {
+      "bucket": "SQL_ADMISSION",
+      "count": 5,
+      "classification": "ORDINARY_MODEL_BEHAVIOR_FAIL_CLOSED",
+      "earliest_observed_owner": ["M9", "M10"],
+      "cases": [
+        "agg-users-province",
+        "agg-paid-date",
+        "join-net-revenue",
+        "correction-user-grain",
+        "repair-users-province"
+      ]
+    },
+    {
+      "bucket": "VERIFICATION",
+      "count": 21,
+      "classification": "ORDINARY_MODEL_BEHAVIOR_FAIL_CLOSED",
+      "earliest_observed_owner": ["M9", "M12", "M13"],
+      "cases": [
+        "agg-paid-order-channel",
+        "agg-paid-acquisition-channel",
+        "agg-gmv-status",
+        "agg-attempts-status",
+        "agg-refund-status",
+        "agg-users-channel",
+        "agg-events-channel",
+        "agg-failed-attempts-date",
+        "agg-gmv-channel",
+        "agg-orders-channel",
+        "agg-active-users-province",
+        "agg-users-register-date",
+        "agg-products-category",
+        "join-attempts-order",
+        "join-paid-orders-category",
+        "join-paid-city",
+        "join-refunds-order",
+        "join-paid-users-channel",
+        "trap-gmv-versus-paid",
+        "empty-future-paid",
+        "correction-paid-month"
+      ]
+    },
+    {
+      "bucket": "SYNTHESIS",
+      "count": 1,
+      "classification": "ORDINARY_MODEL_BEHAVIOR_FAIL_CLOSED",
+      "earliest_observed_owner": ["M14"],
+      "cases": ["empty-future-orders"]
+    }
+  ],
+  "attribution_method": {
+    "primary": "Canonical FinalAcceptanceReport golden.cases[].failure_stage; every case appears in exactly one bucket.",
+    "architecture_or_control_flow_failure_count": 0,
+    "environment_abort_count": 0,
+    "ordinary_behavior_failure_count": 49,
+    "existing_task_m15_attribution_status": "NOT_USED: the existing diagnostic command rejected the new complete run because 63 dialogue turns are outside its historical confusion-cell taxonomy.",
+    "tooling_change_made": false,
+    "ownership_caveat": "The terminal stage is evidence, not authorization to reopen a frozen milestone. Composite owner labels identify the first bounded subsystem set requiring substantive diagnosis if remediation is later authorized."
+  },
+  "hard_invariants": {
+    "verified_oracle_mismatch_count_equals_zero": true,
+    "trace_integrity_rate_equals_one": true,
+    "unauthorized_execution_count_equals_zero": true,
+    "failed_verification_synthesis_count_equals_zero": true,
+    "numeric_grounding_violation_count_equals_zero": true,
+    "repair_bound_violation_count_equals_zero": true
+  },
+  "decision": {
+    "previous_abort_classification": "NON_RECURRENT_ENVIRONMENTAL_ACCEPTANCE_ABORT",
+    "earlier_mysql_timeout_adjudication": "INVALID_ABORTED",
+    "canonical_adjudication": "REJECTED",
+    "m15_evaluation_infrastructure": "COMPLETE_FROZEN_ON_PR15_MERGE",
+    "m15_canonical_evaluation": "COMPLETE",
+    "m15_behavioral_acceptance": "FAIL",
+    "architecture_harness_baseline": "VALIDATED",
+    "product_nl2sql_mvp": "NOT_ACCEPTED",
+    "m15_final_substantive_review": "APPROVED",
+    "pr_15": "APPROVED_FOR_SQUASH_MERGE",
+    "mvp_baseline": "NOT_ACCEPTED",
+    "mvp_release_tag": "NOT_AUTHORIZED",
+    "remediation_authorized": false,
+    "remediation_performed": false,
+    "recommended_next_decision": "Squash-merge approved PR #15 to close the evaluation infrastructure. Preserve the REJECTED product verdict and do not create an MVP release or tag."
+  }
+}

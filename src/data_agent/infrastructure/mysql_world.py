@@ -132,7 +132,7 @@ def ensure_control_principal(settings: Settings) -> None:
                     f"GRANT SELECT, INSERT, UPDATE ON `{database}`.`{table}` TO %s@'%%'",
                     (username,),
                 )
-            for table in ("agent_message", "agent_artifact"):
+            for table in ("agent_message", "agent_artifact", "agent_trace_event"):
                 cursor.execute(
                     f"GRANT SELECT, INSERT ON `{database}`.`{table}` TO %s@'%%'",
                     (username,),
@@ -162,6 +162,8 @@ def verify_control_principal(settings: Settings) -> None:
         ("agent_run", "UPDATE"),
         ("agent_artifact", "SELECT"),
         ("agent_artifact", "INSERT"),
+        ("agent_trace_event", "SELECT"),
+        ("agent_trace_event", "INSERT"),
     }
     connection = _connect(
         settings,

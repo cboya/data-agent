@@ -35,7 +35,7 @@ packages = ["src/data_agent"]
 [tool.mypy]
 python_version = "3.12"
 strict = true
-files = ["src", "tests"]
+files = ["src", "tests", "eval_harness"]
 
 [tool.pytest.ini_options]
 addopts = "--strict-config --strict-markers -q"

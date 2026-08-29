@@ -109,6 +109,7 @@ def test_structured_chat_sends_json_schema_and_revalidates_output(settings: Sett
     assert payload["think"] is False
     assert payload["format"] == SmokeResult.model_json_schema()
     assert payload["model"] == settings.ollama_chat_model
+    assert payload["options"] == {"temperature": 0, "num_predict": 2_048}
 
 
 @pytest.mark.parametrize(

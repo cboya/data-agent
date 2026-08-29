@@ -41,8 +41,10 @@ Required capabilities:
 Do not hard-code model names.
 
 Application startup runs fail-closed diagnostics against the configured endpoint and models.
-Model requests use `OLLAMA_REQUEST_TIMEOUT_SECONDS`; embedding batches and response bodies are
-bounded by `OLLAMA_MAX_EMBEDDING_BATCH` and `OLLAMA_MAX_RESPONSE_BYTES`.
+Model requests use `OLLAMA_REQUEST_TIMEOUT_SECONDS`; embedding batches, response bodies, and
+structured generation are bounded by `OLLAMA_MAX_EMBEDDING_BATCH`, `OLLAMA_MAX_RESPONSE_BYTES`,
+and `OLLAMA_MAX_OUTPUT_TOKENS`. The output-token bound is sent to Ollama as `num_predict` for every
+structured chat call and is part of final evaluation identity.
 The serial 21-case M9 planner evaluation uses the separate
 `PLANNER_EVAL_REQUEST_TIMEOUT_SECONDS` bound (default 180 seconds per case) so complex bounded
 multi-table proposals do not weaken the normal 60-second online request limit.

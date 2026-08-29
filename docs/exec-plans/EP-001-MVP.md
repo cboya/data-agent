@@ -1,6 +1,6 @@
 # EP-001 — Conversational Data Agent MVP
 
-**Status:** Active
+**Status:** M15 evaluation infrastructure closure approved; canonical behavioral verdict REJECTED; Product NL2SQL MVP NOT ACCEPTED
 **Owner:** Codex implementation agent(s), human architecture review
 **Architecture baseline:** v0.1.0
 
@@ -410,14 +410,32 @@ Acceptance:
 
 ### M15 — Trace + Golden Dataset eval
 
-Complete trace recording and expand Golden Dataset to at least 50 cases.
+Complete append-only structured trace recording, expand the public-API Golden Dataset to at least
+50 cases, and make clean-state MVP acceptance reproducible under a complete environment identity.
 
 Acceptance:
 
-- `task eval` produces machine-readable and human-readable report;
-- environment/model/index fingerprints captured;
-- trace persistence stores execution metadata/references, not raw result rows by default;
-- hard gates and behavioral targets in `EVAL_SPEC.md` pass.
+- Trace records observable evidence rather than hidden reasoning and never becomes domain/runtime
+  authority;
+- a dedicated append-only control store assigns contiguous per-Run sequence and records attempt,
+  stage, event type, schema version, bounded payload, fingerprint, and timestamp;
+- dialogue, retrieval, planning, admission, execution, verification, repair, synthesis, and terminal
+  outcomes are covered without default raw-result-row or duplicated-answer persistence;
+- deterministic completeness policy validates clarification, direct success, terminal failure, and
+  repaired success shapes plus identity/order/attempt invariants;
+- trace persistence failure cannot silently continue to a successful response, and required
+  terminal evidence is coordinated with durable terminal Run state;
+- versioned Golden Dataset contains at least 50 meaningful cases and exercises the public Session
+  and Message HTTP surface with deterministic semantic/result oracles rather than exact SQL text;
+- runtime and prompts have no access to Golden expectations or oracle SQL;
+- every final report binds Git, suite, schema/catalog/index, model/runtime, prompt/policy,
+  dependency, and Python identities under one environment fingerprint;
+- canonical `task eval` preserves every stage gate, adds Golden E2E and trace integrity metrics,
+  writes human-readable output plus ignored `evals/reports/latest.json`, and attributes failures;
+- clean `task reset`, `task bootstrap`, and `task quality` pass, and `task eval` completes one
+  canonical adjudication without generated source drift;
+- the canonical adjudication is classified as `ACCEPTED`, `REJECTED`, or `INVALID / ABORTED`
+  without modifying any frozen gate. Product MVP completion still requires `ACCEPTED`.
 
 ---
 
@@ -443,8 +461,16 @@ Codex must update this section as milestones complete.
 [x] M14 Answer synthesis + API — complete and frozen via PR #14
 [x] M12 targeted false-acceptance remediation — complete and frozen via PR #16
 [x] M8 targeted deterministic-readiness remediation — complete and frozen via PR #17
-[ ] M8 targeted time-range admission remediation — active on isolated branch
-[ ] M15 Trace + Golden Dataset eval — paused / Draft PR #15
+[x] M8 targeted time-range admission remediation — complete and frozen via PR #18
+[x] M15 Evaluation Infrastructure — COMPLETE / FROZEN upon approved PR #15 squash merge
+[x] M15 Canonical Evaluation — COMPLETE / behavioral verdict REJECTED
+```
+
+```text
+Architecture / Harness Baseline   VALIDATED
+Product NL2SQL MVP                NOT ACCEPTED
+Further behavioral remediation   NOT AUTHORIZED
+MVP release / tag                 NOT AUTHORIZED
 ```
 
 M12 targeted-remediation activation (2026-08-27): M14 is squash-merged at
@@ -544,13 +570,12 @@ were removed after review reclassified them as dialogue-quality optimization bey
 control-plane boundary. ASK still requires at least one Harness-proven blocker; exact question
 targeting and wording remain deferred unless later end-to-end convergence evidence justifies
 reopening them. Public M8 contracts and M9–M15 remain unchanged. No 30B replay or full M15 suite is
-authorized for this remediation. M8 remains open pending focused substantive re-review; merge is
-not authorized and Draft PR #15 remains paused.
-
-M8 targeted-readiness closure (2026-08-29): accepted PR #17 head
-`b2f0d87e3c260d0d1e092d333f67c21304a48a1b` was substantively approved and squash-merged to
-protected `main` as `a937546cb2d0c032ffa8dd76a8a4fbeec0227c95`. M8 was complete/frozen again;
-Draft PR #15 remained paused and untouched.
+authorized for this remediation. PR #17 accepted final head
+`8b016ab8d5fa7a7c50dde3e2a36ba324bf3de59d` received substantive approval; final remote
+`Delivery / Quality` passed in workflow run `33245167017`; and it was squash-merged to protected
+`main` as `a937546cb2d0c032ffa8dd76a8a4fbeec0227c95`. M8 targeted remediation is
+complete/frozen. Draft PR #15 may resume final M15 acceptance without reopening an upstream
+milestone.
 
 M8 time-range-admission activation (2026-08-29): the minimal M15 live wire smoke then exposed one
 new control-plane trust defect: a provider SET of `TimeRange(kind=RELATIVE, value=recent)` was
@@ -577,10 +602,12 @@ successful refunds `110.00`, and retrieval index
 461 tests with 7 explicit host-only skips. No 30B inference or 59-case M15 eval ran, and Draft PR
 #15 remained unchanged at `0438bc35f599984d34d5c801289e9fe551d9f092`.
 
-M8 time-range-admission delivery evidence (2026-08-29): focused PR #18 is open at implementation
-commit `2be082a81e29aa8809bf5026ebe02dce03ac7c46`; requested reviewer is `cboya`. Remote
-`Delivery / Quality` passed in workflow run `33246939668`. The PR remains unmerged for substantive
-review, this targeted M8 remediation is not complete, and Draft PR #15 remains untouched.
+M8 time-range-admission closure evidence (2026-08-29): focused PR #18 implementation commit
+`2be082a81e29aa8809bf5026ebe02dce03ac7c46` and accepted final head
+`08159f1f6bbaf270d81827fac96f78fab81887f2` received substantive approval. Final remote
+`Delivery / Quality` passed in workflow run `33247019114`; PR #18 was squash-merged to protected
+`main` as `9837520c2b68e5b4f5c26de4eb2eed9b66ff76e5`. The M8 TimeRange-admission remediation is
+complete/frozen and M15 final acceptance is authorized without another upstream change.
 
 M2 closure evidence (2026-08-25): implementation baseline `66c3d5a`; acceptance PR #2; accepted
 head `1f9882b`; squash-merged to `main` as `3400e14db32b2ddd919ca9ab8cba318ad9ceff82`;
@@ -1036,16 +1063,17 @@ serialize as strings. Context larger than `MAX_ANSWER_CONTEXT_ROWS` or
 `MAX_ANSWER_CONTEXT_BYTES` returns a deterministic `RESULT_TOO_LARGE` fallback with zero model
 calls and no new result facts. The minimal conversation UoW extends the existing M8 store so
 dialogue/Run outcomes and final-message/Run completion cannot partially commit. The orchestrator
-only sequences existing M8–M14 authorities. Deterministic M14 eval currently passes all six
+only sequences existing M8–M14 authorities. Deterministic M14 eval currently passes all seven
 frozen cases and every grounding/Decimal/coverage metric at `1.000`; host and initial remote
 acceptance evidence are recorded below.
 
 M14 local acceptance evidence (2026-08-26): `task bootstrap` rebuilt the ten-table controlled
 world and retrieval index `e0730e5adcc689a62de6042c7cc818626aa8fe5a86d0cf04f2a4a221236c0336`;
 the focused answer/conversation/API/MySQL-UoW suite passes 40 tests; final `task quality` passes
-433 tests with 7 explicit host-only skips. `task m14-eval` passes six frozen cases with grounding,
-ungrounded-number rejection, arithmetic rejection, reference rejection, Decimal fidelity, and
-coverage visibility each `1.000`. Initial real-model evidence showed Ollama omitted a
+433 tests with 7 explicit host-only skips. `task m14-eval` originally passed six frozen cases and
+the final v0.2 suite passes seven, adding request/result numeric-authority separation while every
+grounding, arithmetic, reference, Decimal, and coverage metric remains `1.000`. Initial real-model
+evidence showed Ollama omitted a
 default-valued reference list, so `AnswerProposal v0.1` now makes `evidence_refs` provider-required
 (empty only for an empty result); the final three-case real-Ollama smoke reports structured
 grounding, non-empty usefulness, reference validity, injection resistance, and one-call bound each
@@ -1077,6 +1105,194 @@ smoke remains fully green, and the real FastAPI→Ollama→MySQL path passes in 
 `Delivery / Quality` passes on remediation head
 `56685dc2bdefb67b0a40aef478610d5a1d00fe80` in run `32947600298` (50 seconds). M14 is ready for
 substantive re-review; it stays active, PR #14 must not merge, and M15 remains unauthorized.
+
+M14 closure evidence (2026-08-26): acceptance PR #14; numeric-authority remediation commit
+`56685dc2bdefb67b0a40aef478610d5a1d00fe80`; accepted final head
+`7d950538c7898379f2bf8bc97b5f6f5e35de1988`; substantive re-review approved; final remote
+`Delivery / Quality` passed in run `32947750444` (52 seconds); squash-merged to protected `main`
+as `8cf14aa2766603ffb581abf8fb08874dbdd3e478`. The final seven-case deterministic answer eval,
+three-case real-Ollama smoke, and FastAPI→Ollama→MySQL path remained green. M14 is
+complete/frozen; M15 is authorized/active. MVP release remains unauthorized.
+
+M15 activation note (2026-08-26): Trace records only observable structured evidence, never hidden
+reasoning, credentials, or default raw result rows, and cannot become authority for any M8–M14
+decision. Use a dedicated append-only `agent_trace_event` store with deterministic per-Run
+sequence and explicit attempt branches. Golden expectations and oracle SQL belong exclusively to
+the evaluation harness outside runtime packages. Final behavioral evidence is meaningful only
+under a canonical environment identity binding repository, Golden, schema/catalog/index,
+model/runtime, prompt/policy, dependency, and Python fingerprints. M15 adds no Agent intelligence.
+
+M15 implementation note (2026-08-26): migration `005_agent_trace_event.sql` introduces a
+dedicated append-only trace ledger with contiguous per-Run sequencing, attempt/stage/event
+identity, canonical bounded payload fingerprints, and runtime SELECT/INSERT-only privileges.
+The conversation orchestrator projects observable M8–M14 outcomes without raw rows, duplicated
+answers, credentials, or hidden reasoning. Terminal Run state and required terminal trace evidence
+commit through one control-plane unit of work. `eval_harness` drives the public Session/Message API,
+reloads persisted Run/trace state, executes isolated static SELECT Oracles through the analytics
+reader, preserves all standalone stage gates, and emits one environment-bound final report.
+
+M15 model-bound calibration note (2026-08-26): the first 54-case challenge run under the bound
+8B Q4 `gemma4:latest` environment achieved E2E `0.352`, result-Oracle `0.365`, and trace integrity
+`1.000`. Observed failures included spurious grouping, omitted filters, and wrong governed
+dimensions; this remains diagnostic evidence rather than a case-selection input. The frozen
+model-neutral suite now contains 59 cases: 55 result cases over 54 distinct Oracles, with 15
+simple, 22 aggregation/time, 11 relationship/trap, four multi-turn clarification/correction,
+three repair/empty, and four policy-failure cases. Two Oracles prove empty populations and one
+formulation permits the single M13 repair when the model needs it; the standalone repair eval
+retains deterministic attempt-1 coverage. Final behavioral acceptance may use a stronger local Ollama model,
+but it must rerun the unchanged suite under a new complete environment fingerprint. Golden
+fingerprint `53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7`
+binds the exact suite.
+
+M15 large-model execution note (2026-08-27): final acceptance uses a configured local
+Qwen3-30B-A3B-Instruct-2507 Q4 model rather than treating the 8B diagnostic as a release gate.
+Initial observation exposed repeated 17–18 minute unbounded-generation tails even with structured
+JSON and thinking disabled. The provider-neutral adapter now sends the frozen configurable
+2,048-token `num_predict` ceiling for every structured call; EvaluationEnvironment binds this
+ceiling and the request timeout. This is a resource-safety amendment only: prompts, Golden cases,
+Oracles, stage policies, and M8–M14 semantics remain unchanged.
+
+M15 effect-acceptance note (2026-08-27): head `3be2534` passed the focused resource-boundary,
+typed-failure, configuration, and frozen-Golden checks (`33 passed`), followed from a clean reset
+by `task bootstrap` and `task quality` (`454 passed, 7 skipped`). The complete public-API run under
+Qwen3-30B-A3B-Instruct-2507 recorded environment fingerprint
+`f2fb51fb05df516c59489fffaccb0d3a3adf0daeb528ecfb568481f6e665b933`, Git
+`3be25340a471a101ce414b6bec98909c18045ea0`, Ollama `0.32.15`, request timeout `60s`, output ceiling
+`2048`, Golden fingerprint `53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7`,
+and the bound schema, catalog, retrieval, chat, and embedding identities. Retrieval, planning,
+SQL guard, runtime, verification, repair, and answer stage gates passed. Trace integrity was
+`1.000`, with zero unauthorized execution, failed-verification synthesis, repair-bound, and
+numeric-grounding violations. Model-bound dialogue and Golden behavior did not pass: Golden E2E
+was `0.169`, Oracle pass rate `0.127`, and unnecessary clarification rate `0.610`. Per the
+resource-sensitive acceptance direction, an additional dense 27B local calibration was stopped
+to avoid host contention; no further local large-model run is required for this PR iteration.
+These model-capability results remain diagnostic: no Prompt, Golden case, Oracle, or frozen
+behavioral threshold changed, `task eval` remains failed, and PR #15 remains Draft pending final
+behavioral acceptance in a suitable capable-model environment. The post-eval and post-quality
+tracked worktree was clean.
+
+M15 behavioral-failure attribution note (2026-08-27): `task m15-attribution` now derives a strict,
+model-free report from the failed source report without changing runtime behavior. Attribution
+fingerprint `62bbd0b0c3ca33f63de1599048699eeb3f8d1f9128be7a0c0ed9b10156167a79`
+binds source environment `f2fb51fb05df516c59489fffaccb0d3a3adf0daeb528ecfb568481f6e665b933`
+and produces an exact 59-case terminal partition: 10 pass, 35 unexpected clarification, one
+planning failure, one SQL-admission failure, three repair-exhausted, two answer-synthesis failure,
+six verified-result Oracle mismatch, and one public-evidence assertion. The stage funnel is 59
+received, 20 dialogue-ready/retrieval-pass, 19 planning-pass, 16 admission/execution-pass, 15
+verification-pass, 13 synthesis/Oracle-reached, seven Oracle-pass, and ten final Golden-pass;
+five cases entered repair. Across 63 turns the dialogue matrix is READY→READY 20,
+READY→CLARIFY 36, READY→DIALOGUE_FAILURE one, CLARIFY→CLARIFY two, and four expected safe
+terminal failures. Six explicit `M12 PASSED + Oracle FAILED` cases split into four extra-grain and
+two output-shape mismatches. Source report v0.1 did not retain clarification blocker fields,
+same-input standalone replay, or typed causes beneath generic pipeline failures; the report marks
+36 blocker occurrences `EVIDENCE_UNAVAILABLE`, all 35 comparisons `NOT_REPLAYED`, and four
+structured-call failures `UNCLASSIFIED` rather than guessing. The ranked remediation ownership is
+M8 first (35 cases), M9+M12 second (eight cases including the planning and verified semantic set),
+M13+M10/M12 third (four cases), and M14 fourth (two cases). Machine-readable and human evidence
+are frozen at `docs/evidence/M15-BEHAVIORAL-ATTRIBUTION-3be2534.json` and
+`docs/evidence/M15-BEHAVIORAL-ATTRIBUTION-3be2534.md`. This diagnosis does not authorize reopening
+any prior milestone, changing a frozen truth source, or moving PR #15 out of Draft.
+
+M15 targeted behavioral-diagnosis note (2026-08-27): under the exact retained effect environment
+(`be7d8c949d1d85dc17e248c17db10be4634effd614fd20860d749082fbe7fe3e` chat
+fingerprint, `0112ea4d6590628288600ebd612ee8b094001c1e181c4eda9a64493d205c138f`
+embedding fingerprint, Ollama `0.32.15`, dialogue prompt `v0.20`, timeout `60s`, and
+`num_predict=2048`), `task m15-behavioral-diagnosis` replayed exactly the 35 attributed M8 cases
+without running the full 59-case suite. All 35 also clarified standalone; all 36 structured turns
+completed successfully, so the partition is M8/model behavior 35, integration/context owner zero,
+structured/model failure zero, and spec/Oracle review zero. The 37 blocking-ambiguity occurrences
+are time range 22, grain eight, metric six, and dimension one.
+
+The retained report lacked the six original full evidence chains, so exactly those six
+`M12 PASSED + Oracle FAILED` cases were replayed. All six reproduced their source public shape and
+Oracle failure. `simple-gmv`, `simple-paid-amount`, `simple-payment-attempts`, and
+`join-net-revenue` first diverge at `QueryPlan` by adding output grain while canonical
+`RequirementState` has no grain/dimension; M12 then passes the plan-consistent extra shape, so
+ownership is M9+M12. `agg-gmv-channel` and `agg-orders-channel` first diverge when explicit
+`order_channel` output shape becomes canonical dimension `channel`; per the frozen owner taxonomy
+they require human M8/output-shape contract review rather than an automatic Golden/Oracle change.
+The forensic path makes no M14 model call. Report fingerprint
+`1070e9346cdb441eb083299363d818e39cdde598815906e38437d1300b4ebc78` and full machine/human
+evidence are frozen at `docs/evidence/M15-BEHAVIORAL-DIAGNOSIS-3be2534.json` and
+`docs/evidence/M15-BEHAVIORAL-DIAGNOSIS-3be2534.md`. This diagnostic recommends regression scope
+but does not authorize reopening M8/M9/M12, changing truth, or moving PR #15 out of Draft. The
+focused diagnosis/attribution suite passes 13 tests; complete host `task quality` passes 467 tests
+with seven explicit host-only skips after the sandbox-only MySQL denial was rerun with the required
+host socket access. The 30B model was unloaded after the bounded replay.
+
+M15 final-acceptance resume note (2026-08-29): protected `main` baseline
+`9837520c2b68e5b4f5c26de4eb2eed9b66ff76e5` contains the completed/frozen M12, deterministic M8
+readiness, and M8 TimeRange-admission remediations from PR #16, PR #17, and PR #18. The earlier
+main baseline through PR #17 entered the existing Draft PR #15 lineage at merge commit
+`d74b323f67844a480b0ad7cff0b6c8556ebaa16a`; final protected main entered the same unre-written
+lineage at merge commit `b61921694cab39394411c76aa9919fa22ba93dfa`. Prior attribution and diagnosis
+commits and all checked-in evidence artifacts remain intact. Integration conflicts were append-
+only documentation collisions: M15 decisions retain D-030/D-031 and the later M12/M8 decisions
+are mechanically numbered D-032/D-033/D-034. Golden truth, Oracle truth, thresholds, bound model,
+timeout, output-token ceiling, prompts, and M8–M14 behavioral contracts remain frozen. Final
+acceptance now proceeds through deterministic integration sanity, the exact six-case bound-model
+control-plane smoke, and then the canonical clean `reset → bootstrap → quality → eval` sequence
+without reopening an upstream milestone.
+
+M15 canonical environmental-rerun result (2026-08-29): one authorized clean rerun at exact Draft
+PR #15 head `431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec` completed all 59 cases; the previous
+MySQL/trace interruption did not recur. `task reset`, `task bootstrap`, and `task quality` passed
+(`493 passed / 7 skipped`), while the complete `task eval` failed the unchanged behavioral gates:
+E2E `10/59` (`0.1695`) and result Oracle `6/55` (`0.1091`). Trace integrity remained `1.000`,
+unnecessary clarification `0.000`, and unauthorized execution, failed-verification synthesis,
+numeric-grounding violations, repair-bound violations, and verified/Oracle mismatches all remained
+zero. Dialogue was the only failing standalone stage; all other standalone stages passed. The
+canonical report binds EvaluationEnvironment
+`c711d8bc5d7d25d0dddde7536e4ee8f17a6f4f8678a6e616893d85f7942fc607` and is frozen in
+`docs/evidence/M15-FINAL-CANONICAL-ACCEPTANCE-431fb1f.json` plus its human-readable companion.
+This valid behavioral FAIL leaves M15 incomplete, PR #15 Draft, and the MVP unaccepted. It does not
+authorize remediation, another canonical run, Ready-for-Review, merge, release, or tag.
+
+M15 final adjudication semantics (2026-08-29): D-035 separates completion of acceptance from
+acceptance of the Product NL2SQL MVP. A complete canonical run whose frozen gates all pass is
+`ACCEPTED`; a complete run with any failed frozen gate is `REJECTED`; an attempt that cannot
+produce a complete canonical report is `INVALID / ABORTED`. The earlier MySQL/trace timeout is
+`INVALID / ABORTED`. The final 59/59 report is `REJECTED`. This classification changes no
+threshold and does not convert behavioral FAIL into PASS. M15 evaluation infrastructure is
+implemented and substantively approved; canonical evaluation is complete; the
+Architecture/Harness baseline is validated by the zero architecture/control-flow failures and
+fully green deterministic authority gates. The Product NL2SQL MVP remains `NOT ACCEPTED`, further
+behavioral remediation is not authorized, and no release/tag may be created.
+
+M15 verified/Oracle canonical-gate remediation (2026-08-29): final substantive review found one
+evaluation-infrastructure omission: standalone M12 and the checked-in canonical evidence reported
+`verified_oracle_mismatch_count=0`, but `GoldenMetrics` and the canonical `GoldenReport.passed`
+predicate did not mechanically require it. The evaluator now counts a mismatch only when the
+final public result disagrees with its trusted Oracle and persisted trace proves a
+`VERIFICATION_COMPLETED/PASSED` event on the same attempt before the successful final synthesis
+branch. `GoldenReport.passed` requires the aggregate count to be exactly zero,
+independently of the probabilistic E2E and Oracle-rate thresholds, and the human-readable runner
+summary exposes the count. A persisted attempt-1 PASSED-verification/Oracle-failure regression,
+an otherwise-passing-rate verdict regression, and a complete `run_golden` aggregation regression
+freeze the invariant. Focused evaluator/CLI/acceptance-boundary coverage passes 28 tests; complete
+`task quality` passes 496 tests with 7 explicit host-only skips. No model call or 59-case rerun was
+performed. The prior canonical adjudication remains `REJECTED`, because its source evidence
+already proves the new exact count is zero and its unchanged behavioral rates fail independently.
+M15 evaluation infrastructure remains implemented; the narrow final re-review is approved.
+
+M15 final substantive approval and closure staging (2026-08-29): PR #15 implementation head
+`ff8d13be6a5a22c8b77ac177986857a7fc5c7799` received final substantive APPROVE after the
+verified/Oracle exact-gate remediation. Focused evaluator/CLI/acceptance-boundary coverage passed
+28 tests; exact-head `task quality` passed 496 tests with 7 explicit host-only skips; remote
+`Delivery / Quality` passed in workflow `33258774857`. This closure-metadata-only commit changes no
+runtime/evaluator behavior, truth source, model, prompt, policy, threshold, timeout, or token bound.
+When the approved PR is squash-merged, M15 Evaluation Infrastructure is COMPLETE/FROZEN and the
+immutable merge commit in GitHub PR #15 is its terminal repository evidence. M15 Canonical
+Evaluation remains COMPLETE with verdict `REJECTED`; Architecture/Harness remains VALIDATED;
+Product NL2SQL MVP remains `NOT ACCEPTED`; behavioral remediation and MVP release/tag remain
+unauthorized.
+
+M15 evaluation-infrastructure closure rule: this deliverable becomes COMPLETE only when final
+substantive review is APPROVED, remote `Delivery / Quality` is PASS, a complete canonical
+adjudication exists, and the focused protected-main PR is squash-merged. That adjudication may be
+`ACCEPTED` or `REJECTED`; only `ACCEPTED` authorizes Product MVP completion and release/tag. An
+`INVALID / ABORTED` attempt cannot close the evaluation deliverable. The immutable merge SHA is
+infrastructure closure evidence; no post-merge closure-only PR is required.
 
 ## 6. Decision log
 
@@ -1449,6 +1665,21 @@ zero dialogue-store mutation on rejection.
 Consequences: Scalar SET remains a proposal rather than proof of resolution. No public M8
 contract, prompt, clarification-targeting rule, M9–M15 behavior, Golden/Oracle asset, model/runtime
 bound, or acceptance threshold changes.
+
+2026-08-29 — M15 final acceptance adjudication states
+Decision: A complete canonical acceptance attempt terminates as `ACCEPTED` when every frozen gate
+passes or `REJECTED` when any frozen gate fails. An attempt without a complete canonical report is
+`INVALID / ABORTED`. Review and closure of the evaluation infrastructure are separate from the
+bound model's product verdict.
+Evidence: The earlier MySQL/trace timeout wrote no complete report and is `INVALID / ABORTED`.
+The final run at `431fb1fdbb5e8b6e94e0d1b59a7a4bc8bdd478ec` completed 59/59 and bound
+EvaluationEnvironment `c711d8bc5d7d25d0dddde7536e4ee8f17a6f4f8678a6e616893d85f7942fc607`;
+its frozen behavioral gates failed while every deterministic safety and epistemic-integrity hard
+gate passed, so it is `REJECTED`.
+Consequences: M15 evaluation infrastructure may proceed to substantive review without claiming
+product acceptance. Thresholds and truth sources remain frozen. Product MVP completion and
+release/tag remain unauthorized unless a future separately authorized canonical result is
+`ACCEPTED`.
 
 ## 7. Deviation rule
 

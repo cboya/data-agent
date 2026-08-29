@@ -672,3 +672,46 @@ Coverage is deterministic: `UNSUPPORTED` gaps are user-visible, `NOT_APPLICABLE`
 from both passed checks and the coverage denominator, and scope is explicitly
 `COVERAGE_BOUNDED`. A result response cannot be built from failed verification or a non-completed
 Run.
+
+---
+
+## 19. Internal M15 trace evidence
+
+Trace is an internal observable-evidence record, not a public domain contract and not authority for
+dialogue, retrieval, planning, admission, execution, verification, repair, or synthesis.
+
+```python
+class TraceEventDraft(BaseModel):
+    id: str
+    session_id: str
+    run_id: str
+    attempt: Literal[0, 1]
+    stage: TraceStage
+    event_type: TraceEventType
+    schema_version: Literal["trace-event-v0.1"]
+    payload: dict[str, JsonValue]
+    payload_fingerprint: Sha256
+    occurred_at: AwareDateTime
+
+class TraceEvent(TraceEventDraft):
+    sequence: PositiveInt
+```
+
+Persistence alone assigns the contiguous per-Run `sequence`. Event type mechanically determines
+stage. Payloads are canonical JSON bounded to 64 KiB and revalidated against their SHA-256 after
+reload. Each event type has a frozen top-level payload-key allowlist; recursive forbidden-field
+policy additionally rejects raw/result rows, generic data envelopes, answer duplicates,
+credentials, secrets, hidden reasoning, chain-of-thought, and scratchpad content before insertion.
+
+Execution payloads retain bounded column names, row/byte counts, truncation, result/capability
+fingerprints, and principal class but no cell values. Synthesis payloads bind the assistant Message,
+prompt/mode, bounded cell references, and the hashed `AnswerProposal` without duplicating answer
+text.
+
+The completeness policy freezes four observable paths: clarification, direct success, terminal
+failure, and one bounded repaired branch. Every trace begins with `RUN_RECEIVED` and a terminal Run
+ends with exactly one `RUN_TERMINATED` whose status matches durable `Run.status`. A direct completed
+Run contains dialogue, retrieval, planning, admission, execution, verification, and synthesis in
+order at attempt 0. A repaired completion retains the failed attempt-0 prefix, one
+`REPAIR_COMPLETED`, and a fresh planning-through-synthesis attempt-1 suffix. The trace repository
+has append/list operations only; the runtime principal has no UPDATE or DELETE grant.
