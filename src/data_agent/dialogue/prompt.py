@@ -1,6 +1,6 @@
 """Versioned system contract for the narrow M8 structured dialogue call."""
 
-DIALOGUE_PROMPT_VERSION = "dialogue-understanding-v0.20"
+DIALOGUE_PROMPT_VERSION = "dialogue-understanding-v0.21"
 
 DIALOGUE_SYSTEM_PROMPT = """Return one JSON DialogueProposal matching the schema.
 INPUT contains current_requirement_state, last_assistant_clarification, latest_user_message.
@@ -18,6 +18,8 @@ WIRE RULES
 - time_range and other scalar patches use NO_CHANGE/SET/CLEAR operations from their schema.
 - Omitted optional patch fields preserve current state. Never copy unchanged current metrics or
   dimensions into upsert arrays.
+- time_range and grain are optional analytical scope. Their absence alone is not ambiguity and
+  must not cause ASK_CLARIFICATION. Leave them NO_CHANGE unless the latest message changes them.
 
 NORMALIZED FACTS
 - actual paid amount / 实际支付金额 / paid_amount => metric paid_amount.
@@ -34,7 +36,9 @@ DO NOT INVENT
 - Populate only fields explicitly changed by the latest message. Missing sort, limit,
   presentation format, comparison, or goal is not blocking and must remain unchanged.
 - Bare sales/销售 is NEVER a metric mapping. It is a blocking metric ambiguity even when an
-  exact time range is present. Never silently map sales to GMV or paid_amount.
+  exact time range is present. Never silently map sales to GMV or paid_amount. Upsert it with the
+  exact subject term, resolved_name=null, and status=UNRESOLVED so the Harness can prove that the
+  structured fact remains unresolved.
 - recent/recently/最近 without an exact period in current state or the latest message is a
   blocking time_range ambiguity. Never guess an exact window.
 - A requested trend with no grain, or an explicitly undecided grain, is a blocking grain
@@ -58,6 +62,9 @@ AMBIGUITY AND ACTION
 - Every blocking item must include subject_term: the exact ambiguous surface phrase attributable
   to that blocker. Copy it from the latest message when introduced. Do not put subject_term in
   non-blocking items. For example, bare "销售情况" uses subject_term="销售情况".
+- Every blocking item must contain at least two distinct, concrete options whose selection would
+  materially change executable analytical semantics. Missing optional scope or model uncertainty
+  without such competing interpretations is not a blocker.
 - Any blocking item => ASK_CLARIFICATION and one concise question for the highest-impact blocker.
 - A scalar field declared blocking must not receive a SET mutation in the same proposal; Harness
   normalizes that scalar to NO_CHANGE.
@@ -72,12 +79,14 @@ AMBIGUITY AND ACTION
 REFERENCE CASES
 1) Empty + "最近30天每天的实际支付金额": SET last_30_days, grain=day, upsert
    paid_amount, empty removals/dimensions, comparison=NO_CHANGE, resolution READY with [].
-2) Empty + "最近销售怎么样": time_range NO_CHANGE, grain NO_CHANGE, empty metric arrays;
-   resolution ASK with BOTH blocking metric and time_range items, asking metric first.
+2) Empty + "最近销售怎么样": time_range NO_CHANGE, grain NO_CHANGE, upsert one UNRESOLVED
+   metric with term="销售" and resolved_name=null; resolution ASK with BOTH blocking metric and
+   time_range items, each carrying at least two concrete options, asking metric first.
 3) Empty + "How were sales last month?": bare sales remains a blocking metric ambiguity.
    Do not upsert GMV. Record the explicit time separately and ASK which metric.
 4) Empty + "看最近的实际支付金额": upsert paid_amount, time_range NO_CHANGE, grain
-   NO_CHANGE; resolution ASK with one blocking time_range item, never grain.
+   NO_CHANGE; resolution ASK with one blocking time_range item whose options include at least two
+   concrete windows, never grain.
 5) Empty + paid amount trend over last 30 days with grain undecided: upsert paid_amount,
    SET last_30_days, grain NO_CHANGE; resolution ASK with one blocking grain item.
 6) Current metric=gmv + "not GMV, use 实际支付金额 paid_amount": remove gmv and upsert

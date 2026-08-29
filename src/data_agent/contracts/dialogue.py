@@ -1,5 +1,6 @@
 """Validated decision proposed by the dialogue model."""
 
+from collections.abc import Sequence
 from enum import StrEnum
 from typing import Annotated, Literal, Self
 
@@ -150,8 +151,8 @@ class DialogueProposal(ContractModel):
     def _normalize_collection_blockers(
         self,
         patch_payload: dict[str, object],
+        blocking: Sequence[BlockingAmbiguity],
     ) -> None:
-        blocking = [item for item in self.resolution.unresolved_replace if item.blocking]
         metric_subjects = {
             self._subject_key(str(item.subject_term)) for item in blocking if item.field == "metric"
         }
@@ -200,23 +201,30 @@ class DialogueProposal(ContractModel):
         ):
             raise ValueError("filter blocker cannot safely normalize whole-list filter replacement")
 
-    def to_decision(self) -> "DialogueDecision":
+    def to_requirement_patch(
+        self,
+        *,
+        blocking: Sequence[BlockingAmbiguity],
+    ) -> RequirementPatch:
+        """Normalize provider mutations while suppressing only proven blockers."""
+
         patch_payload = self.patch.model_dump(mode="json")
-        blocking_fields = {
-            str(item.field) for item in self.resolution.unresolved_replace if item.blocking
-        }
+        blocking_fields = {str(item.field) for item in blocking}
         if "time_range" in blocking_fields:
             patch_payload["time_range"] = {"op": PatchOp.NO_CHANGE, "value": None}
         if "grain" in blocking_fields:
             patch_payload["grain"] = DialogueGrainMutation.NO_CHANGE
         if "comparison" in blocking_fields:
             patch_payload["comparison"] = DialogueComparisonMutation.NO_CHANGE
-        self._normalize_collection_blockers(patch_payload)
+        self._normalize_collection_blockers(patch_payload, blocking)
         public_ambiguities = [
             Ambiguity.model_validate(item.model_dump(mode="json", exclude={"subject_term"}))
-            for item in self.resolution.unresolved_replace
+            for item in [
+                *blocking,
+                *(item for item in self.resolution.unresolved_replace if not item.blocking),
+            ]
         ]
-        patch = RequirementPatch.model_validate(
+        return RequirementPatch.model_validate(
             {
                 **patch_payload,
                 "grain": _normalized_grain_patch(DialogueGrainMutation(patch_payload["grain"])),
@@ -226,6 +234,17 @@ class DialogueProposal(ContractModel):
                 "unresolved_replace": public_ambiguities,
             }
         )
+
+    def to_candidate_patch(self) -> RequirementPatch:
+        """Normalize all proposed facts before readiness policy classifies blockers."""
+
+        return self.to_requirement_patch(blocking=())
+
+    def to_decision(self) -> "DialogueDecision":
+        """Conservatively normalize every provider blocker for compatibility callers."""
+
+        blocking = tuple(item for item in self.resolution.unresolved_replace if item.blocking)
+        patch = self.to_requirement_patch(blocking=blocking)
         return DialogueDecision.model_validate(
             {
                 "version": self.version,

@@ -1,4 +1,4 @@
-version: v0.1
+version: v0.2
 
 cases:
   - id: valid-governed-evidence
@@ -60,3 +60,45 @@ cases:
   - id: result-fingerprint-mismatch
     mutation: RESULT_FINGERPRINT_MISMATCH
     expected: INTEGRITY_ERROR
+
+  - id: simple-gmv
+    mutation: FROZEN_SIMPLE_GMV
+    expected: SEMANTIC_FAILURE
+    verified_oracle_regression: true
+
+  - id: simple-paid-amount
+    mutation: FROZEN_SIMPLE_PAID_AMOUNT
+    expected: SEMANTIC_FAILURE
+    verified_oracle_regression: true
+
+  - id: simple-payment-attempts
+    mutation: FROZEN_SIMPLE_PAYMENT_ATTEMPTS
+    expected: SEMANTIC_FAILURE
+    verified_oracle_regression: true
+
+  - id: join-net-revenue
+    mutation: FROZEN_JOIN_NET_REVENUE
+    expected: SEMANTIC_FAILURE
+    verified_oracle_regression: true
+
+  - id: agg-gmv-channel
+    mutation: FROZEN_AGG_GMV_CHANNEL
+    expected: SEMANTIC_FAILURE
+    verified_oracle_regression: true
+
+  - id: agg-orders-channel
+    mutation: FROZEN_AGG_ORDERS_CHANNEL
+    expected: SEMANTIC_FAILURE
+    verified_oracle_regression: true
+
+  - id: hidden-grouping-global-aggregate
+    mutation: HIDDEN_GLOBAL_GRAIN
+    expected: SEMANTIC_FAILURE
+
+  - id: hidden-grouping-refines-requested-dimension
+    mutation: HIDDEN_REFINED_GRAIN
+    expected: SEMANTIC_FAILURE
+
+  - id: grouping-alias-collides-with-source-column
+    mutation: ALIAS_SOURCE_COLLISION
+    expected: SEMANTIC_FAILURE

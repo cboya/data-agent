@@ -18,6 +18,7 @@ from data_agent.contracts.requirement import (
 from data_agent.dialogue.context import DialogueContextBuilder
 from data_agent.dialogue.errors import DialogueContextError, DialoguePolicyError
 from data_agent.dialogue.policy import DialoguePolicy
+from data_agent.dialogue.prompt import DIALOGUE_PROMPT_VERSION, DIALOGUE_SYSTEM_PROMPT
 from data_agent.dialogue.service import DialogueEngine
 from tests.dialogue.factories import FixedProposalModel, empty_requirement
 
@@ -56,6 +57,13 @@ def test_context_contains_only_state_last_clarification_and_latest_message() -> 
         "last_assistant_clarification": "Which metric?",
         "latest_user_message": "订单量",
     }
+
+
+def test_dialogue_wire_prompt_requires_structured_materiality_without_defaults() -> None:
+    assert DIALOGUE_PROMPT_VERSION == "dialogue-understanding-v0.21"
+    assert "time_range and grain are optional analytical scope" in DIALOGUE_SYSTEM_PROMPT
+    assert "at least two distinct, concrete options" in DIALOGUE_SYSTEM_PROMPT
+    assert "resolved_name=null, and status=UNRESOLVED" in DIALOGUE_SYSTEM_PROMPT
 
 
 def test_context_fails_instead_of_silently_truncating_latest_message() -> None:
@@ -111,7 +119,12 @@ def test_resolved_collection_sibling_survives_bounded_clarification_turns() -> N
                     term="实际支付金额",
                     resolved_name="paid_amount",
                     status=ResolutionStatus.CONFIRMED,
-                )
+                ),
+                MetricRequirement(
+                    term="销售情况",
+                    resolved_name=None,
+                    status=ResolutionStatus.UNRESOLVED,
+                ),
             ],
         ),
         action="ASK_CLARIFICATION",
@@ -178,6 +191,7 @@ def test_resolved_collection_sibling_survives_bounded_clarification_turns() -> N
     assert [
         item["resolved_name"] for item in second_context["current_requirement_state"]["metrics"]
     ] == ["paid_amount"]
+    assert model.calls[0][1] is DialogueProposal
 
 
 def test_policy_accepts_clarification_only_for_blocking_ambiguity() -> None:

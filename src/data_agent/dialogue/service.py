@@ -11,8 +11,14 @@ from data_agent.contracts.message import Message, MessageRole
 from data_agent.contracts.requirement import RequirementState, RequirementStatus
 from data_agent.contracts.session import Session, SessionStatus
 from data_agent.dialogue.context import DialogueContextBuilder
+from data_agent.dialogue.errors import InvalidProviderEvidenceError
 from data_agent.dialogue.merge import RequirementMerger
-from data_agent.dialogue.policy import DialogueOutcome, DialoguePolicy
+from data_agent.dialogue.policy import (
+    BlockingAmbiguityPolicy,
+    BlockingPolicyResult,
+    DialogueOutcome,
+    DialoguePolicy,
+)
 from data_agent.dialogue.prompt import DIALOGUE_PROMPT_VERSION
 from data_agent.model_runtime.ports import ChatModel
 from data_agent.persistence.ports import DialogueTurnStore, StoredDialogueTurn
@@ -26,11 +32,13 @@ class DialogueEngine:
         context_builder: DialogueContextBuilder | None = None,
         merger: RequirementMerger | None = None,
         policy: DialoguePolicy | None = None,
+        blocking_policy: BlockingAmbiguityPolicy | None = None,
     ) -> None:
         self._chat_model = chat_model
         self._context_builder = context_builder or DialogueContextBuilder()
         self._merger = merger or RequirementMerger()
         self._policy = policy or DialoguePolicy()
+        self._blocking_policy = blocking_policy or BlockingAmbiguityPolicy()
 
     async def understand(
         self,
@@ -39,12 +47,16 @@ class DialogueEngine:
         latest_user_message: str,
         last_assistant_clarification: str | None = None,
     ) -> DialogueOutcome:
-        decision = await self.propose(
+        proposal = await self._request_proposal(
             requirement=requirement,
             latest_user_message=latest_user_message,
             last_assistant_clarification=last_assistant_clarification,
         )
-        return self.resolve(requirement=requirement, decision=decision)
+        return self.resolve_proposal(
+            requirement=requirement,
+            proposal=proposal,
+            latest_user_message=latest_user_message,
+        )
 
     async def propose(
         self,
@@ -53,17 +65,93 @@ class DialogueEngine:
         latest_user_message: str,
         last_assistant_clarification: str | None = None,
     ) -> DialogueDecision:
+        proposal = await self._request_proposal(
+            requirement=requirement,
+            latest_user_message=latest_user_message,
+            last_assistant_clarification=last_assistant_clarification,
+        )
+        return self.resolve_proposal(
+            requirement=requirement,
+            proposal=proposal,
+            latest_user_message=latest_user_message,
+        ).decision
+
+    async def _request_proposal(
+        self,
+        *,
+        requirement: RequirementState,
+        latest_user_message: str,
+        last_assistant_clarification: str | None = None,
+    ) -> DialogueProposal:
         messages = self._context_builder.build(
             requirement=requirement,
             latest_user_message=latest_user_message,
             last_assistant_clarification=last_assistant_clarification,
         )
-        proposal = await self._chat_model.structured(
+        return await self._chat_model.structured(
             messages=messages,
             response_type=DialogueProposal,
             purpose=DIALOGUE_PROMPT_VERSION,
         )
-        return proposal.to_decision()
+
+    def resolve_proposal(
+        self,
+        *,
+        requirement: RequirementState,
+        proposal: DialogueProposal,
+        latest_user_message: str,
+    ) -> DialogueOutcome:
+        candidate_patch = proposal.to_candidate_patch()
+        candidate_merged = self._merger.merge(requirement, candidate_patch)
+        blocking = self._blocking_policy.evaluate(
+            requirement=requirement,
+            merged=candidate_merged,
+            proposal=proposal,
+            latest_user_message=latest_user_message,
+        )
+        decision = self._final_decision(proposal=proposal, blocking=blocking)
+        merged = self._merger.merge(requirement, decision.patch)
+        outcome = self._policy.apply(decision=decision, merged=merged)
+        return DialogueOutcome(
+            decision=outcome.decision,
+            requirement=outcome.requirement,
+            blocking=blocking,
+        )
+
+    @staticmethod
+    def _final_decision(
+        *,
+        proposal: DialogueProposal,
+        blocking: BlockingPolicyResult,
+    ) -> DialogueDecision:
+        if blocking.has_invalid:
+            invalid_reason_codes = tuple(
+                assessment.reason_code.value for assessment in blocking.invalid_assessments
+            )
+            raise InvalidProviderEvidenceError(
+                "provider blocker evidence is insufficient for deterministic readiness",
+                reason_codes=invalid_reason_codes,
+            )
+        patch = proposal.to_requirement_patch(blocking=blocking.blocking_candidates)
+        if not blocking.has_blocking:
+            action = DialogueAction.READY
+            question = None
+        elif proposal.resolution.action is DialogueAction.CANNOT_RESOLVE:
+            action = DialogueAction.CANNOT_RESOLVE
+            question = None
+        else:
+            action = DialogueAction.ASK_CLARIFICATION
+            question = proposal.resolution.question
+        reason_codes = ",".join(assessment.reason_code.value for assessment in blocking.assessments)
+        return DialogueDecision.model_validate(
+            {
+                "version": proposal.version,
+                "patch": patch.model_dump(mode="json"),
+                "action": action,
+                "question": question,
+                "reason": f"blocking-ambiguity-policy:{reason_codes or 'NO_CANDIDATES'}",
+            }
+        )
 
     def resolve(
         self,

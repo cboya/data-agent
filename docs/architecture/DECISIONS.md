@@ -505,3 +505,87 @@ prompt, Oracle, or behavioral truth.
 describes one model's capability. Optimizing case selection around an 8B model would reverse that
 authority relationship and overstate generalization. A stronger model may improve behavior, but
 cannot change Oracle truth, catalog authority, safety policy, or the scored suite.
+
+---
+
+## D-032 — M12 independently proves the governed public analytical shape
+
+**Decision:** `verification-policy-v0.2` treats the READY `RequirementState`, not a mutually
+consistent `QueryPlan` and `ExecutionResult`, as the independent authority for the public
+analytical shape. In an aggregate query, the public grouping outputs must equal the requested
+resolved dimensions plus `period` exactly when a time grain was requested. The complete public
+result-column set must equal the requested resolved metrics, resolved dimensions, and applicable
+`period`; additional public columns fail even when the Plan predicted them. Every requested
+dimension must also bind to exactly one M6 governed column and the matching public projection
+lineage. An absent, ambiguous, or mismatched governed dimension binding is a failed semantic check,
+not a successful check or an unsupported coverage pass.
+
+Output identity uses only final SELECT projections. Aggregate grain additionally inspects every
+final SELECT `GROUP BY` partition key: each key must map exactly to one requested public
+non-aggregate projection, by expression, unambiguous alias, or ordinal. Current M6 metadata does
+not encode enough uniqueness/functional-dependency authority to excuse a hidden grouping key, so
+an unmatched key fails closed. MySQL resolves an unqualified `GROUP BY` name against input columns
+before SELECT aliases, so the alias path is unambiguous only when bounded final-scope metadata
+proves that no input column has that name; complex or incomplete source scope fails closed. SQL
+helpers outside the final `GROUP BY` (for example JOIN or WHERE columns) remain outside this check.
+Formula and time-filter equivalence still remain explicit coverage gaps where current contracts
+cannot prove them.
+
+**Reason:** M15 diagnosis found plans that introduced an unrequested grouping dimension and then
+validated themselves because their expected columns matched the executed result. It also found a
+generic `channel` output whose requested semantic source could not be uniquely established from
+the bounded M6 catalog. Required-output containment alone allowed both shapes to receive M12
+`PASSED` despite deterministic Oracle disagreement.
+
+**Consequences:** A wrong Plan and matching wrong result can no longer authorize one another, and a
+hidden `GROUP BY` key cannot silently refine the requested grain. Repairable output-set,
+projection-lineage, and grouping formulation checks retain the existing typed M13 path. Missing or
+ambiguous M6 dimension authority is a distinct nonrepairable check and therefore consumes no model
+call or durable repair attempt. M13's bound, prompt, stage/category gate, and all other eligibility
+classes remain unchanged. Public `VerificationResult v0.1` and the M8/M9/M10/M11/M13/M14
+contracts remain unchanged.
+
+---
+
+## D-033 — M8 readiness is derived from material structured ambiguity
+
+**Decision:** Reopen M8 narrowly with internal `blocking-ambiguity-policy-v0.1`. The model's action
+and ambiguity list are candidates. The Harness normalizes an unsuppressed `RequirementPatch`,
+provisionally merges it, classifies every candidate with stable machine reason codes, suppresses
+only mutations attributable to candidates proven blocking, and constructs the final public
+`DialogueDecision`. Missing `time_range` and `grain` remain valid unspecified scope. A confirmed
+metric/dimension in merged state outranks provider uncertainty. Provider explanation text and M15
+expected answers are never policy inputs.
+
+A candidate is material only when structured evidence proves unresolved competing executable
+interpretations. Prompt `dialogue-understanding-v0.21` therefore minimally requires at least two
+concrete options for a blocker and a matching `UNRESOLVED` metric/dimension item when applicable;
+it also states explicitly that absent time/grain is optional. This wire amendment supplies
+evidence but does not become final authority. Public `RequirementState v0.1`,
+`DialogueDecision v0.1`, and `RequirementPatch v0.2` remain unchanged.
+
+The Harness evaluates those evidence candidates with deterministic policy. Evidence that proves
+neither blocking nor nonblocking is invalid and produces no decision; it cannot fall through to
+READY. This is a narrow trust-boundary rule rather than a general ambiguity-proof protocol. ASK
+requires at least one Harness-proven blocker. Exact question-to-blocker binding and clarification
+wording are deferred behavioral refinements, not MVP readiness authority.
+
+**Reason:** Draft M15 diagnosis replayed 35 unexpected clarifications in standalone M8. The old
+normalizer treated model ASK as effective readiness authority and suppressed patch facts before
+the Harness could observe that the cited ambiguity was optional, stale, or already resolved. The
+same diagnosis and the accepted M8 report also showed that old `v0.20` outputs left competing
+options empty and omitted structured unresolved metric facts, so deterministic positive recall
+could not be maintained by policy alone without hard-coding business terminology.
+
+**Consequences:** The exact 35-case provider-free corpus must produce zero unnecessary
+clarifications, while metric, dimension, explicit-time, and explicit-grain controls retain
+clarification recall `1.000` and false READY `0`. Suppression cannot inject default time/grain or
+erase confirmed siblings. Existing bounded context and atomic persistence/CAS behavior remain
+unchanged. M9–M15 behavior, Golden/Oracle truth, model/resource identity, and final thresholds are
+outside this remediation.
+
+Every legacy proposal lacking an exact resolved or unresolved subject match must fail with invalid
+provider evidence. The empty-state case that omitted every requested analytical fact has a separate
+complete-READY control. The gate fixes insufficient-evidence false READY at zero. Clarification
+question targeting remains deferred unless later end-to-end evidence proves it prevents
+convergence.

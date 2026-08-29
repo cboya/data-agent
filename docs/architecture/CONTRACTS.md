@@ -255,22 +255,34 @@ ASK_CLARIFICATION ⇒ question is non-empty
 READY ⇒ question is None
 ```
 
-The LLM proposes the decision. The harness validates and applies it.
+The LLM proposes the mutation and clarification candidates. The harness owns the final decision.
 The model cannot write `RequirementState.status`; deterministic dialogue policy derives it after
-merge. `ASK_CLARIFICATION` is accepted only when the merged state contains a blocking ambiguity,
-and `READY` only when it contains none.
+merge. `ASK_CLARIFICATION` is accepted only when deterministic blocking policy proves a material,
+execution-affecting ambiguity in the merged state, and `READY` only when it proves none.
 
 The Ollama boundary does not deserialize directly into the public decision. It first validates a
 provider-facing `DialogueProposal v0.1` containing a mutation patch and an action-discriminated
-`resolution`. ASK grammar requires at least one normalized blocking ambiguity; provider
-grain/comparison enum values are then deterministically normalized into `ScalarPatch` operations.
+`resolution`. Provider grain/comparison enum values are deterministically normalized into
+`ScalarPatch` operations, then the complete unsuppressed candidate patch is provisionally merged.
 Provider blocking ambiguity adds a required `subject_term` copied from the ambiguous surface
-phrase; this attribution metadata is removed before the public `Ambiguity` is constructed. The
-normalized `DialogueDecision` is revalidated before merge. A blocked scalar mutation becomes
-`NO_CHANGE`. A metric/dimension blocker suppresses only an upsert with the same normalized
-user-facing `term`, preserving unrelated explicit members of that collection. Collection removes
-that cannot be safely attributed and a filter replacement paired with a filter blocker fail
-closed instead of silently dropping facts.
+phrase. Internal `BlockingAmbiguityPolicy` classifies each candidate with stable reason codes from
+the provisional merged state, exact subject attribution, explicit patch operations, structured
+resolution status, and concrete competing options. Free-form provider reasons are never
+readiness authority. A missing optional `time_range` or `grain` is not a blocker; a resolved
+metric/dimension cannot remain blocked; a genuinely unresolved material candidate remains
+blocking. Only proven blockers suppress their attributable mutation and cross the public
+`Ambiguity` boundary. The final `DialogueDecision` is rebuilt and revalidated after this policy.
+Collection removes that cannot be safely attributed and a filter replacement paired with a proven
+filter blocker fail closed instead of silently dropping facts.
+
+Prompt `dialogue-understanding-v0.21` asks the provider for the structured alternatives and
+unresolved collection evidence needed by deterministic policy, but does not create a second
+semantic authority or a specialized proof protocol. If the submitted evidence proves neither a
+blocking nor a nonblocking outcome, resolution raises typed `InvalidProviderEvidenceError` and
+emits no `DialogueDecision`; insufficient evidence never certifies READY. An ASK outcome requires
+at least one Harness-proven blocker. Clarification wording and exact question-to-blocker targeting
+remain behavioral concerns outside this MVP control-plane gate. Public `DialogueDecision v0.1`
+and `RequirementState v0.1` remain unchanged.
 
 ---
 
@@ -485,6 +497,20 @@ explicit internal `VerificationTrace` coverage gaps; they must not be encoded as
 `CheckResult(passed=True)`. A typed `VerificationIntegrityError` is raised before these checks when
 the M9 planning, M10 capability, M11 metadata, and bounded result identities do not form one
 coherent evidence chain.
+
+Beginning with `verification-policy-v0.2`, public analytical shape is an applicable deterministic
+invariant whenever the READY requirement supplies resolved output names. The authoritative public
+set is its resolved metrics and dimensions plus `period` exactly when `grain` is present. For an
+aggregate result, every final `GROUP BY` partition key must map exactly to a requested public
+non-aggregate projection, and those mapped outputs must equal the requested dimensions plus
+applicable `period`. Hidden grouping keys fail closed unless a future governed contract can prove
+the required functional dependency. An unqualified `GROUP BY` name maps to a SELECT alias only
+when bounded final-scope metadata proves no input column can claim that name under MySQL's
+source-column-first resolution; otherwise it is hidden/ambiguous and fails closed. Ordinary
+non-grouping SQL helpers do not participate. Each requested dimension must resolve to exactly one
+bounded M6 catalog column and be present in that output projection's SQL lineage. QueryPlan
+expected columns remain useful structural evidence but cannot expand this RequirementState-owned
+authority.
 
 The internal `planner-context-fingerprint-v0.1` is SHA-256 over canonical JSON containing its
 fingerprint version and the complete `PlannerContext`: context version, authoritative

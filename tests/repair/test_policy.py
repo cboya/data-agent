@@ -64,6 +64,28 @@ def failure(**overrides: object) -> RepairFailure:
             None,
         ),
         (
+            failure(
+                stage="VERIFICATION",
+                code="VERIFICATION_CHECK_FAILED",
+                failed_checks=(
+                    "governed_public_output_shape",
+                    "requested_dimension_projection_lineage",
+                    "unrequested_analytical_grain",
+                ),
+            ),
+            True,
+            None,
+        ),
+        (
+            failure(
+                stage="VERIFICATION",
+                code="VERIFICATION_CHECK_FAILED",
+                failed_checks=("requested_dimension_source_unique",),
+            ),
+            False,
+            RunStatus.FAILED,
+        ),
+        (
             failure(category="POLICY", code="UNAUTHORIZED_SCHEMA"),
             False,
             RunStatus.POLICY_DENIED,

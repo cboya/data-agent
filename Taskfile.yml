@@ -54,6 +54,12 @@ tasks:
     cmds:
       - uv run data-agent sql-guard-eval
 
+  m8-readiness-eval:
+    desc: Run the provider-free M8 deterministic readiness evaluation
+    deps: [sync]
+    cmds:
+      - uv run data-agent m8-readiness-eval
+
   m11-eval:
     desc: Run the standalone M11 read-only runtime evaluation
     deps: [sync]

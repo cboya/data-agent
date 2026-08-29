@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 from typing import Any
 
 from pydantic import BaseModel
@@ -31,7 +32,28 @@ class FixedDialogueModel:
             raise AssertionError("fixed dialogue model has no remaining decision")
         decision = self._decisions.pop(0)
         proposal = DialogueProposal.from_decision(decision)
-        return response_type.model_validate(proposal.model_dump(mode="json"))
+        payload = proposal.model_dump(mode="json")
+        latest_user_message = str(json.loads(messages[-1]["content"])["latest_user_message"])
+        for ambiguity in payload["resolution"]["unresolved_replace"]:
+            if ambiguity["blocking"]:
+                ambiguity["subject_term"] = latest_user_message
+                if len(ambiguity["options"]) < 2:
+                    ambiguity["options"] = ["interpretation_a", "interpretation_b"]
+                if ambiguity["field"] in {"metric", "dimension"}:
+                    collection = (
+                        payload["patch"]["metrics_upsert"]
+                        if ambiguity["field"] == "metric"
+                        else payload["patch"]["dimensions_upsert"]
+                    )
+                    item = {
+                        "term": latest_user_message,
+                        "resolved_name": None,
+                        "status": "UNRESOLVED",
+                    }
+                    if ambiguity["field"] == "metric":
+                        item["definition"] = None
+                    collection.append(item)
+        return response_type.model_validate(payload)
 
 
 class FixedProposalModel:

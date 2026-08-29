@@ -223,7 +223,7 @@ GET  /runs/{run_id}
   "verification": {
     "status": "PASSED",
     "scope": "COVERAGE_BOUNDED",
-    "policy_version": "verification-policy-v0.1",
+    "policy_version": "verification-policy-v0.2",
     "coverage": 0.9,
     "unsupported": []
   },
