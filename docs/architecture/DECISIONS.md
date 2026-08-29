@@ -480,3 +480,48 @@ ambiguous M6 dimension authority is a distinct nonrepairable check and therefore
 call or durable repair attempt. M13's bound, prompt, stage/category gate, and all other eligibility
 classes remain unchanged. Public `VerificationResult v0.1` and the M8/M9/M10/M11/M13/M14
 contracts remain unchanged.
+
+---
+
+## D-031 — M8 readiness is derived from material structured ambiguity
+
+**Decision:** Reopen M8 narrowly with internal `blocking-ambiguity-policy-v0.1`. The model's action
+and ambiguity list are candidates. The Harness normalizes an unsuppressed `RequirementPatch`,
+provisionally merges it, classifies every candidate with stable machine reason codes, suppresses
+only mutations attributable to candidates proven blocking, and constructs the final public
+`DialogueDecision`. Missing `time_range` and `grain` remain valid unspecified scope. A confirmed
+metric/dimension in merged state outranks provider uncertainty. Provider explanation text and M15
+expected answers are never policy inputs.
+
+A candidate is material only when structured evidence proves unresolved competing executable
+interpretations. Prompt `dialogue-understanding-v0.21` therefore minimally requires at least two
+concrete options for a blocker and a matching `UNRESOLVED` metric/dimension item when applicable;
+it also states explicitly that absent time/grain is optional. This wire amendment supplies
+evidence but does not become final authority. Public `RequirementState v0.1`,
+`DialogueDecision v0.1`, and `RequirementPatch v0.2` remain unchanged.
+
+The Harness evaluates those evidence candidates with deterministic policy. Evidence that proves
+neither blocking nor nonblocking is invalid and produces no decision; it cannot fall through to
+READY. This is a narrow trust-boundary rule rather than a general ambiguity-proof protocol. ASK
+requires at least one Harness-proven blocker. Exact question-to-blocker binding and clarification
+wording are deferred behavioral refinements, not MVP readiness authority.
+
+**Reason:** Draft M15 diagnosis replayed 35 unexpected clarifications in standalone M8. The old
+normalizer treated model ASK as effective readiness authority and suppressed patch facts before
+the Harness could observe that the cited ambiguity was optional, stale, or already resolved. The
+same diagnosis and the accepted M8 report also showed that old `v0.20` outputs left competing
+options empty and omitted structured unresolved metric facts, so deterministic positive recall
+could not be maintained by policy alone without hard-coding business terminology.
+
+**Consequences:** The exact 35-case provider-free corpus must produce zero unnecessary
+clarifications, while metric, dimension, explicit-time, and explicit-grain controls retain
+clarification recall `1.000` and false READY `0`. Suppression cannot inject default time/grain or
+erase confirmed siblings. Existing bounded context and atomic persistence/CAS behavior remain
+unchanged. M9–M15 behavior, Golden/Oracle truth, model/resource identity, and final thresholds are
+outside this remediation.
+
+Every legacy proposal lacking an exact resolved or unresolved subject match must fail with invalid
+provider evidence. The empty-state case that omitted every requested analytical fact has a separate
+complete-READY control. The gate fixes insufficient-evidence false READY at zero. Clarification
+question targeting remains deferred unless later end-to-end evidence proves it prevents
+convergence.

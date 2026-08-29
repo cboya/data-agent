@@ -208,6 +208,26 @@ The standalone M8 dialogue gate additionally requires:
 - correction accuracy = 1.00;
 - multi-turn convergence = 1.00.
 
+The provider-free M8 readiness-remediation gate is separate from the model-dependent dialogue
+target. It replays the exact 35 diagnosis-proven false-clarification cases plus frozen true-
+ambiguity controls through provider proposal, provisional patch merge, blocking policy, final
+decision, and canonical state. It requires:
+
+- all 35 exact known false-clarification cases are present;
+- unnecessary clarification count on those cases = 0;
+- necessary clarification recall on true-ambiguity controls = 1.00;
+- false READY count on true-ambiguity controls = 0;
+- insufficient-provider-evidence false READY count = 0;
+- the three legacy cases without exact resolved/unresolved subject evidence (`simple-paid-users`,
+  `join-units-order`, and `join-units-attempts-order`) produce typed invalid evidence, not a
+  decision, while a separate structurally complete control for the empty-state case preserves both
+  requested metrics and the requested dimension before reaching READY;
+- action, exact canonical state, stable reason-code, and optional-scope preservation accuracy =
+  1.00.
+
+This exact-defect gate does not replace or tighten the final model-dependent M15 unnecessary-
+clarification threshold. Runtime policy never reads Golden expected answers.
+
 Time-ambiguity cases must also prove that a guessed concrete time range does not survive into
 canonical state merely because the model correctly chose ASK.
 

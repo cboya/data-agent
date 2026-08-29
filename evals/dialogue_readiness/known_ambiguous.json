@@ -1,0 +1,491 @@
+{
+  "cases": [
+    {
+      "category": "KNOWN_AMBIGUOUS",
+      "id": "ambiguous-metric",
+      "turns": [
+        {
+          "expected_action": "ASK_CLARIFICATION",
+          "expected_reason_codes": [
+            "UNRESOLVED_METRIC"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "CLARIFYING",
+            "time_range": null,
+            "unresolved": [
+              {
+                "blocking": true,
+                "field": "metric",
+                "options": [
+                  "gmv",
+                  "paid_amount"
+                ],
+                "reason": "candidate reason is not policy authority"
+              }
+            ],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "sales",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": null,
+                  "status": "UNRESOLVED",
+                  "term": "sales"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "Do you mean GMV or paid amount?",
+              "reason": "provider proposal only",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "metric",
+                  "options": [
+                    "gmv",
+                    "paid_amount"
+                  ],
+                  "reason": "candidate reason is not policy authority",
+                  "subject_term": "sales"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_AMBIGUOUS",
+      "id": "ambiguous-dimension",
+      "turns": [
+        {
+          "expected_action": "ASK_CLARIFICATION",
+          "expected_reason_codes": [
+            "UNRESOLVED_DIMENSION"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "paid_amount",
+                "status": "CONFIRMED",
+                "term": "paid amount"
+              }
+            ],
+            "sort": null,
+            "status": "CLARIFYING",
+            "time_range": null,
+            "unresolved": [
+              {
+                "blocking": true,
+                "field": "dimension",
+                "options": [
+                  "region",
+                  "channel"
+                ],
+                "reason": "candidate reason is not policy authority"
+              }
+            ],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "Break down paid amount by location.",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [
+                {
+                  "resolved_name": null,
+                  "status": "UNRESOLVED",
+                  "term": "location"
+                }
+              ],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "paid_amount",
+                  "status": "CONFIRMED",
+                  "term": "paid amount"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "Do you mean region or channel?",
+              "reason": "provider proposal only",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "dimension",
+                  "options": [
+                    "region",
+                    "channel"
+                  ],
+                  "reason": "candidate reason is not policy authority",
+                  "subject_term": "location"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_AMBIGUOUS",
+      "id": "explicit-time-ambiguity",
+      "turns": [
+        {
+          "expected_action": "ASK_CLARIFICATION",
+          "expected_reason_codes": [
+            "EXPLICIT_TIME_AMBIGUITY"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "paid_amount",
+                "status": "CONFIRMED",
+                "term": "paid amount"
+              }
+            ],
+            "sort": null,
+            "status": "CLARIFYING",
+            "time_range": null,
+            "unresolved": [
+              {
+                "blocking": true,
+                "field": "time_range",
+                "options": [
+                  "last_7_days",
+                  "last_30_days"
+                ],
+                "reason": "candidate reason is not policy authority"
+              }
+            ],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "Show paid amount recently.",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "paid_amount",
+                  "status": "CONFIRMED",
+                  "term": "paid amount"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "What exact time range do you mean?",
+              "reason": "provider proposal only",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "time_range",
+                  "options": [
+                    "last_7_days",
+                    "last_30_days"
+                  ],
+                  "reason": "candidate reason is not policy authority",
+                  "subject_term": "recently"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    },
+    {
+      "category": "KNOWN_AMBIGUOUS",
+      "id": "explicit-grain-ambiguity",
+      "turns": [
+        {
+          "expected_action": "ASK_CLARIFICATION",
+          "expected_reason_codes": [
+            "EXPLICIT_GRAIN_AMBIGUITY"
+          ],
+          "expected_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [
+              {
+                "definition": null,
+                "resolved_name": "paid_amount",
+                "status": "CONFIRMED",
+                "term": "paid amount"
+              }
+            ],
+            "sort": null,
+            "status": "CLARIFYING",
+            "time_range": {
+              "end": null,
+              "kind": "RELATIVE",
+              "start": null,
+              "value": "last_30_days"
+            },
+            "unresolved": [
+              {
+                "blocking": true,
+                "field": "grain",
+                "options": [
+                  "day",
+                  "week"
+                ],
+                "reason": "candidate reason is not policy authority"
+              }
+            ],
+            "version": "v0.1"
+          },
+          "initial_requirement_state": {
+            "assumptions": [],
+            "comparison": null,
+            "confirmed_terms": {},
+            "dimensions": [],
+            "filters": [],
+            "goal": null,
+            "grain": null,
+            "limit": null,
+            "metrics": [],
+            "sort": null,
+            "status": "INCOMPLETE",
+            "time_range": null,
+            "unresolved": [],
+            "version": "v0.1"
+          },
+          "latest_user_message": "Show the paid amount trend; grain is undecided.",
+          "provider_proposal": {
+            "patch": {
+              "assumptions_add": [],
+              "comparison": "NO_CHANGE",
+              "confirmed_terms_upsert": {},
+              "dimensions_remove": [],
+              "dimensions_upsert": [],
+              "filters_replace": null,
+              "goal": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "grain": "NO_CHANGE",
+              "limit": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "metrics_remove": [],
+              "metrics_upsert": [
+                {
+                  "definition": null,
+                  "resolved_name": "paid_amount",
+                  "status": "CONFIRMED",
+                  "term": "paid amount"
+                }
+              ],
+              "sort": {
+                "op": "NO_CHANGE",
+                "value": null
+              },
+              "time_range": {
+                "op": "SET",
+                "value": {
+                  "end": null,
+                  "kind": "RELATIVE",
+                  "start": null,
+                  "value": "last_30_days"
+                }
+              },
+              "unresolved_replace": null,
+              "version": "v0.2"
+            },
+            "resolution": {
+              "action": "ASK_CLARIFICATION",
+              "question": "Should the trend be daily or weekly?",
+              "reason": "provider proposal only",
+              "unresolved_replace": [
+                {
+                  "blocking": true,
+                  "field": "grain",
+                  "options": [
+                    "day",
+                    "week"
+                  ],
+                  "reason": "candidate reason is not policy authority",
+                  "subject_term": "grain is undecided"
+                }
+              ]
+            },
+            "version": "v0.1"
+          },
+          "turn_number": 1
+        }
+      ]
+    }
+  ],
+  "source_diagnosis_fingerprint": "provider-free-positive-controls-v0.1",
+  "version": "v0.1"
+}

@@ -318,3 +318,17 @@ def test_repair_eval_command_is_independent(
     output = capsys.readouterr().out
     assert "Repair eval PASS" in output
     assert "cases=19" in output
+
+
+def test_m8_readiness_eval_command_is_provider_free(
+    capsys: pytest.CaptureFixture[str],
+) -> None:
+    assert main(["m8-readiness-eval"]) == 0
+
+    output = capsys.readouterr().out
+    assert "M8 readiness eval PASS" in output
+    assert "cases=40" in output
+    assert "unnecessary_clarification=0" in output
+    assert "necessary_recall=1.000" in output
+    assert "false_ready=0" in output
+    assert "insufficient_evidence_false_ready=0" in output

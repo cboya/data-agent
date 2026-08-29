@@ -278,15 +278,12 @@ async def run_dialogue_evaluation(
                 errors.append("turn not executed after prior evaluation failure")
             else:
                 try:
-                    proposed_decision = await engine.propose(
+                    outcome = await engine.understand(
                         requirement=state,
                         latest_user_message=turn.user,
                         last_assistant_clarification=last_clarification,
                     )
-                    outcome = engine.resolve(
-                        requirement=state,
-                        decision=proposed_decision,
-                    )
+                    proposed_decision = outcome.decision
                     state = outcome.requirement
                     actual_requirement = state
                     actual_action = outcome.decision.action

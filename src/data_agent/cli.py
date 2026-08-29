@@ -15,6 +15,12 @@ from data_agent.answer.real_evaluation import (
 )
 from data_agent.config import Settings
 from data_agent.dialogue.evaluation import format_dialogue_eval_summary
+from data_agent.dialogue.readiness_evaluation import (
+    format_readiness_eval_summary,
+    load_readiness_eval_suite,
+    run_readiness_evaluation,
+    write_readiness_eval_report,
+)
 from data_agent.dialogue.runtime import evaluate_current_dialogue
 from data_agent.infrastructure.mysql_world import bootstrap_mysql, reset_mysql
 from data_agent.planning.evaluation import format_planner_eval_summary
@@ -49,6 +55,7 @@ def build_parser() -> argparse.ArgumentParser:
             "answer-ollama-eval",
             "bootstrap",
             "eval",
+            "m8-readiness-eval",
             "planner-eval",
             "repair-eval",
             "repair-ollama-eval",
@@ -109,6 +116,11 @@ def main(argv: Sequence[str] | None = None) -> int:
         answer_report = evaluate_current_answer()
         print(format_answer_eval_summary(answer_report))
         return 0 if answer_report.passed else 1
+    if args.command == "m8-readiness-eval":
+        readiness_report = run_readiness_evaluation(load_readiness_eval_suite())
+        write_readiness_eval_report(readiness_report)
+        print(format_readiness_eval_summary(readiness_report))
+        return 0 if readiness_report.passed else 1
     if args.command == "answer-ollama-eval":
         settings = Settings()  # type: ignore[call-arg]
         report = asyncio.run(evaluate_real_answer(settings))
