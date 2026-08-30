@@ -207,7 +207,7 @@ implementation remains frozen until its activation turn; no M17 code belongs in 
 ## 6. Progress
 
 ```text
-[~] M16 Model Provider Portability — IMPLEMENTED; LOCAL + REAL REST GATES PASS; PR PENDING
+[~] M16 Model Provider Portability — REVIEW READY; MERGE NOT AUTHORIZED
 [ ] M17 External MySQL Portability — NOT AUTHORIZED
 ```
 
@@ -227,8 +227,10 @@ Cloudflare remote bootstrap        PASS — retrieval index 6375bc55f26d1c8e41f2
 task quality                       PASS — 544 passed, 8 skipped
 30B / M15 59-case evaluation       NOT RUN
 bounded real-provider smoke        PASS — 1 passed in 28.93s
-remote Delivery / Quality          PENDING PR
-substantive review                 NOT YET AUTHORIZED
+provider implementation head       30dfa0f
+focused PR                         #19 — OPEN / CLEAN
+remote Delivery / Quality          PASS — PR #19 at 30dfa0f
+substantive review                 PENDING
 ```
 
 The deterministic implementation and authorized real-provider gates are complete. M16 remains
