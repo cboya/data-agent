@@ -11,6 +11,7 @@
 官方参考：
 
 - [Microsoft：安装 WSL](https://learn.microsoft.com/windows/wsl/install)
+- [Microsoft：WSL 网络与互操作](https://learn.microsoft.com/windows/wsl/networking)
 - [Docker：WSL2 backend](https://docs.docker.com/desktop/features/wsl/)
 - [Docker：在 WSL2 中开发](https://docs.docker.com/desktop/features/wsl/use-wsl/)
 - [Ollama：Windows](https://docs.ollama.com/windows)
@@ -199,7 +200,28 @@ ollama pull qwen3-embedding:0.6b
 Product NL2SQL 行为已经通过验收。`qwen3-embedding:0.6b` 是轻量的本地 Embedding
 参考模型。
 
-在 WSL Ubuntu 中测试 Windows Ollama：
+这里必须区分两个方向：Windows 通常可以通过 `localhost` 访问 WSL 中监听的服务，
+所以 Windows 浏览器可以打开 WSL 内的 Data Agent API；但 Data Agent 运行在 WSL，
+它访问 Windows 原生 Ollama 属于反方向 `WSL → Windows`，不能在所有 WSL2 环境中
+假定 `127.0.0.1` 可用。
+
+#### Windows 11 22H2+：mirrored networking
+
+Windows 11 22H2 及以上版本可以在用户目录的 `.wslconfig` 中启用 mirrored networking：
+
+```ini
+[wsl2]
+networkingMode=mirrored
+```
+
+修改后在 PowerShell 中关闭并重新启动 WSL：
+
+```powershell
+wsl --shutdown
+```
+
+Mirrored networking 支持 Windows 与 WSL 通过 `localhost` 双向访问。此时在 WSL
+Ubuntu 中测试：
 
 ```bash
 curl http://127.0.0.1:11434/api/version
@@ -214,15 +236,28 @@ OLLAMA_CHAT_MODEL=gemma4:latest
 OLLAMA_EMBED_MODEL=qwen3-embedding:0.6b
 ```
 
-如果无法访问，依次尝试：
+#### 默认 NAT / Windows 10
+
+默认 NAT 模式下，特别是 Windows 10，WSL 访问 Windows 服务通常需要 Windows host
+IP，而不是 `127.0.0.1`。但是通过 host IP 访问还要求 Windows Ollama 监听 WSL 可达的
+网络接口，并可能涉及 Windows 防火墙规则；Ollama API 本身没有适合局域网暴露的应用
+鉴权边界。
+
+因此本项目不把“扩大 Windows Ollama 监听地址”作为默认教程步骤。在默认 NAT 或
+Windows 10 环境中，优先选择：
+
+1. 在 WSL 内运行 Ollama，让应用与模型共享同一个 `localhost`；或
+2. 使用现有 OpenAI-compatible 远端模型配置。
+
+不要为了跨 WSL 访问而把无鉴权的 Ollama API 绑定到 `0.0.0.0` 或暴露到局域网。
+
+如果已经启用 mirrored networking 但 `localhost` 仍无法访问，可以依次尝试：
 
 1. 更新 WSL：`wsl --update`；
 2. 退出并重新启动 Windows Ollama；
 3. 在 PowerShell 中执行 `wsl --shutdown`，再打开 Ubuntu；
 4. 将 Ollama 与应用都放在 WSL 内运行；或
 5. 改用 OpenAI-compatible 远端配置。
-
-不要为了跨 WSL 访问而直接把无鉴权的 Ollama API 暴露到局域网。
 
 ### 7.2 方案 B：在 WSL 内运行 Ollama
 
@@ -263,6 +298,10 @@ cp .env.example .env
 ```
 
 本地 Ollama + 本地合成 MySQL 的最小关键配置：
+
+下面的 `127.0.0.1:11434` 假设 Ollama 运行在 WSL 内，或者 Windows 11 已启用并验证
+mirrored networking。默认 NAT / Windows 10 不应直接套用这个地址访问 Windows 原生
+Ollama。
 
 ```ini
 MODEL_RUNTIME_PROVIDER=ollama
@@ -419,7 +458,12 @@ curl http://127.0.0.1:11434/api/version
 ```
 
 如果只有 Windows 成功，更新/重启 WSL 与 Ollama。仍不稳定时，优先让 Ollama 与应用
-运行在同一个 WSL 网络空间，或使用远端模型；不要关闭安全边界来换取连通性。
+运行在同一个 WSL 网络空间，或使用远端模型。
+
+先确认当前网络模式：只有 Windows 11 22H2+ 启用 mirrored networking 后，才应预期
+`WSL → Windows` 的 `127.0.0.1` 访问。默认 NAT / Windows 10 应优先采用 WSL 内
+Ollama 或远端模型。本指南不建议通过扩大 Ollama 监听地址或放宽 Windows 防火墙来
+绕过这个边界。
 
 ### 12.4 Windows 浏览器打不开端口 8000
 

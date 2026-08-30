@@ -24,9 +24,12 @@ task dev
 ```
 
 `task dev` starts the FastAPI service on `APP_HOST` and `APP_PORT`, which default to
-`127.0.0.1:8000`. Startup fails closed when the configured model identity, catalog, retrieval
-index, or required persistence/runtime dependency cannot be bound safely. The API does not start
-Ollama; Ollama must already be running when it is the selected provider.
+`127.0.0.1:8000`. Startup fails closed when the configured model-runtime identity, catalog
+authority, or retrieval-index identity cannot be bound safely. Control-plane persistence and
+analytics MySQL connections are opened when their corresponding request or execution paths are
+used; a database infrastructure failure can therefore surface as HTTP `5xx` after successful
+application startup. The API does not start Ollama; Ollama must already be running when it is the
+selected provider.
 
 See [`architecture/LOCAL_DEV.md`](architecture/LOCAL_DEV.md) for complete local, remote-model, and
 external-MySQL configuration. Windows users should also follow [`WINDOWS.md`](WINDOWS.md).
