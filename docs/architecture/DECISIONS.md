@@ -737,6 +737,16 @@ Exact curated table coverage is therefore checked against that surface rather th
 table in the database. Curated M6 relationships still require generated single-column FK evidence;
 M17 never infers connectivity from names or broadens the MySQL dialect/runtime policies.
 
+Before any assembled catalog or retrieval index is used, the loaded generated schema must match
+the active profile's database and exact sorted allowed-table surface. A workspace artifact built
+under an older database or wider/narrower allowlist is stale authority and fails closed. Physical
+host and port are deliberately not pinned because relocating the same logical source is valid.
+
+`MYSQL_ROOT_PASSWORD` is optional configuration for runtime composition. External preflight,
+EXPLAIN, and guarded execution require only the analytics reader credentials. Synthetic bootstrap,
+control migrations, principal provisioning, and other explicitly invoked admin paths call one
+shared admin-secret guard and fail before connection/container mutation when the secret is absent.
+
 **Reason:** The Phase-1 synthetic world coupled one server endpoint, admin bootstrap, analytics
 source, and global catalog paths. Reusing that path for a remote analytics database would make a
 read-only portability exercise capable of user/grant/schema/data mutation and could mix source
@@ -747,4 +757,5 @@ introducing multi-source query behavior or a generic dialect abstraction.
 External conformance begins with the dedicated non-mutating preflight and requires separately
 curated semantics inside its active workspace before catalog assembly/indexing. A missing allowed
 table, ambiguous database identity, unreadable metadata, out-of-surface relationship, or absent FK
-authority stops the flow. Control-plane persistence remains MySQL and is not migrated by M17.
+authority stops the flow. A stale workspace database/table surface also stops startup. Control-plane
+persistence remains MySQL and is not migrated by M17.

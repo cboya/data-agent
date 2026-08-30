@@ -130,6 +130,11 @@ state cannot overwrite the synthetic reference artifacts, and external curated s
 required only for the profile's allowed-table surface. Credentials and network endpoints do not
 enter either workspace identity or generated artifacts.
 
+Workspace selection alone is insufficient authority. Before current catalog/index loading,
+`GeneratedSchemaMetadata.schema_name` must equal the active profile database and its exact sorted
+table names must equal the active allowlist. A configuration change that reuses a workspace while
+changing database or table scope therefore fails closed until preflight/catalog/index rebuild.
+
 M6 requires curated table semantics for every generated analytics table and rejects curated
 references to tables or columns absent from the generated snapshot. The assembled
 `catalog/generated/catalog.json` contains sorted `CatalogDocument` and curated `Relationship`

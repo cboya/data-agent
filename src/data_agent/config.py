@@ -23,6 +23,10 @@ SYNTHETIC_ALLOWED_TABLES = (
 )
 
 
+class MissingMySQLAdminCredentialError(RuntimeError):
+    """An explicitly invoked MySQL admin path has no configured admin secret."""
+
+
 class Settings(BaseSettings):
     """Configuration loaded from environment variables and an optional .env file."""
 
@@ -68,7 +72,7 @@ class Settings(BaseSettings):
     mysql_host: str = "127.0.0.1"
     mysql_port: int = Field(default=3306, ge=1, le=65535)
     mysql_database: str = Field(default="data_agent", min_length=1)
-    mysql_root_password: SecretStr
+    mysql_root_password: SecretStr | None = None
     mysql_readonly_user: str = Field(default="data_agent_reader", min_length=1)
     mysql_readonly_password: SecretStr
     mysql_control_host: str = "127.0.0.1"
@@ -232,3 +236,14 @@ class Settings(BaseSettings):
                 "MySQL query read timeout must be greater than the server query-time bound"
             )
         return self
+
+
+def require_mysql_admin_password(settings: Settings, *, operation: str) -> str:
+    """Return the admin secret only for an explicit admin operation, or fail closed."""
+
+    secret = settings.mysql_root_password
+    if secret is None or not secret.get_secret_value().strip():
+        raise MissingMySQLAdminCredentialError(
+            f"MYSQL_ROOT_PASSWORD is required for MySQL admin operation: {operation}"
+        )
+    return secret.get_secret_value()

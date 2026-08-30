@@ -15,7 +15,7 @@ from data_agent.analytics import active_analytics_source
 from data_agent.catalog.introspection import generate_schema_catalog, reset_generated_catalog
 from data_agent.catalog.semantic import build_semantic_catalog
 from data_agent.catalog.workspace import catalog_workspace
-from data_agent.config import Settings
+from data_agent.config import Settings, require_mysql_admin_password
 from data_agent.persistence.migrations import apply_control_migrations
 from data_agent.persistence.mysql.common import control_connection
 
@@ -81,7 +81,10 @@ def wait_for_mysql(settings: Settings, timeout_seconds: int = 90) -> None:
             connection = _connect(
                 settings,
                 user="root",
-                password=settings.mysql_root_password.get_secret_value(),
+                password=require_mysql_admin_password(
+                    settings,
+                    operation="synthetic MySQL readiness check",
+                ),
             )
             connection.close()
             return
@@ -100,7 +103,10 @@ def ensure_readonly_principal(settings: Settings) -> None:
     connection = _connect(
         settings,
         user="root",
-        password=settings.mysql_root_password.get_secret_value(),
+        password=require_mysql_admin_password(
+            settings,
+            operation="analytics reader provisioning",
+        ),
     )
     try:
         with connection.cursor() as cursor:
@@ -121,7 +127,10 @@ def ensure_control_principal(settings: Settings) -> None:
     connection = _connect(
         settings,
         user="root",
-        password=settings.mysql_root_password.get_secret_value(),
+        password=require_mysql_admin_password(
+            settings,
+            operation="control principal provisioning",
+        ),
         control_plane=True,
     )
     try:
@@ -172,7 +181,10 @@ def verify_control_principal(settings: Settings) -> None:
     connection = _connect(
         settings,
         user="root",
-        password=settings.mysql_root_password.get_secret_value(),
+        password=require_mysql_admin_password(
+            settings,
+            operation="control principal verification",
+        ),
         control_plane=True,
     )
     try:
@@ -280,6 +292,7 @@ def bootstrap_mysql(settings: Settings) -> FixtureSummary:
         raise RuntimeError(
             "synthetic MySQL bootstrap is forbidden for an external analytics source"
         )
+    require_mysql_admin_password(settings, operation="synthetic MySQL bootstrap")
     workspace = catalog_workspace(profile)
     start_mysql()
     wait_for_mysql(settings)

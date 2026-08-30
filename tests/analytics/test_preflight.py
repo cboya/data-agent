@@ -22,7 +22,7 @@ def _settings(**overrides: object) -> Settings:
         "mysql_host": "analytics.example.test",
         "mysql_port": 4406,
         "mysql_database": "analytics",
-        "mysql_root_password": SecretStr("root-secret"),
+        "mysql_root_password": None,
         "mysql_readonly_user": "reader",
         "mysql_readonly_password": SecretStr("reader-secret"),
         "mysql_control_password": SecretStr("control-secret"),
@@ -108,6 +108,7 @@ def test_scoped_introspection_uses_only_the_explicit_allowlist(
     connection = _Connection()
     _install_connection(monkeypatch, connection)
     settings = _settings()
+    assert settings.mysql_root_password is None
 
     generated = introspect_analytics_schema(settings)
 

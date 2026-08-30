@@ -34,11 +34,12 @@ def _mysql_sqlstate(error: pymysql.MySQLError) -> str | None:
 
 def _safe_provider_detail(error: pymysql.MySQLError, settings: Settings) -> str:
     detail = " ".join(str(error).split())
-    secrets = (
+    secrets: tuple[str, ...] = (
         settings.mysql_readonly_password.get_secret_value(),
         settings.mysql_control_password.get_secret_value(),
-        settings.mysql_root_password.get_secret_value(),
     )
+    if settings.mysql_root_password is not None:
+        secrets = (*secrets, settings.mysql_root_password.get_secret_value())
     for secret in secrets:
         if secret:
             detail = detail.replace(secret, "[REDACTED]")

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from data_agent.analytics import active_analytics_source
 from data_agent.catalog.introspection import GeneratedSchemaMetadata, load_generated_schema
 from data_agent.catalog.semantic import (
     AssembledSemanticCatalog,
@@ -50,8 +51,19 @@ class CurrentRetrievalRuntime:
 
 def load_current_catalog_authority(settings: Settings) -> CurrentCatalogAuthority:
     """Reject an internally valid catalog that is stale relative to current source authority."""
+    profile = active_analytics_source(settings)
     workspace = active_catalog_workspace(settings)
     generated = load_generated_schema(workspace.generated_schema_path)
+    if generated.schema_name != profile.database:
+        raise RetrievalIndexStaleError(
+            "generated catalog database does not match current analytics source profile"
+        )
+    generated_tables = tuple(table.name for table in generated.tables)
+    if generated_tables != profile.allowed_tables:
+        raise RetrievalIndexStaleError(
+            "generated catalog allowed-table surface does not match "
+            "current analytics source profile"
+        )
     curated = load_curated_semantics(
         tables_path=workspace.tables_semantics_path,
         relationships_path=workspace.relationships_semantics_path,

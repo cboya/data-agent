@@ -10,7 +10,7 @@ from typing import cast
 import pymysql
 from pymysql.connections import Connection
 
-from data_agent.config import Settings
+from data_agent.config import Settings, require_mysql_admin_password
 from data_agent.persistence.errors import MigrationDriftError
 
 REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
@@ -78,7 +78,10 @@ def _admin_connection(
         host=settings.mysql_control_host,
         port=settings.mysql_control_port,
         user="root",
-        password=settings.mysql_root_password.get_secret_value(),
+        password=require_mysql_admin_password(
+            settings,
+            operation="control schema migration",
+        ),
         database=database,
         charset="utf8mb4",
         autocommit=autocommit,

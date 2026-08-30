@@ -17,7 +17,7 @@ from data_agent.catalog.workspace import (
     active_catalog_workspace,
     catalog_workspace,
 )
-from data_agent.config import Settings
+from data_agent.config import MissingMySQLAdminCredentialError, Settings
 from data_agent.infrastructure import mysql_world
 from data_agent.persistence.mysql.common import control_connection
 from data_agent.query_runtime.mysql import MySQLQueryConnectionFactory
@@ -30,7 +30,7 @@ def _external_settings(**overrides: object) -> Settings:
         "mysql_host": "analytics.example.test",
         "mysql_port": 4406,
         "mysql_database": "external_analytics",
-        "mysql_root_password": SecretStr("control-admin-secret"),
+        "mysql_root_password": None,
         "mysql_readonly_user": "external_reader",
         "mysql_readonly_password": SecretStr("external-reader-secret"),
         "mysql_control_host": "control.example.test",
@@ -79,6 +79,7 @@ def test_external_source_profile_and_workspace_exclude_every_secret() -> None:
     workspace = active_catalog_workspace(settings)
     serialized = profile.model_dump_json()
 
+    assert settings.mysql_root_password is None
     assert profile.allowed_tables == ("dim_parent", "fact_child")
     assert workspace.generated_root != SYNTHETIC_GENERATED_ROOT
     assert workspace.generated_root.parts[-4:] == (
@@ -93,7 +94,6 @@ def test_external_source_profile_and_workspace_exclude_every_secret() -> None:
         "external_reader",
         "external-reader-secret",
         "control-runtime-secret",
-        "control-admin-secret",
     ):
         assert forbidden not in serialized
 
@@ -135,6 +135,25 @@ def test_external_mode_cannot_enter_synthetic_bootstrap(
         mysql_world.bootstrap_mysql(_external_settings())
 
     assert forbidden_calls == []
+
+
+def test_synthetic_bootstrap_requires_admin_secret_before_any_admin_operation(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    settings = Settings(
+        ollama_chat_model="chat-model",
+        ollama_embed_model="embedding-model",
+        mysql_root_password=None,
+        mysql_readonly_password=SecretStr("reader-test-password"),
+        mysql_control_password=SecretStr("control-test-password"),
+    )
+    monkeypatch.setattr(mysql_world, "start_mysql", lambda: calls.append("container startup"))
+
+    with pytest.raises(MissingMySQLAdminCredentialError, match="synthetic MySQL bootstrap"):
+        mysql_world.bootstrap_mysql(settings)
+
+    assert calls == []
 
 
 def test_profile_revalidates_canonical_scope_and_fingerprint() -> None:

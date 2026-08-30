@@ -348,6 +348,37 @@ provisioning created the schema/data and reduced the reader to four table-level 
 The application path remained non-mutating: bounded metadata intake, in-memory semantic assembly,
 retrieval indexing/search, SQL Guard, JSON EXPLAIN, and one capability-only bounded `SELECT`.
 
+### M17 substantive-review remediation evidence — 2026-08-30
+
+```text
+review baseline                        PR #20 head 02cec38306e3b9ca3955efae1f17431edcd74656
+active profile → generated database   FAIL-CLOSED / PASS
+active profile → exact table surface  FAIL-CLOSED / PASS
+stale workspace database regression   PASS
+stale wider-allowlist regression       PASS
+
+MYSQL_ROOT_PASSWORD setting           OPTIONAL
+external Settings with root=None      PASS
+external preflight with root=None     PASS — deterministic connection evidence
+runtime/EXPLAIN redaction root=None   PASS
+synthetic bootstrap root=None         TYPED FAIL before container/admin operation
+control migration root=None           TYPED FAIL before admin connection
+live external unusable admin secret   PASS — preflight + conformance 1 passed
+
+focused blocker regression            PASS — 69 passed
+synthetic task bootstrap               PASS — reference index 318a5423d...
+task quality                           PASS — 565 passed, 9 skipped
+M15 59-case evaluation                 NOT RUN
+M8–M15 / Golden / Oracle / thresholds UNCHANGED
+release / tag                          NOT AUTHORIZED / NOT CREATED
+```
+
+The remediation changes only source-authority admission and admin-credential configuration.
+Current catalog loading now rejects workspace artifacts before curated/assembled/index use when
+their generated database or exact table surface differs from the active profile. External runtime
+composition no longer requires an admin secret; every operation that actually needs root authority
+uses one explicit fail-closed credential guard.
+
 ## 7. Decision log
 
 ### 2026-08-30 — M16 OpenAI-compatible profile and honest identity
@@ -460,6 +491,27 @@ the MySQL dialect, planner, retrieval semantics, Guard/EXPLAIN/runtime policy, M
 control-plane persistence. The fixture contains no raw opinion text or personal data and provides
 no Product acceptance evidence. It does not authorize production credentials, multi-source
 queries, M15 replay, a release, or a tag.
+
+### 2026-08-30 — M17 active-scope binding and on-demand admin credential
+
+**Decision:** Treat workspace paths as artifact locations, not sufficient authority. Before current
+catalog loading, compare generated schema database and exact ordered table names with the active
+`AnalyticsSourceProfile`; any mismatch is typed stale authority. Keep host/port outside this check.
+Make `MYSQL_ROOT_PASSWORD` optional in `Settings`, and require it through one shared helper only
+when synthetic bootstrap, control migration, principal provisioning, or verification explicitly
+enters an admin path.
+
+**Evidence:** Review found that a reused workspace could retain a removed table or a generated
+snapshot from another database, while runtime configuration had already changed. Review also found
+that a pure external reader configuration could not construct `Settings` without an unused root
+secret. New regressions cover both stale scopes, exact `None` external configuration/preflight,
+rootless EXPLAIN error handling, and pre-connection denial for synthetic bootstrap/control migration.
+
+**Consequences:** Allowlist/database changes become immediate runtime authority and require artifact
+rebuild before startup can continue. A logical source may still move between hosts without artifact
+invalidation. External analytics needs reader credentials only; local synthetic/control admin work
+still fails closed unless explicitly configured. No SQL, retrieval ranking, model, M8–M15, or
+Product acceptance behavior changes.
 
 ## 8. Deviation rule
 

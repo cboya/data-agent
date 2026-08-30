@@ -183,6 +183,11 @@ Control:   MYSQL_CONTROL_HOST / MYSQL_CONTROL_PORT / MYSQL_CONTROL_DATABASE /
            MYSQL_CONTROL_*
 ```
 
+`MYSQL_ROOT_PASSWORD` is required only for local synthetic bootstrap, control migrations, and
+other explicit admin/provisioning operations. A pre-provisioned external analytics source does not
+provide or require an analytics root credential; its preflight, EXPLAIN, and query runtime use only
+`MYSQL_READONLY_USER` / `MYSQL_READONLY_PASSWORD`.
+
 `ANALYTICS_SOURCE_MODE=synthetic` keeps `task bootstrap` and the existing synthetic catalog paths.
 An external profile must declare its source ID, sorted JSON allowed-table list, and a non-synthetic
 catalog workspace. Run its dedicated preflight with:
@@ -207,6 +212,10 @@ task m17-external-smoke
 The smoke is read-only. It repeats bounded preflight, assembles the active curated workspace in
 memory, admits one fixed aggregate through SQL Guard and real JSON EXPLAIN, executes the resulting
 capability through the bounded query runtime, and confirms an out-of-scope table cannot be read.
+
+If the active external database or exact sorted allowlist changes while reusing a workspace,
+application/catalog loading fails stale-authority validation until preflight, semantic assembly,
+and retrieval-index rebuild have refreshed that workspace.
 
 ## 4. Environment variables
 

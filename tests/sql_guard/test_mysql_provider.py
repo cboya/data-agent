@@ -71,6 +71,7 @@ def test_connection_failure_is_redacted_and_fail_closed(
     monkeypatch: Any,
     settings: Settings,
 ) -> None:
+    settings = settings.model_copy(update={"mysql_root_password": None})
     monkeypatch.setattr(
         "data_agent.sql_guard.explain.readonly_connection",
         lambda _: (_ for _ in ()).throw(pymysql.OperationalError(2003, "sensitive")),

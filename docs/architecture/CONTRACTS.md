@@ -758,6 +758,14 @@ Allowed tables are non-empty, unique, and canonically sorted. The fingerprint co
 except itself. It contains no host, port, username, password, connection string, or other secret.
 The profile selects one local catalog workspace; it does not create a multi-source runtime.
 
+Loading that workspace is valid only when generated `schema` equals `profile.database` and the
+generated table-name tuple exactly equals `profile.allowed_tables`. This comparison occurs before
+curated/assembled/index authority is admitted; mismatch is a typed stale-authority failure.
+
+The profile deliberately excludes network endpoints and credentials. An external analytics source
+requires only its read-only principal. `MYSQL_ROOT_PASSWORD` is optional at configuration time and
+is required dynamically only by explicit synthetic/control-plane admin operations.
+
 The external preflight report is bounded operational evidence:
 
 ```python

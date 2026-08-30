@@ -1,9 +1,12 @@
 import pytest
+from pydantic import SecretStr
 
+from data_agent.config import MissingMySQLAdminCredentialError, Settings
 from data_agent.persistence.errors import MigrationDriftError
 from data_agent.persistence.migrations import (
     AppliedMigration,
     RepositoryMigration,
+    apply_control_migrations,
     plan_control_migrations,
 )
 
@@ -56,3 +59,25 @@ def test_only_new_repository_suffix_is_pending() -> None:
     repository = _repository("001.sql", "002.sql", "003.sql", "004.sql")
 
     assert plan_control_migrations(repository, _applied("001.sql", "002.sql")) == repository[2:]
+
+
+def test_control_migration_admin_path_requires_explicit_admin_secret(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    settings = Settings(
+        ollama_chat_model="chat-model",
+        ollama_embed_model="embedding-model",
+        mysql_root_password=None,
+        mysql_readonly_password=SecretStr("reader-test-password"),
+        mysql_control_password=SecretStr("control-test-password"),
+    )
+    monkeypatch.setattr(
+        "data_agent.persistence.migrations.pymysql.connect",
+        lambda **_: calls.append("admin connection"),
+    )
+
+    with pytest.raises(MissingMySQLAdminCredentialError, match="control schema migration"):
+        apply_control_migrations(settings)
+
+    assert calls == []
