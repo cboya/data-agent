@@ -26,6 +26,18 @@ The implementation objective is not “build a Text-to-SQL demo.” It is:
 
 > Build a small, controlled, observable Data Agent harness in which the model reasons, the harness governs, MySQL provides facts, and verification closes the loop.
 
+## HTTP API
+
+The complete HTTP contract, endpoint examples, response envelopes, error behavior, and client
+integration guidance are documented in [`docs/API.md`](./docs/API.md). A running development
+server also exposes Swagger UI at `http://127.0.0.1:8000/docs`, ReDoc at
+`http://127.0.0.1:8000/redoc`, and the generated OpenAPI schema at
+`http://127.0.0.1:8000/openapi.json`.
+
+Windows users should run the repository through WSL2 and Docker Desktop. The complete setup,
+model-runtime options, networking checks, troubleshooting steps, and security notes are in
+[`docs/WINDOWS.md`](./docs/WINDOWS.md).
+
 ## 2. Read order
 
 Codex MUST read these documents before implementation:
