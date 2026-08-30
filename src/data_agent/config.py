@@ -30,6 +30,10 @@ class Settings(BaseSettings):
     ollama_max_output_tokens: int = Field(default=2_048, ge=256, le=32_768)
 
     openai_compatible_base_url: str | None = None
+    openai_compatible_identity_profile: Literal[
+        "openai_models_by_id",
+        "cloudflare_workers_ai",
+    ] = "openai_models_by_id"
     openai_compatible_api_key: SecretStr | None = None
     openai_compatible_chat_model: str | None = None
     openai_compatible_embed_model: str | None = None
@@ -131,6 +135,21 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "OpenAI-compatible provider requires: " + ", ".join(sorted(missing))
                 )
+            if self.openai_compatible_identity_profile == "cloudflare_workers_ai":
+                cloudflare_base = self.openai_compatible_base_url or ""
+                if (
+                    re.fullmatch(
+                        r"https://api\.cloudflare\.com/client/v4/accounts/"
+                        r"[0-9a-f]{32}/ai/v1",
+                        cloudflare_base,
+                    )
+                    is None
+                ):
+                    raise ValueError(
+                        "Cloudflare Workers AI identity profile requires an exact "
+                        "https://api.cloudflare.com/client/v4/accounts/"
+                        "<32-hex-account-id>/ai/v1 base URL"
+                    )
             if (
                 self.openai_compatible_api_key is None
                 or not self.openai_compatible_api_key.get_secret_value().strip()

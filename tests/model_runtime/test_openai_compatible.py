@@ -58,6 +58,7 @@ def _remote_settings(settings: Settings, **updates: object) -> Settings:
         {
             "model_runtime_provider": "openai_compatible",
             "openai_compatible_base_url": "https://models.example.test/v1",
+            "openai_compatible_identity_profile": "openai_models_by_id",
             "openai_compatible_api_key": SecretStr("remote-test-secret"),
             "openai_compatible_chat_model": "chat-deployment",
             "openai_compatible_embed_model": "embed-deployment",
@@ -65,6 +66,18 @@ def _remote_settings(settings: Settings, **updates: object) -> Settings:
     )
     values.update(updates)
     return Settings.model_validate(values)
+
+
+def _cloudflare_settings(settings: Settings) -> Settings:
+    return _remote_settings(
+        settings,
+        openai_compatible_base_url=(
+            "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/v1"
+        ),
+        openai_compatible_identity_profile="cloudflare_workers_ai",
+        openai_compatible_chat_model="@cf/meta/llama-3.3-70b-instruct-fp8-fast",
+        openai_compatible_embed_model="@cf/baai/bge-m3",
+    )
 
 
 def _descriptor(
@@ -83,6 +96,29 @@ def _descriptor(
     if revision is not None:
         result["revision"] = revision
     return result
+
+
+def _cloudflare_catalog_response(
+    model: str,
+    *,
+    task_name: str,
+    task_id: str,
+    created_at: str = "2024-12-06 17:09:18.338",
+    source: int = 1,
+) -> JsonObject:
+    return {
+        "success": True,
+        "errors": [],
+        "messages": [],
+        "result": [
+            {
+                "name": model,
+                "task": {"id": task_id, "name": task_name},
+                "created_at": created_at,
+                "source": source,
+            }
+        ],
+    }
 
 
 def _diagnostics(
@@ -369,6 +405,156 @@ def test_remote_alias_identity_is_honest_stable_and_endpoint_bound(settings: Set
     assert first.chat.endpoint_identity is not None
     assert first.chat.value == second.chat.value
     assert first.chat.value != first.embedding.value
+
+
+def test_cloudflare_catalog_identity_is_exact_typed_alias_only_and_revalidated(
+    settings: Settings,
+) -> None:
+    remote = _cloudflare_settings(settings)
+    chat_model = remote.openai_compatible_chat_model or ""
+    embedding_model = remote.openai_compatible_embed_model or ""
+    chat = _cloudflare_catalog_response(
+        chat_model,
+        task_name="Text Generation",
+        task_id="c329a1f9-323d-4e91-b2aa-582dd4188d34",
+    )
+    embedding = _cloudflare_catalog_response(
+        embedding_model,
+        task_name="Text Embeddings",
+        task_id="embedding-task-id",
+        created_at="2024-05-22 19:27:09.781",
+    )
+    transport = StubTransport([chat, embedding, chat, embedding])
+
+    diagnostics = _run(OpenAICompatibleStartupDiagnostics(remote, transport=transport).diagnose())
+
+    assert diagnostics.runtime_version == "not-exposed"
+    assert diagnostics.chat.digest is None
+    assert diagnostics.chat.provider_revision is None
+    assert diagnostics.chat.identity_assurance is ModelIdentityAssurance.ALIAS_ONLY
+    assert dict(diagnostics.chat.metadata) == {
+        "catalog_created_at": "2024-12-06 17:09:18.338",
+        "catalog_source": "1",
+        "catalog_task": "Text Generation",
+        "catalog_task_id": "c329a1f9-323d-4e91-b2aa-582dd4188d34",
+        "identity_profile": "cloudflare_workers_ai",
+    }
+    assert dict(diagnostics.embedding.metadata)["catalog_task"] == "Text Embeddings"
+    assert [call[:2] for call in transport.calls] == [
+        (
+            "GET",
+            "/models/search?search=%40cf%2Fmeta%2Fllama-3.3-70b-instruct-fp8-fast",
+        ),
+        ("GET", "/models/search?search=%40cf%2Fbaai%2Fbge-m3"),
+        (
+            "GET",
+            "/models/search?search=%40cf%2Fmeta%2Fllama-3.3-70b-instruct-fp8-fast",
+        ),
+        ("GET", "/models/search?search=%40cf%2Fbaai%2Fbge-m3"),
+    ]
+
+
+def test_cloudflare_catalog_requires_exactly_one_exact_match(settings: Settings) -> None:
+    remote = _cloudflare_settings(settings)
+    model = remote.openai_compatible_chat_model or ""
+    exact = _cloudflare_catalog_response(
+        model,
+        task_name="Text Generation",
+        task_id="chat-task-id",
+    )["result"][0]
+
+    for result in ([], [exact, exact]):
+        transport = StubTransport([{"success": True, "result": result}])
+        with pytest.raises(ModelIdentityDriftError, match="exactly one exact"):
+            _run(OpenAICompatibleStartupDiagnostics(remote, transport=transport).diagnose())
+
+
+def test_cloudflare_catalog_rejects_wrong_task_classification(settings: Settings) -> None:
+    remote = _cloudflare_settings(settings)
+    response = _cloudflare_catalog_response(
+        remote.openai_compatible_chat_model or "",
+        task_name="Text Embeddings",
+        task_id="embedding-task-id",
+    )
+
+    with pytest.raises(ModelIdentityDriftError, match="Text Generation"):
+        _run(
+            OpenAICompatibleStartupDiagnostics(
+                remote,
+                transport=StubTransport([response]),
+            ).diagnose()
+        )
+
+
+@pytest.mark.parametrize("missing", ["task_id", "created_at", "source"])
+def test_cloudflare_catalog_requires_stable_bounded_metadata(
+    settings: Settings,
+    missing: str,
+) -> None:
+    remote = _cloudflare_settings(settings)
+    response = _cloudflare_catalog_response(
+        remote.openai_compatible_chat_model or "",
+        task_name="Text Generation",
+        task_id="chat-task-id",
+    )
+    item = response["result"][0]
+    if missing == "task_id":
+        item["task"].pop("id")
+    else:
+        item.pop(missing)
+
+    with pytest.raises(ModelResponseError):
+        _run(
+            OpenAICompatibleStartupDiagnostics(
+                remote,
+                transport=StubTransport([response]),
+            ).diagnose()
+        )
+
+
+def test_cloudflare_catalog_drift_fails_before_chat_execution(settings: Settings) -> None:
+    remote = _cloudflare_settings(settings)
+    chat_model = remote.openai_compatible_chat_model or ""
+    embedding_model = remote.openai_compatible_embed_model or ""
+    chat = _cloudflare_catalog_response(
+        chat_model,
+        task_name="Text Generation",
+        task_id="chat-task-id",
+    )
+    embedding = _cloudflare_catalog_response(
+        embedding_model,
+        task_name="Text Embeddings",
+        task_id="embedding-task-id",
+    )
+    diagnostics = _run(
+        OpenAICompatibleStartupDiagnostics(
+            remote,
+            transport=StubTransport([chat, embedding, chat, embedding]),
+        ).diagnose()
+    )
+    drifted = _cloudflare_catalog_response(
+        chat_model,
+        task_name="Text Generation",
+        task_id="chat-task-id",
+        created_at="2026-08-30 00:00:00.000",
+    )
+    transport = StubTransport([drifted])
+    model = OpenAICompatibleChatModel(
+        remote,
+        fingerprint=diagnostics.chat,
+        transport=transport,
+    )
+
+    with pytest.raises(ModelIdentityDriftError, match="identity drifted"):
+        _run(
+            model.structured(
+                messages=[{"role": "user", "content": "Report success"}],
+                response_type=SmokeResult,
+                purpose="adapter-test",
+            )
+        )
+    assert len(transport.calls) == 1
+    assert transport.calls[0][0] == "GET"
 
 
 def test_remote_revision_drift_fails_before_chat_execution(settings: Settings) -> None:

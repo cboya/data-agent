@@ -663,9 +663,12 @@ composition selects either the existing Ollama reference adapter or one narrow
 OpenAI-compatible REST profile. Provider branches and DTOs remain inside `model_runtime`.
 
 The remote profile supports bounded authenticated Chat Completions with strict JSON Schema,
-Embeddings with exact indexed vector validation, and `GET /models/{id}` diagnostics. Every remote
-request has explicit timeout/response-byte/token-or-batch bounds and no hidden retry. Provider
-error bodies and API keys do not enter errors, logs, fingerprints, traces, or model context.
+Embeddings with exact indexed vector validation, and an explicit identity profile. The default
+identity profile uses `GET /models/{id}`. The `cloudflare_workers_ai` profile uses Cloudflare's
+authenticated account model catalog because its OpenAI-compatible surface exposes only Chat
+Completions and Embeddings. The selected profile is configuration, never an HTTP-error fallback.
+Every remote request has explicit timeout/response-byte/token-or-batch bounds and no hidden retry.
+Provider error bodies and API keys do not enter errors, logs, fingerprints, traces, or model context.
 
 `ModelFingerprint` may represent a real immutable digest, an exposed provider revision/snapshot,
 a pinned deployment, or an alias only. Its assurance is explicit as
@@ -685,3 +688,10 @@ represented as strong reproducibility or Product acceptance. A complete remote-m
 not part of M16 and still requires explicit authorization under a fully bound new evaluation
 environment. D-003 remains the frozen Phase-1/default local-runtime decision rather than a ban on
 Phase-2 adapters.
+
+The Cloudflare identity profile derives its catalog endpoint only from the exact validated
+Workers AI OpenAI-compatible base URL. Startup and every model call require one exact catalog-name
+match, the expected `Text Generation` or `Text Embeddings` task, and stable bounded catalog
+metadata. Missing, ambiguous, task-mismatched, or changed catalog evidence fails closed. Because
+the catalog exposes no immutable revision, the resulting fingerprint remains honestly
+`ALIAS_ONLY` with no fabricated digest or provider revision.

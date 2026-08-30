@@ -15,6 +15,9 @@ def test_settings_validate_runtime_limits(settings: Settings) -> None:
     assert settings.planner_eval_request_timeout_seconds == 180
     assert settings.ollama_max_output_tokens == 2_048
     assert settings.openai_compatible_max_output_tokens == 2_048
+    assert (
+        Settings.model_fields["openai_compatible_identity_profile"].default == "openai_models_by_id"
+    )
     assert settings.mysql_root_password.get_secret_value() == "change-me-local-only"
     assert settings.max_retrieved_tables == 8
     assert settings.max_relationship_hops == 1
@@ -40,6 +43,7 @@ def test_remote_provider_requires_only_its_own_model_configuration() -> None:
         {
             "model_runtime_provider": "openai_compatible",
             "openai_compatible_base_url": "https://models.example.test/v1",
+            "openai_compatible_identity_profile": "openai_models_by_id",
             "openai_compatible_api_key": SecretStr("remote-secret"),
             "openai_compatible_chat_model": "chat-deployment",
             "openai_compatible_embed_model": "embed-deployment",
@@ -55,6 +59,53 @@ def test_remote_provider_requires_only_its_own_model_configuration() -> None:
     assert settings.ollama_embed_model == ""
     assert settings.openai_compatible_api_key is not None
     assert "remote-secret" not in repr(settings)
+
+
+def test_cloudflare_identity_profile_accepts_only_exact_account_ai_v1_base() -> None:
+    settings = Settings.model_validate(
+        {
+            "model_runtime_provider": "openai_compatible",
+            "openai_compatible_base_url": (
+                "https://api.cloudflare.com/client/v4/accounts/"
+                "0123456789abcdef0123456789abcdef/ai/v1"
+            ),
+            "openai_compatible_identity_profile": "cloudflare_workers_ai",
+            "openai_compatible_api_key": SecretStr("remote-secret"),
+            "openai_compatible_chat_model": "@cf/meta/chat",
+            "openai_compatible_embed_model": "@cf/baai/embed",
+            "mysql_root_password": SecretStr("root-test-password"),
+            "mysql_readonly_password": SecretStr("reader-test-password"),
+            "mysql_control_password": SecretStr("control-test-password"),
+        }
+    )
+
+    assert settings.openai_compatible_identity_profile == "cloudflare_workers_ai"
+
+
+@pytest.mark.parametrize(
+    "base_url",
+    [
+        "http://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/v1",
+        "https://example.test/client/v4/accounts/0123456789abcdef0123456789abcdef/ai/v1",
+        "https://api.cloudflare.com/client/v4/accounts/not-an-account/ai/v1",
+        "https://api.cloudflare.com/client/v4/accounts/0123456789abcdef0123456789abcdef/ai",
+    ],
+)
+def test_cloudflare_identity_profile_rejects_noncanonical_base(base_url: str) -> None:
+    with pytest.raises(ValidationError, match="Cloudflare Workers AI identity profile"):
+        Settings.model_validate(
+            {
+                "model_runtime_provider": "openai_compatible",
+                "openai_compatible_base_url": base_url,
+                "openai_compatible_identity_profile": "cloudflare_workers_ai",
+                "openai_compatible_api_key": SecretStr("remote-secret"),
+                "openai_compatible_chat_model": "@cf/meta/chat",
+                "openai_compatible_embed_model": "@cf/baai/embed",
+                "mysql_root_password": SecretStr("root-test-password"),
+                "mysql_readonly_password": SecretStr("reader-test-password"),
+                "mysql_control_password": SecretStr("control-test-password"),
+            }
+        )
 
 
 def test_ollama_provider_accepts_blank_unused_remote_example_values() -> None:
@@ -86,6 +137,7 @@ def test_remote_provider_rejects_missing_required_configuration(missing: str) ->
     values: dict[str, object] = {
         "model_runtime_provider": "openai_compatible",
         "openai_compatible_base_url": "https://models.example.test/v1",
+        "openai_compatible_identity_profile": "openai_models_by_id",
         "openai_compatible_api_key": SecretStr("remote-secret"),
         "openai_compatible_chat_model": "chat-deployment",
         "openai_compatible_embed_model": "embed-deployment",
@@ -149,6 +201,7 @@ def test_remote_base_url_rejects_unsafe_or_ambiguous_values(base_url: str) -> No
         Settings(
             model_runtime_provider="openai_compatible",
             openai_compatible_base_url=base_url,
+            openai_compatible_identity_profile="openai_models_by_id",
             openai_compatible_api_key=SecretStr("remote-secret"),
             openai_compatible_chat_model="chat-deployment",
             openai_compatible_embed_model="embed-deployment",

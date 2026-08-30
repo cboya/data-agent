@@ -644,7 +644,10 @@ digest-qualified reference, the provider adapter must revalidate the configured 
 mapping immediately before every model request and fail closed with a typed identity-drift error
 when the mapping no longer matches.
 
-The M16 OpenAI-compatible profile revalidates its model descriptor before every request. When the
+The M16 OpenAI-compatible profile revalidates its configured identity source before every request.
+The default source is `GET /models/{id}`. The explicit `cloudflare_workers_ai` source instead
+requires one exact authenticated account-catalog match with the expected Chat or Embedding task
+and stable bounded metadata; it is not selected automatically after a provider error. When the
 descriptor exposes a revision/snapshot, drift fails closed. When it exposes only an alias, that
 limitation remains explicit as `ALIAS_ONLY`; the adapter cannot claim to detect underlying weights
 movement that the provider does not reveal.

@@ -140,12 +140,17 @@ OPENAI_COMPATIBLE_BASE_URL=https://provider.example/v1
 OPENAI_COMPATIBLE_API_KEY=<secret>
 OPENAI_COMPATIBLE_CHAT_MODEL=<model-or-deployment-id>
 OPENAI_COMPATIBLE_EMBED_MODEL=<model-or-deployment-id>
+OPENAI_COMPATIBLE_IDENTITY_PROFILE=openai_models_by_id
 ```
 
 The profile deliberately requires Chat Completions strict JSON Schema, Embeddings, Bearer auth,
-and `GET /models/{id}`. It is not a universal compatibility shim. Separate settings bound request
-timeout, response bytes, output tokens, and embedding batch size. No hidden retry is performed.
-The base URL must not contain credentials, query parameters, or fragments.
+and an explicitly selected identity source. The default `openai_models_by_id` source requires
+`GET /models/{id}`. Cloudflare Workers AI uses `cloudflare_workers_ai`, which is accepted only with
+the exact `https://api.cloudflare.com/client/v4/accounts/<account-id>/ai/v1` base shape and
+revalidates the corresponding account model catalog. It is not a universal compatibility shim and
+does not fall back after HTTP errors. Separate settings bound request timeout, response bytes,
+output tokens, and embedding batch size. No hidden retry is performed. The base URL must not
+contain credentials, query parameters, or fragments.
 
 Run the opt-in live conformance smoke only when a reviewed remote environment is configured:
 

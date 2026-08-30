@@ -88,8 +88,15 @@ POST /embeddings
     array input
     float vectors indexed one-for-one with inputs
 
-GET /models/{model_id}
+identity profile = openai_models_by_id
+    GET /models/{model_id}
     model presence and the strongest identity metadata actually exposed
+
+identity profile = cloudflare_workers_ai
+    GET /accounts/{account_id}/ai/models/search?search={model_id}
+    exactly one exact configured-name match
+    expected Text Generation / Text Embeddings task
+    stable task ID, source, and created-at metadata
 
 Authorization: Bearer <secret>
 ```
@@ -200,7 +207,7 @@ implementation remains frozen until its activation turn; no M17 code belongs in 
 ## 6. Progress
 
 ```text
-[~] M16 Model Provider Portability — IMPLEMENTED; REAL REST SMOKE PENDING
+[~] M16 Model Provider Portability — IMPLEMENTED; LOCAL + REAL REST GATES PASS; PR PENDING
 [ ] M17 External MySQL Portability — NOT AUTHORIZED
 ```
 
@@ -213,19 +220,20 @@ Ollama default/digest protection   PASS
 remote transport/contracts         PASS
 remote identity assurance          PASS
 provider-isolation invariant       PASS
-focused M16 regression             74 passed
+focused M16 regression             PASS — 86 passed, 1 opt-in live skipped
 task bootstrap                     PASS
 retrieval-index-v0.2 fingerprint   318a5423d255eae477d41f4c5da5dfb71e2d1a31dcb27bf88b1e4147480862c4
-task quality                       PASS — 532 passed, 8 skipped
+Cloudflare remote bootstrap        PASS — retrieval index 6375bc55f26d1c8e41f21aa25b82076e635018af22f8fa1a1290dbcf73847feb
+task quality                       PASS — 544 passed, 8 skipped
 30B / M15 59-case evaluation       NOT RUN
-bounded real-provider smoke        PENDING CONFIGURED REMOTE ENVIRONMENT
+bounded real-provider smoke        PASS — 1 passed in 28.93s
 remote Delivery / Quality          PENDING PR
 substantive review                 NOT YET AUTHORIZED
 ```
 
-The deterministic implementation gate is complete. M16 remains active and cannot move to review
-or merge until the opt-in real REST smoke and remote Delivery / Quality gates pass. No Golden,
-Oracle, prompt, threshold, or M8–M15 behavioral file changed.
+The deterministic implementation and authorized real-provider gates are complete. M16 remains
+active and cannot merge until the focused PR passes remote Delivery / Quality and substantive
+review. No Golden, Oracle, prompt, threshold, or M8–M15 behavioral file changed.
 
 ## 7. Decision log
 
@@ -259,6 +267,25 @@ old and new canonical fingerprints ambiguous.
 
 **Consequences:** Existing generated v0.1 indexes fail closed and rebuild. M7 document projection,
 cosine search, BM25, RRF, seed selection, relationship expansion, and eval gates are unchanged.
+
+### 2026-08-30 — Explicit Cloudflare Workers AI identity profile
+
+**Decision:** Preserve `GET /models/{id}` as the default identity source and add only the explicit
+`cloudflare_workers_ai` identity profile. That profile accepts exactly the official Workers AI
+OpenAI-compatible base shape, derives the same-account model-catalog endpoint, and requires one
+exact configured-name match with the expected `Text Generation` or `Text Embeddings` task before
+startup and every model request. Stable catalog task/source/creation metadata is fingerprinted;
+provider revision and digest remain absent, so assurance is `ALIAS_ONLY`.
+
+**Evidence:** The authorized Cloudflare conformance run reached the configured provider, but
+`GET /models/{id}` returned HTTP 405. Cloudflare documents only Chat Completions and Embeddings on
+its OpenAI-compatible surface, while its authenticated account model catalog uniquely returned the
+configured Chat and Embedding aliases and governed task classifications. Token verification passed.
+
+**Consequences:** There is no automatic fallback and no weakening of the standard profile. Missing,
+ambiguous, task-mismatched, or changed Cloudflare catalog evidence fails closed. The change remains
+inside `model_runtime`; M8–M15 behavior, prompts, Golden/Oracle truth, and product thresholds are
+unchanged.
 
 ## 8. Deviation rule
 

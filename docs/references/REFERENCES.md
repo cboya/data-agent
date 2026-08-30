@@ -42,6 +42,12 @@ Verify behavior against the installed Ollama version during bootstrap.
 - Official OpenAI API reference — Embeddings
   https://developers.openai.com/api/reference/ruby/resources/embeddings/methods/create
 
+- Cloudflare Workers AI — OpenAI-compatible API endpoints
+  https://developers.cloudflare.com/workers-ai/configuration/open-ai-compatibility/
+
+- Cloudflare API — Workers AI model catalog search
+  https://developers.cloudflare.com/api/resources/ai/subresources/models/methods/list/
+
 M16 uses these wire shapes as one narrow conformance baseline and still performs local contract,
 identity, size, timeout, and vector validation. “OpenAI-compatible” does not imply support for
 every vendor extension or omission.

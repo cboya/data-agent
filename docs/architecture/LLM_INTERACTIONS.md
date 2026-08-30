@@ -27,13 +27,15 @@ fingerprints. Because the supported local Ollama runtime does not accept digest-
 references, each adapter must revalidate its configured tag-to-digest mapping immediately before
 execution and fail closed on identity drift.
 
-For the M16 remote profile, diagnostics verify each configured model/deployment through
-`GET /models/{id}` and bind a credential-free endpoint hash, model ID, optional provider
-revision/snapshot, declared adapter capability, and identity assurance. The adapter rechecks the
-descriptor before every request. No revision means `ALIAS_ONLY`, not a fabricated digest. Remote
-chat uses strict JSON Schema Chat Completions; remote embeddings must preserve exact indexed input
-cardinality. The same deterministic contract validation and fail-closed rules apply to both
-providers.
+For the M16 remote profile, diagnostics verify each configured model/deployment through an
+explicit identity profile and bind a credential-free endpoint hash, model ID, optional provider
+revision/snapshot, declared adapter capability, and identity assurance. The default profile uses
+`GET /models/{id}`. The `cloudflare_workers_ai` profile uses the authenticated account model
+catalog, requires one exact model-name match plus the expected task, and never activates as an
+HTTP-error fallback. The adapter rechecks the selected identity source before every request. No
+revision means `ALIAS_ONLY`, not a fabricated digest. Remote chat uses strict JSON Schema Chat
+Completions; remote embeddings must preserve exact indexed input cardinality. The same
+deterministic contract validation and fail-closed rules apply to both providers.
 
 ## 2. Interaction A — Dialogue understanding
 

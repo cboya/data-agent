@@ -36,6 +36,11 @@ from data_agent.model_runtime.ports import (
 JsonObject = dict[str, Any]
 OPENAI_COMPATIBLE_PROVIDER = "openai_compatible"
 RUNTIME_VERSION_NOT_EXPOSED = "not-exposed"
+OPENAI_MODELS_BY_ID_PROFILE = "openai_models_by_id"
+CLOUDFLARE_WORKERS_AI_PROFILE = "cloudflare_workers_ai"
+_CLOUDFLARE_EXECUTION_BASE = re.compile(
+    r"https://api\.cloudflare\.com/client/v4/accounts/[0-9a-f]{32}/ai/v1"
+)
 
 
 class OpenAICompatibleJsonTransport(Protocol):
@@ -58,8 +63,8 @@ def _required_text(value: str | None, setting_name: str) -> str:
 class UrllibOpenAICompatibleTransport:
     """Credential-safe, bounded, no-retry JSON transport."""
 
-    def __init__(self, settings: Settings) -> None:
-        self._base_url = _required_text(
+    def __init__(self, settings: Settings, *, base_url_override: str | None = None) -> None:
+        self._base_url = base_url_override or _required_text(
             settings.openai_compatible_base_url,
             "OPENAI_COMPATIBLE_BASE_URL",
         )
@@ -135,6 +140,32 @@ def _transport(
     return provided if provided is not None else UrllibOpenAICompatibleTransport(settings)
 
 
+def _cloudflare_catalog_base_url(execution_base_url: str) -> str:
+    if _CLOUDFLARE_EXECUTION_BASE.fullmatch(execution_base_url) is None:
+        raise ModelUnavailableError(
+            "Cloudflare Workers AI identity profile requires its canonical account ai/v1 base URL"
+        )
+    return execution_base_url.removesuffix("/v1")
+
+
+def _identity_transport(
+    settings: Settings,
+    provided: OpenAICompatibleJsonTransport | None,
+) -> OpenAICompatibleJsonTransport:
+    if provided is not None:
+        return provided
+    if settings.openai_compatible_identity_profile == CLOUDFLARE_WORKERS_AI_PROFILE:
+        execution_base_url = _required_text(
+            settings.openai_compatible_base_url,
+            "OPENAI_COMPATIBLE_BASE_URL",
+        )
+        return UrllibOpenAICompatibleTransport(
+            settings,
+            base_url_override=_cloudflare_catalog_base_url(execution_base_url),
+        )
+    return UrllibOpenAICompatibleTransport(settings)
+
+
 def _endpoint_identity(base_url: str) -> str:
     return hashlib.sha256(base_url.encode("utf-8")).hexdigest()
 
@@ -203,11 +234,76 @@ def _descriptor(response: JsonObject, configured_model: str) -> _RemoteModelDesc
     )
 
 
+def _cloudflare_descriptor(
+    response: JsonObject,
+    configured_model: str,
+    *,
+    required_capability: str,
+) -> _RemoteModelDescriptor:
+    if response.get("success") is not True:
+        raise ModelResponseError("Cloudflare Workers AI model catalog request was unsuccessful")
+    result = response.get("result")
+    if not isinstance(result, list):
+        raise ModelResponseError("Cloudflare Workers AI model catalog result is invalid")
+    exact_matches = [
+        item
+        for item in result
+        if isinstance(item, Mapping) and item.get("name") == configured_model
+    ]
+    if len(exact_matches) != 1:
+        raise ModelIdentityDriftError(
+            "Cloudflare Workers AI model catalog must contain exactly one exact configured "
+            f"model match: {configured_model}"
+        )
+    match = exact_matches[0]
+    task = match.get("task")
+    if not isinstance(task, Mapping):
+        raise ModelResponseError("Cloudflare Workers AI model task metadata is invalid")
+    expected_task = {
+        "completion": "Text Generation",
+        "embedding": "Text Embeddings",
+    }.get(required_capability)
+    if expected_task is None:
+        raise ModelContractError(
+            f"unsupported OpenAI-compatible model capability: {required_capability}"
+        )
+    task_name = task.get("name")
+    if task_name != expected_task:
+        raise ModelIdentityDriftError(
+            f"Cloudflare Workers AI model does not provide {expected_task}: {configured_model}"
+        )
+    task_id = task.get("id")
+    if not isinstance(task_id, str) or not task_id.strip():
+        raise ModelResponseError("Cloudflare Workers AI model task id is invalid")
+    created_at = match.get("created_at")
+    if not isinstance(created_at, str) or not created_at.strip():
+        raise ModelResponseError("Cloudflare Workers AI model created_at is invalid")
+    source = match.get("source")
+    if isinstance(source, bool) or not isinstance(source, int) or source < 0:
+        raise ModelResponseError("Cloudflare Workers AI model source is invalid")
+    return _RemoteModelDescriptor(
+        model=configured_model,
+        provider_revision=None,
+        runtime_version=RUNTIME_VERSION_NOT_EXPOSED,
+        metadata=tuple(
+            sorted(
+                (
+                    ("catalog_created_at", created_at),
+                    ("catalog_source", str(source)),
+                    ("catalog_task", task_name),
+                    ("catalog_task_id", task_id),
+                )
+            )
+        ),
+    )
+
+
 def _fingerprint(
     descriptor: _RemoteModelDescriptor,
     *,
     endpoint_identity: str,
     required_capability: str,
+    identity_profile: str,
 ) -> ModelFingerprint:
     assurance = (
         ModelIdentityAssurance.IMMUTABLE_PROVIDER_REVISION
@@ -219,7 +315,7 @@ def _fingerprint(
         model=descriptor.model,
         digest=None,
         capabilities=(required_capability,),
-        metadata=descriptor.metadata,
+        metadata=tuple(sorted((*descriptor.metadata, ("identity_profile", identity_profile)))),
         endpoint_identity=endpoint_identity,
         provider_revision=descriptor.provider_revision,
         identity_assurance=assurance,
@@ -232,14 +328,31 @@ async def _load_fingerprint(
     model: str,
     endpoint_identity: str,
     required_capability: str,
+    identity_profile: str,
 ) -> tuple[ModelFingerprint, str]:
-    response = await transport.request("GET", f"/models/{quote(model, safe='')}")
-    descriptor = _descriptor(response, model)
+    if identity_profile == OPENAI_MODELS_BY_ID_PROFILE:
+        response = await transport.request("GET", f"/models/{quote(model, safe='')}")
+        descriptor = _descriptor(response, model)
+    elif identity_profile == CLOUDFLARE_WORKERS_AI_PROFILE:
+        response = await transport.request(
+            "GET",
+            f"/models/search?search={quote(model, safe='')}",
+        )
+        descriptor = _cloudflare_descriptor(
+            response,
+            model,
+            required_capability=required_capability,
+        )
+    else:
+        raise ModelUnavailableError(
+            f"unsupported OpenAI-compatible identity profile: {identity_profile}"
+        )
     return (
         _fingerprint(
             descriptor,
             endpoint_identity=endpoint_identity,
             required_capability=required_capability,
+            identity_profile=identity_profile,
         ),
         descriptor.runtime_version,
     )
@@ -251,6 +364,7 @@ class _RemoteModelBinding:
     fingerprint: ModelFingerprint
     endpoint_identity: str
     required_capability: str
+    identity_profile: str
 
 
 def _binding_from_fingerprint(
@@ -259,6 +373,7 @@ def _binding_from_fingerprint(
     configured_model: str,
     endpoint_identity: str,
     required_capability: str,
+    identity_profile: str,
 ) -> _RemoteModelBinding:
     if fingerprint.provider != OPENAI_COMPATIBLE_PROVIDER:
         raise ModelIdentityDriftError(
@@ -279,11 +394,14 @@ def _binding_from_fingerprint(
         raise ModelIdentityDriftError(
             "OpenAI-compatible fingerprint must not fabricate a weights digest"
         )
+    if dict(fingerprint.metadata).get("identity_profile") != identity_profile:
+        raise ModelIdentityDriftError("OpenAI-compatible identity profile changed")
     return _RemoteModelBinding(
         model=configured_model,
         fingerprint=fingerprint,
         endpoint_identity=endpoint_identity,
         required_capability=required_capability,
+        identity_profile=identity_profile,
     )
 
 
@@ -296,6 +414,7 @@ async def _guard_model_identity(
         model=binding.model,
         endpoint_identity=binding.endpoint_identity,
         required_capability=binding.required_capability,
+        identity_profile=binding.identity_profile,
     )
     if current.value != binding.fingerprint.value:
         raise ModelIdentityDriftError(
@@ -336,8 +455,10 @@ class OpenAICompatibleChatModel:
             ),
             endpoint_identity=_endpoint_identity(base_url),
             required_capability="completion",
+            identity_profile=settings.openai_compatible_identity_profile,
         )
         self._transport = _transport(settings, transport)
+        self._identity_transport = _identity_transport(settings, transport)
         self._max_output_tokens = settings.openai_compatible_max_output_tokens
 
     async def structured(
@@ -353,7 +474,7 @@ class OpenAICompatibleChatModel:
         if not issubclass(response_type, BaseModel):
             raise TypeError("response_type must be a Pydantic model")
 
-        await _guard_model_identity(self._transport, self._binding)
+        await _guard_model_identity(self._identity_transport, self._binding)
         response = await self._transport.request(
             "POST",
             "/chat/completions",
@@ -420,8 +541,10 @@ class OpenAICompatibleEmbeddingModel:
             ),
             endpoint_identity=_endpoint_identity(base_url),
             required_capability="embedding",
+            identity_profile=settings.openai_compatible_identity_profile,
         )
         self._transport = _transport(settings, transport)
+        self._identity_transport = _identity_transport(settings, transport)
         self._max_batch = settings.openai_compatible_max_embedding_batch
 
     async def embed(self, texts: list[str]) -> list[list[float]]:
@@ -432,7 +555,7 @@ class OpenAICompatibleEmbeddingModel:
         if any(not text.strip() for text in texts):
             raise ModelContractError("embedding input cannot be blank")
 
-        await _guard_model_identity(self._transport, self._binding)
+        await _guard_model_identity(self._identity_transport, self._binding)
         response = await self._transport.request(
             "POST",
             "/embeddings",
@@ -503,7 +626,8 @@ class OpenAICompatibleStartupDiagnostics:
             settings.openai_compatible_embed_model,
             "OPENAI_COMPATIBLE_EMBED_MODEL",
         )
-        self._transport = _transport(settings, transport)
+        self._identity_profile = settings.openai_compatible_identity_profile
+        self._transport = _identity_transport(settings, transport)
 
     async def diagnose(self) -> ModelRuntimeDiagnostics:
         endpoint_identity = _endpoint_identity(self._base_url)
@@ -512,12 +636,14 @@ class OpenAICompatibleStartupDiagnostics:
             model=self._chat_model,
             endpoint_identity=endpoint_identity,
             required_capability="completion",
+            identity_profile=self._identity_profile,
         )
         embedding, embedding_runtime = await _load_fingerprint(
             self._transport,
             model=self._embedding_model,
             endpoint_identity=endpoint_identity,
             required_capability="embedding",
+            identity_profile=self._identity_profile,
         )
         exposed_versions = {
             value
@@ -533,12 +659,14 @@ class OpenAICompatibleStartupDiagnostics:
             model=self._chat_model,
             endpoint_identity=endpoint_identity,
             required_capability="completion",
+            identity_profile=self._identity_profile,
         )
         current_embedding, current_embedding_runtime = await _load_fingerprint(
             self._transport,
             model=self._embedding_model,
             endpoint_identity=endpoint_identity,
             required_capability="embedding",
+            identity_profile=self._identity_profile,
         )
         if current_chat.value != chat.value:
             raise ModelIdentityDriftError(
