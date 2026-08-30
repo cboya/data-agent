@@ -1,6 +1,6 @@
 # EP-002 — Portability Validation
 
-**Status:** ACTIVE — M17 External MySQL Portability / deterministic foundation
+**Status:** ACTIVE — M17 External MySQL Portability / implementation and live conformance complete
 **Owner:** Codex implementation agent(s), human architecture review
 **Phase-1 baseline:** `main@795b86f412630ba36238c0de1baa1e291ba13863`
 
@@ -210,7 +210,7 @@ SQL dialect, and multi-source behavior are not authorized in this tranche.
 
 ```text
 [x] M16 Model Provider Portability — COMPLETE / FROZEN
-[~] M17 External MySQL Portability — DETERMINISTIC FOUNDATION ACTIVE
+[~] M17 External MySQL Portability — READY FOR FOCUSED PR / SUBSTANTIVE REVIEW
 ```
 
 ### M16 closure evidence — 2026-08-30
@@ -301,6 +301,52 @@ This tranche changes only configuration/composition, bounded metadata intake, an
 selection. It does not change planner dialect, retrieval ranking, SQL admission, EXPLAIN policy,
 guarded execution, M8–M15 behavior, Golden/Oracle truth, or Product acceptance state. M17 remains
 active pending separately authorized real external conformance.
+
+### M17 independent MySQL conformance evidence — 2026-08-30
+
+```text
+conformance source                    disposable independent MySQL 8.4.11
+analytics / control endpoint split   PASS — 127.0.0.1:3307 / 127.0.0.1:3306
+source ID / workspace                product-opinion-conformance
+source-profile fingerprint           d7fbab6a75014c3bd997856d42e07ccc60888c3cc817108ee249db4653b6bf40
+allowlisted surface                  4 tables / 26 columns / 3 foreign keys
+reader privilege                     SELECT on exactly 4 tables; no database wildcard grant
+out-of-scope table read              DENIED — MySQL 1142
+database write probe                 DENIED — MySQL 1142
+table / column comment coverage      1.000 / 1.000
+raw opinion text / personal data     NONE / NONE
+
+generated-schema fingerprint         c80817f373f110ceb4b697027edd036edb7a8c27cf8a1d4dc348c269ff317e9a
+semantic revision                    ad9891070e19906aaecaeebcbb7fe8a00431555577e67a8c891a4476b2f14f9e
+assembled-catalog fingerprint        7cb481d9d151278bb5ad8b2908b670125ca1962466081abc3c31167d855a888f
+retrieval-index fingerprint          5b5d4afe04648c5f7a57ad9dd22868bdea406ccd669ecc74acf77b009daef211
+embedding fingerprint                0112ea4d6590628288600ebd612ee8b094001c1e181c4eda9a64493d205c138f
+embedding identity assurance         IMMUTABLE_PROVIDER_REVISION
+Ollama runtime / index format        0.33.1 / retrieval-index-v0.2
+retrieval-document builder           retrieval-document-v0.1
+hybrid retrieval smoke               PASS — only the 4 governed tables returned
+M6 relationship authority            PASS — exactly 3 curated, FK-backed relationships
+
+SQL Guard                            PASS
+real JSON EXPLAIN                    PASS — fact/product join admitted
+bounded read-only execution          PASS — one attempt, 2 rows, not truncated
+product-opinion result               FITNESS_BAND 5/1/0; SMARTWATCH 5/2/1
+                                     (events / negative / high-risk)
+opt-in external conformance test     PASS — 1 passed
+focused deterministic regression     PASS — 27 passed, 1 opt-in live skipped
+synthetic task bootstrap             PASS — reference index 318a5423d...
+task quality                         PASS — 560 passed, 9 skipped
+M15 59-case evaluation               NOT RUN
+Product NL2SQL MVP                   NOT ACCEPTED / UNCHANGED
+release / tag                        NOT AUTHORIZED / NOT CREATED
+```
+
+The external surface contains deterministic synthetic observations for autonomous-driving cars,
+smartwatches, and fitness bands. It is an independently located MySQL source used only to prove
+portability; it is not production connectivity or Product behavioral evidence. Environment-owner
+provisioning created the schema/data and reduced the reader to four table-level `SELECT` grants.
+The application path remained non-mutating: bounded metadata intake, in-memory semantic assembly,
+retrieval indexing/search, SQL Guard, JSON EXPLAIN, and one capability-only bounded `SELECT`.
 
 ## 7. Decision log
 
@@ -393,6 +439,27 @@ downstream boundary once introspection is scoped.
 and the existing synthetic world. Real credentials and live external MySQL are deferred until the
 non-mutating path, workspace isolation, semantic assembly, and retrieval identity compose. Missing
 FK evidence remains a blocker rather than an invitation to infer relationships.
+
+### 2026-08-30 — M17 disposable product-opinion conformance source
+
+**Decision:** Use a short-lived, independently located MySQL 8.4 source to close the live M17
+composition gate. The environment owner provisions four commented tables and deterministic
+synthetic observations covering autonomous-driving cars, smartwatches, and fitness bands. The
+application sees only the explicitly configured four-table surface through a reader with matching
+table-level grants. Stable curated semantics live in the external workspace; generated schema,
+assembled catalog, and retrieval index remain ignored rebuildable artifacts.
+
+**Evidence:** The real preflight observed 4 tables, 26 columns, 3 single-column foreign keys, and
+complete table/column comments. Semantic assembly and an immutable-digest Ollama embedding index
+bound distinct generated, curated, catalog, and index fingerprints. A representative wearable
+opinion query traversed SQL Guard, MySQL JSON EXPLAIN, and one bounded read-only execution. An
+existing physical table outside the configured surface was denied by MySQL privileges.
+
+**Consequences:** This profile proves one external analytics source can compose without changing
+the MySQL dialect, planner, retrieval semantics, Guard/EXPLAIN/runtime policy, M8–M15 behavior, or
+control-plane persistence. The fixture contains no raw opinion text or personal data and provides
+no Product acceptance evidence. It does not authorize production credentials, multi-source
+queries, M15 replay, a release, or a tag.
 
 ## 8. Deviation rule
 

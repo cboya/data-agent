@@ -197,6 +197,17 @@ It never starts Docker, provisions users/grants, applies migrations, seeds fixtu
 write against the external database. Curated workspace files and later live conformance remain
 separate explicit steps.
 
+After an environment owner has independently provisioned the reviewed product-opinion conformance
+surface and its table-scoped reader grants, run the opt-in end-to-end MySQL boundary smoke with:
+
+```bash
+task m17-external-smoke
+```
+
+The smoke is read-only. It repeats bounded preflight, assembles the active curated workspace in
+memory, admits one fixed aggregate through SQL Guard and real JSON EXPLAIN, executes the resulting
+capability through the bounded query runtime, and confirms an out-of-scope table cannot be read.
+
 ## 4. Environment variables
 
 See root `.env.example`.
