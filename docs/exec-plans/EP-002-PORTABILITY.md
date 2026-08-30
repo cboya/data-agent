@@ -207,7 +207,7 @@ implementation remains frozen until its activation turn; no M17 code belongs in 
 ## 6. Progress
 
 ```text
-[~] M16 Model Provider Portability — NARROW REVIEW REMEDIATION; MERGE NOT AUTHORIZED
+[~] M16 Model Provider Portability — NARROW RE-REVIEW READY; MERGE NOT AUTHORIZED
 [ ] M17 External MySQL Portability — NOT AUTHORIZED
 ```
 
@@ -251,7 +251,8 @@ focused deterministic regression PASS — 71 passed
 task quality                      PASS — 548 passed, 8 skipped
 Cloudflare live smoke             NOT RERUN — adapter unchanged
 M15 59-case evaluation            NOT RUN
-remote Delivery / Quality         PENDING UPDATED HEAD
+remediation implementation head   619395c
+remote Delivery / Quality         PASS — PR #19 at 619395c
 ```
 
 The remediation changes only evaluation identity and final Product-adjudication eligibility.
