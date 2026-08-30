@@ -462,9 +462,11 @@ Oracle SQL is static and isolated in `evals/oracles.yaml`; it is validated as on
 and used only by the top-level `eval_harness` package. Runtime packages and every model prompt are
 mechanically prohibited from importing either acceptance source. Golden result assertions compare
 typed result values independent of row order and do not require exact generated SQL text.
-`EvaluationEnvironment v0.1` binds Git, Golden, generated schema, semantic catalog/revision,
-retrieval index, both model fingerprints, Ollama, all prompt/policy versions, trace schema,
-dependency lock, and Python under one canonical fingerprint.
+Historical `EvaluationEnvironment v0.1` binds Git, Golden, generated schema, semantic
+catalog/revision, retrieval index, both model fingerprints, Ollama, all prompt/policy versions,
+trace schema, dependency lock, and Python under one canonical fingerprint. It remains immutable
+and parseable as the Phase-1 evidence format; new canonical runs use the provider-neutral revision
+defined by D-036.
 Final report construction rejects a dirty Git worktree and records UTC as the evaluation timezone.
 
 **Reason:** A trace must make execution auditable without becoming a second semantic or policy
@@ -688,6 +690,14 @@ represented as strong reproducibility or Product acceptance. A complete remote-m
 not part of M16 and still requires explicit authorization under a fully bound new evaluation
 environment. D-003 remains the frozen Phase-1/default local-runtime decision rather than a ban on
 Phase-2 adapters.
+
+New canonical runs use `EvaluationEnvironment v0.2`. Composition supplies the exact selected
+provider, runtime version, chat/embedding fingerprints and identity assurances, request timeout,
+and output-token bound. The environment records a derived Product-acceptance identity-eligibility
+fact: if either bound model is `ALIAS_ONLY`, ordinary behavioral and safety gates may still produce
+diagnostic evidence, but the canonical Product verdict cannot be `ACCEPTED`. Existing immutable
+Ollama digest identities remain eligible. Historical v0.1 reports are not rewritten or
+retroactively re-adjudicated.
 
 The Cloudflare identity profile derives its catalog endpoint only from the exact validated
 Workers AI OpenAI-compatible base URL. Startup and every model call require one exact catalog-name

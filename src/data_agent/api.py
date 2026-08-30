@@ -57,6 +57,9 @@ def create_app(
             assert model_runtime_probe is not None
             diagnostics = await model_runtime_probe.diagnose()
         app.state.model_runtime_diagnostics = diagnostics
+        app.state.model_runtime_resource_evidence = (
+            runtime.resource_evidence if runtime is not None else None
+        )
         if bind_configured_runtime:
             assert runtime is not None
             app.state.chat_model = runtime.chat_model

@@ -74,6 +74,7 @@ from eval_harness.golden import _canonical_rows, _oracle_result
 from eval_harness.loader import REPOSITORY_ROOT, load_golden, load_oracles
 from eval_harness.models import (
     EvaluationEnvironment,
+    EvaluationEnvironmentV01,
     FinalAcceptanceReport,
     GoldenCase,
     GoldenCaseResult,
@@ -383,6 +384,10 @@ def _build_identity(
     settings: Settings,
 ) -> DiagnosticIdentity:
     expected = source.environment
+    if not isinstance(expected, EvaluationEnvironmentV01):
+        raise DiagnosisError(
+            "the frozen targeted diagnosis accepts only retained v0.1 effect evidence"
+        )
     actual = {
         "chat model fingerprint": diagnostics.chat.value,
         "embedding model fingerprint": diagnostics.embedding.value,

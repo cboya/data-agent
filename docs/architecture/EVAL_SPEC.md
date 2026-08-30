@@ -387,13 +387,25 @@ is diagnostic evidence; a stronger local Ollama model may provide final behavior
 under its own complete environment fingerprint. Model changes never change Golden sources,
 Oracles, or deterministic gates.
 
-`EvaluationEnvironment v0.1` must bind at least Git commit, Golden version/fingerprint, generated
-schema, semantic catalog fingerprint/revision, retrieval index, chat/embedding model fingerprints,
-Ollama runtime, dialogue/planning/repair/answer prompt versions, guard/EXPLAIN/runtime/
-verification/repair/grounding policies, trace schema, Python runtime, and dependency lock. A model
-acceptance result missing any bound identity is invalid rather than partially reproducible.
-The runner refuses to issue an environment identity from a dirty Git worktree and fixes Golden
-temporal interpretation to UTC with absolute-date result cases.
+Historical `EvaluationEnvironment v0.1` remains the immutable Phase-1 Ollama evidence schema and
+must continue to parse without field translation or retroactive adjudication. Every new canonical
+run emits provider-neutral `EvaluationEnvironment v0.2`, binding at least:
+
+- Git commit, Golden version/fingerprint, generated schema, semantic catalog/revision, and
+  retrieval index;
+- actual selected model provider and runtime version;
+- chat and embedding fingerprints plus each identity assurance;
+- actual selected request timeout and max-output-token bound supplied by runtime composition;
+- dialogue/planning/repair/answer prompts, guard/EXPLAIN/runtime/verification/repair/grounding
+  policies, trace schema, Python runtime, and dependency lock;
+- a mechanically derived Product-acceptance identity-eligibility fact.
+
+If either bound model identity is `ALIAS_ONLY`, the environment remains valid for portability,
+diagnostic, and model-effect evidence, but the canonical Product verdict must not be `ACCEPTED`
+even when every ordinary behavioral and safety gate passes. Immutable Ollama digest identities
+remain eligible. A model acceptance result missing any bound identity is invalid rather than
+partially reproducible. The runner refuses to issue an environment identity from a dirty Git
+worktree and fixes Golden temporal interpretation to UTC with absolute-date result cases.
 
 If calibration shows a target is structurally inappropriate, revise this file explicitly with
 rationale; do not silently lower a test. Changing the frozen case source, model identity, prompt,

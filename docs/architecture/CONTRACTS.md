@@ -652,6 +652,14 @@ descriptor exposes a revision/snapshot, drift fails closed. When it exposes only
 limitation remains explicit as `ALIAS_ONLY`; the adapter cannot claim to detect underlying weights
 movement that the provider does not reveal.
 
+For canonical evaluation, runtime composition exposes one provider-neutral resource-evidence
+record for the exact bound runtime. `EvaluationEnvironment v0.2` consumes that record rather than
+reselecting provider-specific settings. It binds provider, runtime version, both fingerprints and
+assurances, request timeout, and max-output-token bound. Product identity eligibility is derived
+from those assurances: any `ALIAS_ONLY` member forbids canonical Product acceptance while
+remaining usable for portability and diagnostic evidence. Historical `EvaluationEnvironment
+v0.1` remains unchanged and parseable.
+
 ---
 
 ## 18. M14 answer and conversation response boundaries

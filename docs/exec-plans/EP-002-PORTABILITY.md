@@ -207,7 +207,7 @@ implementation remains frozen until its activation turn; no M17 code belongs in 
 ## 6. Progress
 
 ```text
-[~] M16 Model Provider Portability — REVIEW READY; MERGE NOT AUTHORIZED
+[~] M16 Model Provider Portability — NARROW REVIEW REMEDIATION; MERGE NOT AUTHORIZED
 [ ] M17 External MySQL Portability — NOT AUTHORIZED
 ```
 
@@ -236,6 +236,27 @@ substantive review                 PENDING
 The deterministic implementation and authorized real-provider gates are complete. M16 remains
 active and cannot merge until the focused PR passes remote Delivery / Quality and substantive
 review. No Golden, Oracle, prompt, threshold, or M8–M15 behavioral file changed.
+
+### M16 narrow substantive-review remediation — 2026-08-30
+
+```text
+EvaluationEnvironment v0.1        PRESERVED / HISTORICAL
+EvaluationEnvironment v0.2        PROVIDER-NEUTRAL / NEW RUNS
+composition-owned runtime facts   PASS
+actual selected timeout/tokens    PASS
+provider + assurance binding      PASS
+ALIAS_ONLY Product hard gate      PASS
+immutable Ollama eligibility      PASS
+focused deterministic regression PASS — 71 passed
+task quality                      PASS — 548 passed, 8 skipped
+Cloudflare live smoke             NOT RERUN — adapter unchanged
+M15 59-case evaluation            NOT RUN
+remote Delivery / Quality         PENDING UPDATED HEAD
+```
+
+The remediation changes only evaluation identity and final Product-adjudication eligibility.
+Golden/Oracle truth, D-035 behavioral and safety thresholds, M8–M14 behavior, model prompts,
+Cloudflare adapter behavior, and retrieval semantics remain unchanged. M17 remains unauthorized.
 
 ## 7. Decision log
 
@@ -288,6 +309,26 @@ configured Chat and Embedding aliases and governed task classifications. Token v
 ambiguous, task-mismatched, or changed Cloudflare catalog evidence fails closed. The change remains
 inside `model_runtime`; M8–M15 behavior, prompts, Golden/Oracle truth, and product thresholds are
 unchanged.
+
+### 2026-08-30 — Provider-neutral evaluation identity and Product eligibility
+
+**Decision:** Preserve `EvaluationEnvironment v0.1` exactly for historical Phase-1 evidence and
+issue `evaluation-environment-v0.2` for every new canonical run. The new environment consumes the
+provider, runtime version, model fingerprints/assurances, request timeout, and output-token bound
+from composition-owned selected-runtime evidence. It does not reselect provider-specific settings
+inside `eval_harness`.
+
+**Evidence:** The M16 review found that the v0.1 builder always recorded `settings.ollama_*`, even
+when composition selected the OpenAI-compatible provider. Deterministic regressions now use
+deliberately different Ollama and remote bounds and prove that v0.2 records the remote values,
+both identity assurances, and the provider. Additional regressions prove alias-only denial,
+immutable Ollama eligibility, and byte-for-byte field preservation when parsing v0.1.
+
+**Consequences:** `ALIAS_ONLY` remains valid for M16 smoke and diagnostic/model-effect evidence,
+but it cannot independently make the canonical Product verdict pass even when ordinary stage,
+behavioral, and safety gates pass. Immutable Ollama digest identities remain eligible. D-035
+thresholds and all Golden/Oracle truth remain unchanged; no model run is required for this
+evaluation-control-plane amendment.
 
 ## 8. Deviation rule
 

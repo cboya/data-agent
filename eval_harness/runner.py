@@ -14,7 +14,7 @@ from data_agent.api import create_app
 from data_agent.config import Settings
 from data_agent.dialogue.evaluation import format_dialogue_eval_summary
 from data_agent.dialogue.runtime import evaluate_current_dialogue
-from data_agent.model_runtime.ports import ModelRuntimeDiagnostics
+from data_agent.model_runtime.composition import ModelRuntimeResourceEvidence
 from data_agent.planning.evaluation import format_planner_eval_summary
 from data_agent.planning.runtime import evaluate_current_planner
 from data_agent.query_runtime.evaluation import format_runtime_eval_summary
@@ -35,7 +35,11 @@ from data_agent.verification.evaluation import (
 from eval_harness.environment import build_environment, require_clean_git_commit
 from eval_harness.golden import run_golden
 from eval_harness.loader import REPOSITORY_ROOT, load_golden, load_oracles
-from eval_harness.models import FinalAcceptanceReport
+from eval_harness.models import (
+    EvaluationEnvironment,
+    EvaluationEnvironmentV02,
+    FinalAcceptanceReport,
+)
 
 REPORT_PATH = REPOSITORY_ROOT / "evals" / "reports" / "latest.json"
 
@@ -90,6 +94,20 @@ def _stage_reports(settings: Settings) -> tuple[dict[str, dict[str, Any]], bool]
     )
 
 
+def _passes_final_acceptance(
+    *,
+    stages_passed: bool,
+    golden_passed: bool,
+    environment: EvaluationEnvironment,
+) -> bool:
+    identity_eligible = (
+        environment.product_acceptance_identity_eligible
+        if isinstance(environment, EvaluationEnvironmentV02)
+        else True
+    )
+    return stages_passed and golden_passed and identity_eligible
+
+
 def run_final_acceptance(settings: Settings) -> FinalAcceptanceReport:
     require_clean_git_commit()
     suite, golden_fingerprint = load_golden()
@@ -97,22 +115,28 @@ def run_final_acceptance(settings: Settings) -> FinalAcceptanceReport:
     stages, stages_passed = _stage_reports(settings)
     app = create_app(settings)
     with TestClient(app) as client:
-        diagnostics = cast(ModelRuntimeDiagnostics, app.state.model_runtime_diagnostics)
+        model_runtime = cast(
+            ModelRuntimeResourceEvidence | None,
+            app.state.model_runtime_resource_evidence,
+        )
+        if model_runtime is None:
+            raise RuntimeError(
+                "canonical evaluation requires composition-owned model runtime evidence"
+            )
         authority = load_current_catalog_authority()
         index = load_retrieval_index(
             catalog=authority.assembled,
             current_generated_schema_fingerprint=authority.generated.fingerprint,
             current_semantic_revision=authority.curated.semantic_revision,
-            embedding_fingerprint=diagnostics.embedding,
-            model_runtime_version=diagnostics.runtime_version,
+            embedding_fingerprint=model_runtime.embedding_fingerprint,
+            model_runtime_version=model_runtime.runtime_version,
         )
         environment = build_environment(
             golden_version=suite.version,
             golden_fingerprint=golden_fingerprint,
             authority=authority,
             index=index,
-            diagnostics=diagnostics,
-            settings=settings,
+            model_runtime=model_runtime,
         )
         golden = run_golden(
             client=client,
@@ -125,7 +149,11 @@ def run_final_acceptance(settings: Settings) -> FinalAcceptanceReport:
         environment=environment,
         stages=stages,
         golden=golden,
-        passed=stages_passed and golden.passed,
+        passed=_passes_final_acceptance(
+            stages_passed=stages_passed,
+            golden_passed=golden.passed,
+            environment=environment,
+        ),
     )
     _write_report(report)
     metrics = golden.metrics

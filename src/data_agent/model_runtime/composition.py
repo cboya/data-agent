@@ -20,8 +20,29 @@ from data_agent.model_runtime.openai_compatible import (
 from data_agent.model_runtime.ports import (
     ChatModel,
     EmbeddingModel,
+    ModelFingerprint,
+    ModelIdentityAssurance,
     ModelRuntimeDiagnostics,
 )
+
+
+@dataclass(frozen=True)
+class ModelRuntimeResourceEvidence:
+    """Provider-neutral identity and bounds for the exact selected runtime."""
+
+    provider: str
+    runtime_version: str
+    chat_fingerprint: ModelFingerprint
+    embedding_fingerprint: ModelFingerprint
+    request_timeout_seconds: float
+    max_output_tokens: int
+
+    @property
+    def product_acceptance_identity_eligible(self) -> bool:
+        return all(
+            fingerprint.identity_assurance is not ModelIdentityAssurance.ALIAS_ONLY
+            for fingerprint in (self.chat_fingerprint, self.embedding_fingerprint)
+        )
 
 
 @dataclass(frozen=True)
@@ -32,6 +53,17 @@ class BoundModelRuntime:
     embedding_batch_size: int
     request_timeout_seconds: float
     max_output_tokens: int
+
+    @property
+    def resource_evidence(self) -> ModelRuntimeResourceEvidence:
+        return ModelRuntimeResourceEvidence(
+            provider=self.diagnostics.provider,
+            runtime_version=self.diagnostics.runtime_version,
+            chat_fingerprint=self.diagnostics.chat,
+            embedding_fingerprint=self.diagnostics.embedding,
+            request_timeout_seconds=self.request_timeout_seconds,
+            max_output_tokens=self.max_output_tokens,
+        )
 
 
 async def start_model_runtime(

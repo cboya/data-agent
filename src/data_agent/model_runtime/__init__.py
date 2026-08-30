@@ -1,6 +1,10 @@
 """Provider-neutral model ports and runtime adapters."""
 
-from data_agent.model_runtime.composition import BoundModelRuntime, start_model_runtime
+from data_agent.model_runtime.composition import (
+    BoundModelRuntime,
+    ModelRuntimeResourceEvidence,
+    start_model_runtime,
+)
 from data_agent.model_runtime.ports import (
     ChatModel,
     EmbeddingModel,
@@ -18,5 +22,6 @@ __all__ = [
     "ModelIdentityAssurance",
     "ModelRuntimeDiagnostics",
     "ModelRuntimeProbe",
+    "ModelRuntimeResourceEvidence",
     "start_model_runtime",
 ]

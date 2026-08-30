@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from typing import Any, Literal, Self
+from typing import Annotated, Any, Literal, Self
 
 from pydantic import BaseModel, ConfigDict, Field, model_validator
+
+from data_agent.model_runtime.ports import ModelIdentityAssurance
 
 
 class _EvalModel(BaseModel):
@@ -64,7 +66,9 @@ class OracleSuite(_EvalModel):
     queries: dict[str, str] = Field(min_length=1)
 
 
-class EvaluationEnvironment(_EvalModel):
+class EvaluationEnvironmentV01(_EvalModel):
+    """Historical Phase-1 identity retained for exact report validation."""
+
     version: Literal["evaluation-environment-v0.1"] = "evaluation-environment-v0.1"
     git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
     golden_version: str
@@ -93,6 +97,64 @@ class EvaluationEnvironment(_EvalModel):
     python_version: str
     dependency_lock_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
     fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class EvaluationEnvironmentV02(_EvalModel):
+    """Provider-neutral identity for all newly issued canonical evaluations."""
+
+    version: Literal["evaluation-environment-v0.2"] = "evaluation-environment-v0.2"
+    git_commit: str = Field(pattern=r"^[0-9a-f]{40}$")
+    golden_version: str
+    golden_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    generated_schema_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    catalog_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    semantic_revision: str = Field(pattern=r"^[0-9a-f]{64}$")
+    retrieval_index_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    model_provider: str = Field(min_length=1, pattern=r"\S")
+    model_runtime_version: str = Field(min_length=1, pattern=r"\S")
+    chat_model_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    chat_identity_assurance: ModelIdentityAssurance
+    embedding_model_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    embedding_identity_assurance: ModelIdentityAssurance
+    model_request_timeout_seconds: float = Field(gt=0)
+    model_max_output_tokens: int = Field(ge=256)
+    product_acceptance_identity_eligible: bool
+    dialogue_prompt_version: str
+    planning_prompt_version: str
+    repair_prompt_version: str
+    answer_prompt_version: str
+    sql_guard_policy_version: str
+    explain_policy_version: str
+    query_runtime_policy_version: str
+    verification_policy_version: str
+    repair_policy_version: str
+    answer_grounding_policy_version: str
+    trace_schema_version: str
+    evaluation_timezone: Literal["UTC"] = "UTC"
+    python_version: str
+    dependency_lock_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def product_eligibility_matches_identity_assurance(self) -> Self:
+        eligible = all(
+            assurance is not ModelIdentityAssurance.ALIAS_ONLY
+            for assurance in (
+                self.chat_identity_assurance,
+                self.embedding_identity_assurance,
+            )
+        )
+        if self.product_acceptance_identity_eligible is not eligible:
+            raise ValueError(
+                "Product acceptance identity eligibility does not match model assurance"
+            )
+        return self
+
+
+type EvaluationEnvironment = Annotated[
+    EvaluationEnvironmentV01 | EvaluationEnvironmentV02,
+    Field(discriminator="version"),
+]
 
 
 class GoldenCaseResult(_EvalModel):
@@ -144,3 +206,13 @@ class FinalAcceptanceReport(_EvalModel):
     stages: dict[str, dict[str, Any]]
     golden: GoldenReport
     passed: bool
+
+    @model_validator(mode="after")
+    def product_acceptance_requires_eligible_identity(self) -> Self:
+        if (
+            self.passed
+            and isinstance(self.environment, EvaluationEnvironmentV02)
+            and not self.environment.product_acceptance_identity_eligible
+        ):
+            raise ValueError("Product acceptance requires eligible model identity assurance")
+        return self
