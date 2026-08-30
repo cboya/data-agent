@@ -462,9 +462,11 @@ Oracle SQL is static and isolated in `evals/oracles.yaml`; it is validated as on
 and used only by the top-level `eval_harness` package. Runtime packages and every model prompt are
 mechanically prohibited from importing either acceptance source. Golden result assertions compare
 typed result values independent of row order and do not require exact generated SQL text.
-`EvaluationEnvironment v0.1` binds Git, Golden, generated schema, semantic catalog/revision,
-retrieval index, both model fingerprints, Ollama, all prompt/policy versions, trace schema,
-dependency lock, and Python under one canonical fingerprint.
+Historical `EvaluationEnvironment v0.1` binds Git, Golden, generated schema, semantic
+catalog/revision, retrieval index, both model fingerprints, Ollama, all prompt/policy versions,
+trace schema, dependency lock, and Python under one canonical fingerprint. It remains immutable
+and parseable as the Phase-1 evidence format; new canonical runs use the provider-neutral revision
+defined by D-036.
 Final report construction rejects a dirty Git worktree and records UTC as the evaluation timezone.
 
 **Reason:** A trace must make execution auditable without becoming a second semantic or policy
@@ -652,3 +654,54 @@ release.
 token bound changes. M15 evaluation infrastructure may be substantively approved and merged after
 its own correctness gate while the behavioral verdict remains `REJECTED`, the Product NL2SQL MVP
 remains `NOT ACCEPTED`, and no MVP release/tag is created.
+
+---
+
+## D-036 — Model provider portability is a composition concern with honest identity assurance
+
+**Decision:** Phase 2 retains `ChatModel`, `EmbeddingModel`, `ModelRuntimeProbe`, and
+`ModelRuntimeDiagnostics` as the only harness-facing model boundaries. Configuration-owned
+composition selects either the existing Ollama reference adapter or one narrow
+OpenAI-compatible REST profile. Provider branches and DTOs remain inside `model_runtime`.
+
+The remote profile supports bounded authenticated Chat Completions with strict JSON Schema,
+Embeddings with exact indexed vector validation, and an explicit identity profile. The default
+identity profile uses `GET /models/{id}`. The `cloudflare_workers_ai` profile uses Cloudflare's
+authenticated account model catalog because its OpenAI-compatible surface exposes only Chat
+Completions and Embeddings. The selected profile is configuration, never an HTTP-error fallback.
+Every remote request has explicit timeout/response-byte/token-or-batch bounds and no hidden retry.
+Provider error bodies and API keys do not enter errors, logs, fingerprints, traces, or model context.
+
+`ModelFingerprint` may represent a real immutable digest, an exposed provider revision/snapshot,
+a pinned deployment, or an alias only. Its assurance is explicit as
+`IMMUTABLE_PROVIDER_REVISION`, `PINNED_DEPLOYMENT`, or `ALIAS_ONLY`. Endpoint identity and the
+strongest provider revision actually exposed are fingerprinted. A remote alias with no revision
+has `digest = null` and `ALIAS_ONLY`; the adapter never invents a weights digest. Existing Ollama
+digest/tag drift protection is unchanged.
+
+**Reason:** Phase 1 already proved that behavior and authority services consume provider-neutral
+Ports, while direct Ollama construction remained in application/runtime composition. Remote APIs
+do not universally expose immutable weights or runtime revisions, so treating a model alias as a
+digest would overstate reproducibility and weaken M7/M15 identity evidence.
+
+**Consequences:** Provider portability can pass independently of model behavioral quality.
+Alias-only evidence is sufficient for M16 control-flow conformance but cannot by itself be
+represented as strong reproducibility or Product acceptance. A complete remote-model M15 run is
+not part of M16 and still requires explicit authorization under a fully bound new evaluation
+environment. D-003 remains the frozen Phase-1/default local-runtime decision rather than a ban on
+Phase-2 adapters.
+
+New canonical runs use `EvaluationEnvironment v0.2`. Composition supplies the exact selected
+provider, runtime version, chat/embedding fingerprints and identity assurances, request timeout,
+and output-token bound. The environment records a derived Product-acceptance identity-eligibility
+fact: if either bound model is `ALIAS_ONLY`, ordinary behavioral and safety gates may still produce
+diagnostic evidence, but the canonical Product verdict cannot be `ACCEPTED`. Existing immutable
+Ollama digest identities remain eligible. Historical v0.1 reports are not rewritten or
+retroactively re-adjudicated.
+
+The Cloudflare identity profile derives its catalog endpoint only from the exact validated
+Workers AI OpenAI-compatible base URL. Startup and every model call require one exact catalog-name
+match, the expected `Text Generation` or `Text Embeddings` task, and stable bounded catalog
+metadata. Missing, ambiguous, task-mismatched, or changed catalog evidence fails closed. Because
+the catalog exposes no immutable revision, the resulting fingerprint remains honestly
+`ALIAS_ONLY` with no fabricated digest or provider revision.

@@ -1,9 +1,9 @@
 # Data Agent — Codex Development Handoff
 
 **Version:** v0.1.0
-**Status:** Ready for implementation
-**Date:** 2026-08-23
-**Target:** Local, conversational, read-only Data Agent MVP
+**Status:** Phase-1 harness validated; Product behavioral verdict rejected; Phase-2 portability active
+**Date:** 2026-08-30
+**Target:** Conversational, read-only Data Agent harness with replaceable model/data adapters
 
 ## 1. Purpose
 
@@ -11,7 +11,8 @@ This repository packet is the implementation source of truth for an MVP that tur
 
 The MVP is intentionally constrained:
 
-- local Ollama provides chat and embedding models;
+- provider-neutral model Ports use local Ollama by default and an M16 OpenAI-compatible profile
+  when explicitly configured;
 - Docker MySQL 8.4 provides a deterministic synthetic business dataset;
 - the application owns conversation/session state;
 - the system supports multi-turn clarification;
@@ -38,7 +39,9 @@ Codex MUST read these documents before implementation:
 7. [`docs/architecture/CATALOG_SPEC.md`](./docs/architecture/CATALOG_SPEC.md) — schema/capability discovery.
 8. [`docs/architecture/SECURITY.md`](./docs/architecture/SECURITY.md) — non-negotiable safety invariants.
 9. [`docs/architecture/EVAL_SPEC.md`](./docs/architecture/EVAL_SPEC.md) — evaluation authority.
-10. [`docs/exec-plans/EP-001-MVP.md`](./docs/exec-plans/EP-001-MVP.md) — implementation sequence.
+10. [`docs/exec-plans/EP-001-MVP.md`](./docs/exec-plans/EP-001-MVP.md) — frozen Phase-1 evidence.
+11. [`docs/exec-plans/EP-002-PORTABILITY.md`](./docs/exec-plans/EP-002-PORTABILITY.md) — active
+    Phase-2 sequence.
 
 ## 3. Document precedence
 

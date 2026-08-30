@@ -1,4 +1,4 @@
-"""Ollama composition for current-authority index build, load, and standalone eval."""
+"""Provider-neutral composition for current-authority retrieval runtime and eval."""
 
 from __future__ import annotations
 
@@ -13,11 +13,8 @@ from data_agent.catalog.semantic import (
     load_curated_semantics,
 )
 from data_agent.config import Settings
-from data_agent.model_runtime.ollama import (
-    OllamaEmbeddingModel,
-    OllamaStartupDiagnostics,
-)
-from data_agent.model_runtime.ports import ModelRuntimeDiagnostics
+from data_agent.model_runtime.composition import start_model_runtime
+from data_agent.model_runtime.ports import ChatModel, ModelRuntimeDiagnostics
 from data_agent.retrieval.errors import RetrievalIndexStaleError
 from data_agent.retrieval.evaluation import (
     RetrievalEvalReport,
@@ -47,6 +44,7 @@ class CurrentRetrievalRuntime:
     diagnostics: ModelRuntimeDiagnostics
     index: RetrievalIndex
     retriever: HybridRetriever
+    chat_model: ChatModel
 
 
 def load_current_catalog_authority() -> CurrentCatalogAuthority:
@@ -68,19 +66,16 @@ def load_current_catalog_authority() -> CurrentCatalogAuthority:
 
 async def rebuild_current_retrieval_index(settings: Settings) -> RetrievalIndex:
     authority = load_current_catalog_authority()
-    diagnostics = await OllamaStartupDiagnostics(settings).diagnose()
-    embedding_model = OllamaEmbeddingModel(
-        settings,
-        fingerprint=diagnostics.embedding,
-    )
+    runtime = await start_model_runtime(settings)
+    diagnostics = runtime.diagnostics
     index = await build_retrieval_index(
         authority.assembled,
         current_generated_schema_fingerprint=authority.generated.fingerprint,
         current_semantic_revision=authority.curated.semantic_revision,
-        embedding_model=embedding_model,
+        embedding_model=runtime.embedding_model,
         embedding_fingerprint=diagnostics.embedding,
         model_runtime_version=diagnostics.runtime_version,
-        embedding_batch_size=settings.ollama_max_embedding_batch,
+        embedding_batch_size=runtime.embedding_batch_size,
     )
     write_retrieval_index(index)
     return index
@@ -88,7 +83,8 @@ async def rebuild_current_retrieval_index(settings: Settings) -> RetrievalIndex:
 
 async def load_current_retrieval_runtime(settings: Settings) -> CurrentRetrievalRuntime:
     authority = load_current_catalog_authority()
-    diagnostics = await OllamaStartupDiagnostics(settings).diagnose()
+    runtime = await start_model_runtime(settings)
+    diagnostics = runtime.diagnostics
     index = load_retrieval_index(
         catalog=authority.assembled,
         current_generated_schema_fingerprint=authority.generated.fingerprint,
@@ -96,14 +92,10 @@ async def load_current_retrieval_runtime(settings: Settings) -> CurrentRetrieval
         embedding_fingerprint=diagnostics.embedding,
         model_runtime_version=diagnostics.runtime_version,
     )
-    embedding_model = OllamaEmbeddingModel(
-        settings,
-        fingerprint=diagnostics.embedding,
-    )
     retriever = HybridRetriever(
         index=index,
         catalog=authority.assembled,
-        embedding_model=embedding_model,
+        embedding_model=runtime.embedding_model,
         embedding_fingerprint=diagnostics.embedding,
         model_runtime_version=diagnostics.runtime_version,
         lexical_top_k=settings.retrieval_lexical_top_k,
@@ -118,6 +110,7 @@ async def load_current_retrieval_runtime(settings: Settings) -> CurrentRetrieval
         diagnostics=diagnostics,
         index=index,
         retriever=retriever,
+        chat_model=runtime.chat_model,
     )
 
 

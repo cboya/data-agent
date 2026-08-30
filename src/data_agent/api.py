@@ -17,11 +17,7 @@ from data_agent.conversation.runtime import (
     ConversationApplicationPort,
     build_conversation_application,
 )
-from data_agent.model_runtime.ollama import (
-    OllamaChatModel,
-    OllamaEmbeddingModel,
-    OllamaStartupDiagnostics,
-)
+from data_agent.model_runtime.composition import BoundModelRuntime, start_model_runtime
 from data_agent.model_runtime.ports import ModelRuntimeProbe
 from data_agent.observability import configure_logging
 from data_agent.persistence.errors import RecordNotFoundError
@@ -49,30 +45,31 @@ def create_app(
     """Build the HTTP application with fail-closed model runtime startup diagnostics."""
     resolved_settings = settings or Settings()  # type: ignore[call-arg]
     configure_logging(resolved_settings.log_level)
-    bind_default_ollama_adapters = model_runtime_probe is None
-    probe = model_runtime_probe or OllamaStartupDiagnostics(resolved_settings)
+    bind_configured_runtime = model_runtime_probe is None
 
     @asynccontextmanager
     async def lifespan(app: FastAPI) -> AsyncIterator[None]:
-        diagnostics = await probe.diagnose()
+        runtime: BoundModelRuntime | None = None
+        if bind_configured_runtime:
+            runtime = await start_model_runtime(resolved_settings)
+            diagnostics = runtime.diagnostics
+        else:
+            assert model_runtime_probe is not None
+            diagnostics = await model_runtime_probe.diagnose()
         app.state.model_runtime_diagnostics = diagnostics
-        if bind_default_ollama_adapters:
-            chat_model = OllamaChatModel(
-                resolved_settings,
-                fingerprint=diagnostics.chat,
-            )
-            embedding_model = OllamaEmbeddingModel(
-                resolved_settings,
-                fingerprint=diagnostics.embedding,
-            )
-            app.state.chat_model = chat_model
-            app.state.embedding_model = embedding_model
+        app.state.model_runtime_resource_evidence = (
+            runtime.resource_evidence if runtime is not None else None
+        )
+        if bind_configured_runtime:
+            assert runtime is not None
+            app.state.chat_model = runtime.chat_model
+            app.state.embedding_model = runtime.embedding_model
             if conversation_application is None:
                 app.state.conversation_application = build_conversation_application(
                     resolved_settings,
                     diagnostics=diagnostics,
-                    chat_model=chat_model,
-                    embedding_model=embedding_model,
+                    chat_model=runtime.chat_model,
+                    embedding_model=runtime.embedding_model,
                 )
         yield
 

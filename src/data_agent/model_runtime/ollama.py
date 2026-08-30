@@ -24,6 +24,7 @@ from data_agent.model_runtime.errors import (
 )
 from data_agent.model_runtime.ports import (
     ModelFingerprint,
+    ModelIdentityAssurance,
     ModelRuntimeDiagnostics,
     StructuredResultT,
 )
@@ -116,6 +117,12 @@ class _OllamaModelBinding:
     digest: str
 
 
+def _required_model(value: str | None, setting_name: str) -> str:
+    if value is None or not value.strip():
+        raise ModelUnavailableError(f"{setting_name} is required for the Ollama provider")
+    return value
+
+
 def _binding_from_fingerprint(
     fingerprint: ModelFingerprint,
     *,
@@ -128,10 +135,12 @@ def _binding_from_fingerprint(
         raise ModelIdentityDriftError(
             f"Ollama fingerprint does not match configured model: {configured_model}"
         )
-    if not fingerprint.digest.strip():
+    if fingerprint.digest is None or not fingerprint.digest.strip():
         raise ModelIdentityDriftError(
             f"Ollama fingerprint has no immutable digest: {configured_model}"
         )
+    if fingerprint.identity_assurance is not ModelIdentityAssurance.IMMUTABLE_PROVIDER_REVISION:
+        raise ModelIdentityDriftError("Ollama adapter requires immutable digest assurance")
     if required_capability not in fingerprint.capabilities:
         raise ModelIdentityDriftError(
             f"Ollama fingerprint lacks {required_capability} capability: {configured_model}"
@@ -179,7 +188,7 @@ class OllamaChatModel:
     ) -> None:
         self._binding = _binding_from_fingerprint(
             fingerprint,
-            configured_model=settings.ollama_chat_model,
+            configured_model=_required_model(settings.ollama_chat_model, "OLLAMA_CHAT_MODEL"),
             required_capability="completion",
         )
         self._transport = _transport(settings, transport)
@@ -240,7 +249,7 @@ class OllamaEmbeddingModel:
     ) -> None:
         self._binding = _binding_from_fingerprint(
             fingerprint,
-            configured_model=settings.ollama_embed_model,
+            configured_model=_required_model(settings.ollama_embed_model, "OLLAMA_EMBED_MODEL"),
             required_capability="embedding",
         )
         self._max_batch = settings.ollama_max_embedding_batch
@@ -292,8 +301,8 @@ class OllamaStartupDiagnostics:
         *,
         transport: OllamaJsonTransport | None = None,
     ) -> None:
-        self._chat_model = settings.ollama_chat_model
-        self._embedding_model = settings.ollama_embed_model
+        self._chat_model = _required_model(settings.ollama_chat_model, "OLLAMA_CHAT_MODEL")
+        self._embedding_model = _required_model(settings.ollama_embed_model, "OLLAMA_EMBED_MODEL")
         self._transport = _transport(settings, transport)
 
     async def diagnose(self) -> ModelRuntimeDiagnostics:
@@ -307,11 +316,19 @@ class OllamaStartupDiagnostics:
         current_tags = await self._transport.request("GET", "/api/tags")
         _assert_model_identity(
             current_tags,
-            _OllamaModelBinding(model=chat.model, digest=chat.digest),
+            _binding_from_fingerprint(
+                chat,
+                configured_model=self._chat_model,
+                required_capability="completion",
+            ),
         )
         _assert_model_identity(
             current_tags,
-            _OllamaModelBinding(model=embedding.model, digest=embedding.digest),
+            _binding_from_fingerprint(
+                embedding,
+                configured_model=self._embedding_model,
+                required_capability="embedding",
+            ),
         )
         return ModelRuntimeDiagnostics(
             provider="ollama",

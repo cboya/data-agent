@@ -1,7 +1,7 @@
 # Conversational Data Agent Architecture
 
-**Version:** v0.1.0
-**Status:** Frozen MVP Baseline
+**Version:** v0.2.0
+**Status:** Frozen Phase-1 Baseline + Active Phase-2 Portability Validation
 **Architecture style:** Harness-centric, stateful, single-agent, read-only
 
 ## 1. System objective
@@ -57,8 +57,8 @@ The durable architecture is built around contracts, state, capabilities, executi
 
 ### External runtimes
 
-- Ollama local chat model;
-- Ollama local embedding model;
+- configured provider-neutral chat model (Ollama reference or the M16 remote profile);
+- configured provider-neutral embedding model (Ollama reference or the M16 remote profile);
 - Docker MySQL 8.4.
 
 ### Outputs
@@ -80,7 +80,7 @@ The durable architecture is built around contracts, state, capabilities, executi
 └───────────────┬──────────────────────────────┬───────────────┘
                 │                              │
         ┌───────▼────────┐             ┌───────▼────────┐
-        │ Session Store  │             │  Ollama Chat   │
+        │ Session Store  │             │ ChatModel Port │
         │ messages       │             │ reasoning only │
         │ requirement    │             └───────┬────────┘
         │ runs/artifacts │                     │
@@ -135,6 +135,11 @@ Owns:
 - completion criteria.
 
 The LLM must not own these concerns.
+
+Phase 2 selects the model provider only at composition boundaries. Dialogue, retrieval, planning,
+repair, answer, verification, orchestration, and trace/evaluation authorities continue to depend
+on provider-neutral Ports and fingerprints. Ollama remains the default local reference adapter;
+the first portability profile is a narrow bounded OpenAI-compatible REST adapter.
 
 M14 composes M8–M14 through a thin conversation orchestrator. The orchestrator sequences existing
 services and Run transitions; it does not reimplement their semantic, guard, execution,

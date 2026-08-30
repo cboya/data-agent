@@ -16,7 +16,7 @@ from eval_harness.golden import (
     run_golden,
 )
 from eval_harness.loader import load_golden, load_oracles
-from eval_harness.models import EvaluationEnvironment, GoldenCaseResult, GoldenMetrics
+from eval_harness.models import EvaluationEnvironmentV01, GoldenCaseResult, GoldenMetrics
 
 GOLDEN_FINGERPRINT = "53d969d1196877829cc89ee3070d75a1fea6ba88bfd5986fbe66beb21fcf93f7"
 
@@ -189,7 +189,7 @@ def test_run_golden_aggregates_verified_oracle_mismatch_into_exact_gate(
         settings=cast(Any, None),
         suite=suite,
         oracles=oracles,
-        environment=EvaluationEnvironment.model_construct(),
+        environment=EvaluationEnvironmentV01.model_construct(),
     )
 
     assert report.metrics.e2e_pass_rate >= 0.90

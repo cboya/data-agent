@@ -6,7 +6,8 @@ The model is not a workflow engine. Every model interaction has a narrow purpose
 
 ## 1. General rules
 
-- Use local Ollama through an internal adapter.
+- Use the configured runtime only through internal model Ports. Ollama remains the default local
+  reference; M16 adds one narrow OpenAI-compatible REST adapter.
 - Model names are configuration.
 - Control-bearing outputs use JSON Schema structured output.
 - Do not ask the model to enforce security invariants that deterministic code can enforce.
@@ -25,6 +26,16 @@ required capability cannot be proven. Chat and embedding adapters must consume t
 fingerprints. Because the supported local Ollama runtime does not accept digest-qualified model
 references, each adapter must revalidate its configured tag-to-digest mapping immediately before
 execution and fail closed on identity drift.
+
+For the M16 remote profile, diagnostics verify each configured model/deployment through an
+explicit identity profile and bind a credential-free endpoint hash, model ID, optional provider
+revision/snapshot, declared adapter capability, and identity assurance. The default profile uses
+`GET /models/{id}`. The `cloudflare_workers_ai` profile uses the authenticated account model
+catalog, requires one exact model-name match plus the expected task, and never activates as an
+HTTP-error fallback. The adapter rechecks the selected identity source before every request. No
+revision means `ALIAS_ONLY`, not a fabricated digest. Remote chat uses strict JSON Schema Chat
+Completions; remote embeddings must preserve exact indexed input cardinality. The same
+deterministic contract validation and fail-closed rules apply to both providers.
 
 ## 2. Interaction A — Dialogue understanding
 
@@ -296,7 +307,7 @@ Do not use “entire session history” as a universal context strategy.
 
 The MVP does not require multiple model providers.
 
-If the configured Ollama model cannot reliably satisfy structured contracts:
+If the configured model provider cannot reliably satisfy structured contracts:
 
 - fail clearly;
 - surface diagnostic metadata;
@@ -305,6 +316,10 @@ If the configured Ollama model cannot reliably satisfy structured contracts:
 Structured chat sends the exact Pydantic JSON Schema to Ollama and then validates returned JSON
 through the requested Pydantic type. Provider acceptance of a schema is not treated as proof that
 the response satisfies the contract.
+
+The OpenAI-compatible profile sends the same schema under strict `response_format.json_schema`
+and still performs local Pydantic validation. Provider-side “structured output” is transport
+behavior, never harness authority.
 
 Embedding requests disable silent truncation. The adapter requires exactly one finite,
 non-empty, consistently sized vector per input text.

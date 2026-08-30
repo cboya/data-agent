@@ -11,7 +11,7 @@ from eval_harness.attribution import (
 )
 from eval_harness.loader import REPOSITORY_ROOT, load_golden
 from eval_harness.models import (
-    EvaluationEnvironment,
+    EvaluationEnvironmentV02,
     FinalAcceptanceReport,
     GoldenCase,
     GoldenCaseResult,
@@ -72,7 +72,7 @@ def _source_report(
         if mutations and case.id in mutations:
             result = result.model_copy(update=mutations[case.id])
         results.append(result)
-    environment = EvaluationEnvironment.model_construct(
+    environment = EvaluationEnvironmentV02.model_construct(
         fingerprint="b" * 64,
         git_commit="c" * 40,
         golden_fingerprint=golden_fingerprint,

@@ -1,11 +1,11 @@
-"""Composition for the current bound Ollama planner and standalone evaluation."""
+"""Provider-neutral composition for the current planner and standalone evaluation."""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
 
 from data_agent.config import Settings
-from data_agent.model_runtime.ollama import OllamaChatModel
+from data_agent.model_runtime.composition import with_planner_request_timeout
 from data_agent.planning.context import PlannerContextBuilder
 from data_agent.planning.evaluation import (
     PlannerEvalReport,
@@ -26,7 +26,7 @@ class CurrentPlannerRuntime:
 async def load_current_planner_runtime(settings: Settings) -> CurrentPlannerRuntime:
     retrieval = await load_current_retrieval_runtime(settings)
     planner = QueryPlanner(
-        chat_model=OllamaChatModel(settings, fingerprint=retrieval.diagnostics.chat),
+        chat_model=retrieval.chat_model,
         context_builder=PlannerContextBuilder(max_tables=settings.max_retrieved_tables),
         model_fingerprint=retrieval.diagnostics.chat.value,
         runtime_version=retrieval.diagnostics.runtime_version,
@@ -35,11 +35,7 @@ async def load_current_planner_runtime(settings: Settings) -> CurrentPlannerRunt
 
 
 async def evaluate_current_planner(settings: Settings) -> PlannerEvalReport:
-    eval_settings = settings.model_copy(
-        update={
-            "ollama_request_timeout_seconds": settings.planner_eval_request_timeout_seconds,
-        }
-    )
+    eval_settings = with_planner_request_timeout(settings)
     runtime = await load_current_planner_runtime(eval_settings)
     report = await run_planner_evaluation(
         runtime.planner,

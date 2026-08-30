@@ -102,6 +102,12 @@ tasks:
     cmds:
       - RUN_OLLAMA_INTEGRATION=1 uv run pytest tests/integration/test_conversation_e2e.py
 
+  m16-remote-smoke:
+    desc: Run the bounded OpenAI-compatible M16 control-flow smoke
+    deps: [sync]
+    cmds:
+      - RUN_OPENAI_COMPATIBLE_INTEGRATION=1 uv run pytest tests/integration/test_openai_compatible_runtime.py
+
   reset:
     desc: Reset generated local state
     deps: [sync]

@@ -214,7 +214,9 @@ corpus dependency-free and makes Chinese/English behavior mechanically reproduci
 
 ## 8. Embedding retrieval
 
-Use local Ollama embeddings.
+Use the configured provider-neutral `EmbeddingModel`. Ollama remains the Phase-1/default local
+reference; M16 permits the same bounded in-process retrieval path to use the selected
+OpenAI-compatible embedding adapter.
 
 MVP constraints:
 
@@ -222,6 +224,12 @@ MVP constraints:
 - batch embedding is preferred when rebuilding;
 - result vectors are searched in-process;
 - no external vector database.
+
+M16 advances the internal generated index format to `retrieval-index-v0.2` only to persist the
+complete portable embedding identity: optional digest, endpoint identity, optional provider
+revision, and identity assurance. Ranking, document projection, vector search, fusion, and graph
+expansion semantics remain unchanged. Loading a v0.1 artifact under the v0.2 identity fails closed
+and requires a deterministic rebuild.
 
 Similarity metric should match the chosen embedding behavior and be documented in implementation.
 M7 uses cosine similarity and revalidates query/index dimensions and finite numeric values before
