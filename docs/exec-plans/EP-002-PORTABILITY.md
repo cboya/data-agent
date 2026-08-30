@@ -1,6 +1,6 @@
 # EP-002 — Portability Validation
 
-**Status:** ACTIVE — M16 Model Provider Portability
+**Status:** ACTIVE — M17 External MySQL Portability / implementation and live conformance complete
 **Owner:** Codex implementation agent(s), human architecture review
 **Phase-1 baseline:** `main@795b86f412630ba36238c0de1baa1e291ba13863`
 
@@ -197,18 +197,33 @@ Stop before merge and do not begin M17.
 
 ## 5. M17 — External MySQL Portability
 
-**Status:** NOT AUTHORIZED — begins only after M16 squash merge.
+**Status:** ACTIVE — deterministic foundation authorized at
+`main@616a37a44c7ca99101fef07dec39a6bc45eb693e`.
 
-M17 will replace only the Analytics/Data Plane MySQL while retaining control-plane persistence.
-Its first responsibilities are control/analytics endpoint separation, external-safe non-mutating
-bootstrap/preflight, explicit table scope, and an independent catalog workspace. Detailed M17
-implementation remains frozen until its activation turn; no M17 code belongs in the M16 PR.
+M17 replaces only the Analytics/Data Plane MySQL while retaining control-plane persistence. The
+first tranche implements control/analytics endpoint separation, one credential-free active source
+profile, external-safe non-mutating preflight, explicit table scope, and an independent catalog
+workspace. Real external conformance, final PR creation, M15 reruns, release/tag creation, another
+SQL dialect, and multi-source behavior are not authorized in this tranche.
 
 ## 6. Progress
 
 ```text
-[~] M16 Model Provider Portability — NARROW RE-REVIEW READY; MERGE NOT AUTHORIZED
-[ ] M17 External MySQL Portability — NOT AUTHORIZED
+[x] M16 Model Provider Portability — COMPLETE / FROZEN
+[~] M17 External MySQL Portability — READY FOR FOCUSED PR / SUBSTANTIVE REVIEW
+```
+
+### M16 closure evidence — 2026-08-30
+
+```text
+focused PR                         #19 — SQUASH MERGED
+merge SHA                          616a37a44c7ca99101fef07dec39a6bc45eb693e
+substantive review                 PASS / APPROVE
+Delivery / Quality                 PASS
+EvaluationEnvironment v0.2        COMPLETE / FROZEN
+Model portability baseline        VALIDATED
+Product NL2SQL MVP                 NOT ACCEPTED
+release / tag                      NOT AUTHORIZED / NOT CREATED
 ```
 
 ### M16 implementation evidence — 2026-08-30
@@ -257,7 +272,112 @@ remote Delivery / Quality         PASS — PR #19 at 619395c
 
 The remediation changes only evaluation identity and final Product-adjudication eligibility.
 Golden/Oracle truth, D-035 behavioral and safety thresholds, M8–M14 behavior, model prompts,
-Cloudflare adapter behavior, and retrieval semantics remain unchanged. M17 remains unauthorized.
+Cloudflare adapter behavior, and retrieval semantics remain unchanged. At that closure point M17
+remained unauthorized; the later activation baseline is recorded above.
+
+### M17 deterministic foundation evidence — 2026-08-30
+
+```text
+protected baseline                    616a37a44c7ca99101fef07dec39a6bc45eb693e
+control/analytics endpoint split      PASS
+single active source profile          PASS
+external synthetic-bootstrap denial  PASS
+allowlist-scoped introspection        PASS
+bounded read-only preflight           PASS
+catalog workspace isolation           PASS
+generated fingerprint isolation       PASS
+secret-free profile/report/artifacts  PASS
+synthetic default regression          PASS
+focused M17 regression                PASS — 36 passed
+task bootstrap                        PASS
+synthetic retrieval fingerprint       318a5423d255eae477d41f4c5da5dfb71e2d1a31dcb27bf88b1e4147480862c4
+task quality                          PASS — 560 passed, 8 skipped
+real external MySQL connection        NOT RUN / NOT AUTHORIZED IN THIS TRANCHE
+M15 59-case evaluation                NOT RUN
+final M17 PR                          NOT CREATED
+```
+
+This tranche changes only configuration/composition, bounded metadata intake, and local artifact
+selection. It does not change planner dialect, retrieval ranking, SQL admission, EXPLAIN policy,
+guarded execution, M8–M15 behavior, Golden/Oracle truth, or Product acceptance state. M17 remains
+active pending separately authorized real external conformance.
+
+### M17 independent MySQL conformance evidence — 2026-08-30
+
+```text
+conformance source                    disposable independent MySQL 8.4.11
+analytics / control endpoint split   PASS — 127.0.0.1:3307 / 127.0.0.1:3306
+source ID / workspace                product-opinion-conformance
+source-profile fingerprint           d7fbab6a75014c3bd997856d42e07ccc60888c3cc817108ee249db4653b6bf40
+allowlisted surface                  4 tables / 26 columns / 3 foreign keys
+reader privilege                     SELECT on exactly 4 tables; no database wildcard grant
+out-of-scope table read              DENIED — MySQL 1142
+database write probe                 DENIED — MySQL 1142
+table / column comment coverage      1.000 / 1.000
+raw opinion text / personal data     NONE / NONE
+
+generated-schema fingerprint         c80817f373f110ceb4b697027edd036edb7a8c27cf8a1d4dc348c269ff317e9a
+semantic revision                    ad9891070e19906aaecaeebcbb7fe8a00431555577e67a8c891a4476b2f14f9e
+assembled-catalog fingerprint        7cb481d9d151278bb5ad8b2908b670125ca1962466081abc3c31167d855a888f
+retrieval-index fingerprint          5b5d4afe04648c5f7a57ad9dd22868bdea406ccd669ecc74acf77b009daef211
+embedding fingerprint                0112ea4d6590628288600ebd612ee8b094001c1e181c4eda9a64493d205c138f
+embedding identity assurance         IMMUTABLE_PROVIDER_REVISION
+Ollama runtime / index format        0.33.1 / retrieval-index-v0.2
+retrieval-document builder           retrieval-document-v0.1
+hybrid retrieval smoke               PASS — only the 4 governed tables returned
+M6 relationship authority            PASS — exactly 3 curated, FK-backed relationships
+
+SQL Guard                            PASS
+real JSON EXPLAIN                    PASS — fact/product join admitted
+bounded read-only execution          PASS — one attempt, 2 rows, not truncated
+product-opinion result               FITNESS_BAND 5/1/0; SMARTWATCH 5/2/1
+                                     (events / negative / high-risk)
+opt-in external conformance test     PASS — 1 passed
+focused deterministic regression     PASS — 27 passed, 1 opt-in live skipped
+synthetic task bootstrap             PASS — reference index 318a5423d...
+task quality                         PASS — 560 passed, 9 skipped
+M15 59-case evaluation               NOT RUN
+Product NL2SQL MVP                   NOT ACCEPTED / UNCHANGED
+release / tag                        NOT AUTHORIZED / NOT CREATED
+```
+
+The external surface contains deterministic synthetic observations for autonomous-driving cars,
+smartwatches, and fitness bands. It is an independently located MySQL source used only to prove
+portability; it is not production connectivity or Product behavioral evidence. Environment-owner
+provisioning created the schema/data and reduced the reader to four table-level `SELECT` grants.
+The application path remained non-mutating: bounded metadata intake, in-memory semantic assembly,
+retrieval indexing/search, SQL Guard, JSON EXPLAIN, and one capability-only bounded `SELECT`.
+
+### M17 substantive-review remediation evidence — 2026-08-30
+
+```text
+review baseline                        PR #20 head 02cec38306e3b9ca3955efae1f17431edcd74656
+active profile → generated database   FAIL-CLOSED / PASS
+active profile → exact table surface  FAIL-CLOSED / PASS
+stale workspace database regression   PASS
+stale wider-allowlist regression       PASS
+
+MYSQL_ROOT_PASSWORD setting           OPTIONAL
+external Settings with root=None      PASS
+external preflight with root=None     PASS — deterministic connection evidence
+runtime/EXPLAIN redaction root=None   PASS
+synthetic bootstrap root=None         TYPED FAIL before container/admin operation
+control migration root=None           TYPED FAIL before admin connection
+live external unusable admin secret   PASS — preflight + conformance 1 passed
+
+focused blocker regression            PASS — 69 passed
+synthetic task bootstrap               PASS — reference index 318a5423d...
+task quality                           PASS — 565 passed, 9 skipped
+M15 59-case evaluation                 NOT RUN
+M8–M15 / Golden / Oracle / thresholds UNCHANGED
+release / tag                          NOT AUTHORIZED / NOT CREATED
+```
+
+The remediation changes only source-authority admission and admin-credential configuration.
+Current catalog loading now rejects workspace artifacts before curated/assembled/index use when
+their generated database or exact table surface differs from the active profile. External runtime
+composition no longer requires an admin secret; every operation that actually needs root authority
+uses one explicit fail-closed credential guard.
 
 ## 7. Decision log
 
@@ -330,6 +450,68 @@ but it cannot independently make the canonical Product verdict pass even when or
 behavioral, and safety gates pass. Immutable Ollama digest identities remain eligible. D-035
 thresholds and all Golden/Oracle truth remain unchanged; no model run is required for this
 evaluation-control-plane amendment.
+
+### 2026-08-30 — M17 single-source profile and external-safe preflight
+
+**Decision:** Retain `MYSQL_HOST`/`MYSQL_PORT` as the analytics endpoint for local compatibility
+and add independent control host/port settings. Compose exactly one active credential-free source
+profile from configuration. Preserve the synthetic `catalog/generated` + `catalog/semantic`
+workspace; place an external source beneath `catalog/workspaces/<workspace-id>`. External
+preflight uses only the analytics reader and allowlist-scoped metadata queries. Synthetic admin
+bootstrap remains a separate, mode-guarded path.
+
+**Evidence:** Phase-1 control repositories, migrations, analytics introspection, EXPLAIN, and query
+runtime all read the same host/port fields, while generated/semantic/index loaders use global path
+constants. Without separation, external mode could reach admin provisioning and overwrite the
+synthetic authority. `GeneratedSchemaMetadata v0.1` already supplies the correct provider-neutral
+downstream boundary once introspection is scoped.
+
+**Consequences:** The first tranche can be proven entirely with deterministic connection doubles
+and the existing synthetic world. Real credentials and live external MySQL are deferred until the
+non-mutating path, workspace isolation, semantic assembly, and retrieval identity compose. Missing
+FK evidence remains a blocker rather than an invitation to infer relationships.
+
+### 2026-08-30 — M17 disposable product-opinion conformance source
+
+**Decision:** Use a short-lived, independently located MySQL 8.4 source to close the live M17
+composition gate. The environment owner provisions four commented tables and deterministic
+synthetic observations covering autonomous-driving cars, smartwatches, and fitness bands. The
+application sees only the explicitly configured four-table surface through a reader with matching
+table-level grants. Stable curated semantics live in the external workspace; generated schema,
+assembled catalog, and retrieval index remain ignored rebuildable artifacts.
+
+**Evidence:** The real preflight observed 4 tables, 26 columns, 3 single-column foreign keys, and
+complete table/column comments. Semantic assembly and an immutable-digest Ollama embedding index
+bound distinct generated, curated, catalog, and index fingerprints. A representative wearable
+opinion query traversed SQL Guard, MySQL JSON EXPLAIN, and one bounded read-only execution. An
+existing physical table outside the configured surface was denied by MySQL privileges.
+
+**Consequences:** This profile proves one external analytics source can compose without changing
+the MySQL dialect, planner, retrieval semantics, Guard/EXPLAIN/runtime policy, M8–M15 behavior, or
+control-plane persistence. The fixture contains no raw opinion text or personal data and provides
+no Product acceptance evidence. It does not authorize production credentials, multi-source
+queries, M15 replay, a release, or a tag.
+
+### 2026-08-30 — M17 active-scope binding and on-demand admin credential
+
+**Decision:** Treat workspace paths as artifact locations, not sufficient authority. Before current
+catalog loading, compare generated schema database and exact ordered table names with the active
+`AnalyticsSourceProfile`; any mismatch is typed stale authority. Keep host/port outside this check.
+Make `MYSQL_ROOT_PASSWORD` optional in `Settings`, and require it through one shared helper only
+when synthetic bootstrap, control migration, principal provisioning, or verification explicitly
+enters an admin path.
+
+**Evidence:** Review found that a reused workspace could retain a removed table or a generated
+snapshot from another database, while runtime configuration had already changed. Review also found
+that a pure external reader configuration could not construct `Settings` without an unused root
+secret. New regressions cover both stale scopes, exact `None` external configuration/preflight,
+rootless EXPLAIN error handling, and pre-connection denial for synthetic bootstrap/control migration.
+
+**Consequences:** Allowlist/database changes become immediate runtime authority and require artifact
+rebuild before startup can continue. A logical source may still move between hosts without artifact
+invalidation. External analytics needs reader credentials only; local synthetic/control admin work
+still fails closed unless explicitly configured. No SQL, retrieval ranking, model, M8–M15, or
+Product acceptance behavior changes.
 
 ## 8. Deviation rule
 

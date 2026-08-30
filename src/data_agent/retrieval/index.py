@@ -12,6 +12,7 @@ from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_valida
 
 from data_agent.catalog.introspection import GENERATED_CATALOG_ROOT
 from data_agent.catalog.semantic import AssembledSemanticCatalog
+from data_agent.catalog.workspace import ensure_generated_output_path
 from data_agent.model_runtime.ports import (
     EmbeddingModel,
     ModelFingerprint,
@@ -249,12 +250,10 @@ async def build_retrieval_index(
 
 
 def _ensure_index_path(output_path: Path, generated_root: Path) -> None:
-    resolved_output = output_path.resolve()
-    resolved_root = generated_root.resolve()
-    if resolved_root.name != "generated" or resolved_root.parent.name != "catalog":
-        raise RetrievalIndexError("generated catalog root must be catalog/generated")
-    if not resolved_output.is_relative_to(resolved_root) or resolved_output == resolved_root:
-        raise RetrievalIndexError("retrieval index output must stay beneath catalog/generated")
+    try:
+        ensure_generated_output_path(output_path, generated_root)
+    except ValueError as error:
+        raise RetrievalIndexError(str(error)) from error
 
 
 def write_retrieval_index(

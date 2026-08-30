@@ -18,6 +18,7 @@ def test_settings_validate_runtime_limits(settings: Settings) -> None:
     assert (
         Settings.model_fields["openai_compatible_identity_profile"].default == "openai_models_by_id"
     )
+    assert settings.mysql_root_password is not None
     assert settings.mysql_root_password.get_secret_value() == "change-me-local-only"
     assert settings.max_retrieved_tables == 8
     assert settings.max_relationship_hops == 1
@@ -169,6 +170,52 @@ def test_control_plane_configuration_must_be_distinct(overrides: dict[str, str])
     values.update(overrides)
     with pytest.raises(ValidationError, match="must be distinct"):
         Settings.model_validate(values)
+
+
+def test_separate_mysql_endpoints_may_reuse_local_schema_and_user_names() -> None:
+    settings = Settings(
+        ollama_chat_model="chat-model",
+        ollama_embed_model="embedding-model",
+        mysql_host="analytics.example.test",
+        mysql_port=4406,
+        mysql_database="shared_name",
+        mysql_readonly_user="shared_user",
+        mysql_root_password=SecretStr("root-test-password"),
+        mysql_readonly_password=SecretStr("reader-test-password"),
+        mysql_control_host="control.example.test",
+        mysql_control_port=5506,
+        mysql_control_database="shared_name",
+        mysql_control_user="shared_user",
+        mysql_control_password=SecretStr("control-test-password"),
+    )
+
+    assert settings.mysql_host != settings.mysql_control_host
+    assert settings.mysql_database == settings.mysql_control_database
+    assert settings.mysql_readonly_user == settings.mysql_control_user
+
+
+def test_external_source_configuration_does_not_require_admin_secret() -> None:
+    settings = Settings(
+        ollama_chat_model="chat-model",
+        ollama_embed_model="embedding-model",
+        mysql_host="analytics.example.test",
+        mysql_port=4406,
+        mysql_database="external_analytics",
+        mysql_root_password=None,
+        mysql_readonly_user="external_reader",
+        mysql_readonly_password=SecretStr("external-reader-secret"),
+        mysql_control_host="control.example.test",
+        mysql_control_port=5506,
+        mysql_control_database="agent_control",
+        mysql_control_user="agent_control",
+        mysql_control_password=SecretStr("control-runtime-secret"),
+        analytics_source_mode="EXTERNAL",
+        analytics_source_id="external-fixture",
+        analytics_allowed_tables=("dim_parent", "fact_child"),
+        analytics_catalog_workspace="external-fixture",
+    )
+
+    assert settings.mysql_root_password is None
 
 
 @pytest.mark.parametrize(

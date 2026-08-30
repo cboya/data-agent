@@ -1,0 +1,23 @@
+version: v0.1
+
+relationships:
+  - from_table: fact_product_opinion
+    from_column: product_id
+    to_table: dim_opinion_product
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 舆情事件关联的产品
+
+  - from_table: fact_product_opinion
+    from_column: source_id
+    to_table: dim_opinion_source
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 舆情事件关联的公开信息来源
+
+  - from_table: fact_product_opinion
+    from_column: topic_id
+    to_table: dim_opinion_topic
+    to_column: id
+    cardinality: MANY_TO_ONE
+    description: 舆情事件关联的受治理主题

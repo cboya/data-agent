@@ -7,6 +7,7 @@ from typing import Protocol
 from uuid import uuid4
 
 from data_agent.answer.service import AnswerSynthesizer
+from data_agent.catalog.workspace import active_catalog_workspace
 from data_agent.config import Settings
 from data_agent.contracts.requirement import RequirementState, RequirementStatus
 from data_agent.contracts.session import Session, SessionStatus
@@ -99,13 +100,15 @@ def build_conversation_application(
 ) -> ConversationApplication:
     """Build once at startup; stale catalog/index/model identity fails startup closed."""
 
-    authority = load_current_catalog_authority()
+    workspace = active_catalog_workspace(settings)
+    authority = load_current_catalog_authority(settings)
     index = load_retrieval_index(
         catalog=authority.assembled,
         current_generated_schema_fingerprint=authority.generated.fingerprint,
         current_semantic_revision=authority.curated.semantic_revision,
         embedding_fingerprint=diagnostics.embedding,
         model_runtime_version=diagnostics.runtime_version,
+        path=workspace.retrieval_index_path,
     )
     retriever = HybridRetriever(
         index=index,

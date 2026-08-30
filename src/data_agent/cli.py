@@ -13,6 +13,7 @@ from data_agent.answer.real_evaluation import (
     format_real_answer_summary,
     write_real_answer_report,
 )
+from data_agent.catalog.introspection import preflight_and_write_external_schema
 from data_agent.config import Settings
 from data_agent.dialogue.evaluation import format_dialogue_eval_summary
 from data_agent.dialogue.readiness_evaluation import (
@@ -53,6 +54,7 @@ def build_parser() -> argparse.ArgumentParser:
         choices=(
             "answer-eval",
             "answer-ollama-eval",
+            "analytics-preflight",
             "bootstrap",
             "eval",
             "m8-readiness-eval",
@@ -81,6 +83,11 @@ def main(argv: Sequence[str] | None = None) -> int:
             f"successful_refunds={summary.successful_refund_total}, "
             f"retrieval_index={index.fingerprint}"
         )
+        return 0
+    if args.command == "analytics-preflight":
+        settings = Settings()  # type: ignore[call-arg]
+        result = preflight_and_write_external_schema(settings)
+        print(result.report.model_dump_json())
         return 0
     if args.command == "eval":
         settings = Settings()  # type: ignore[call-arg]

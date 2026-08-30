@@ -4,7 +4,7 @@ from uuid import uuid4
 import pymysql
 from pymysql.connections import Connection
 
-from data_agent.config import Settings
+from data_agent.config import Settings, require_mysql_admin_password
 from data_agent.contracts.artifact import Artifact, ArtifactType
 from data_agent.contracts.message import Message, MessageRole
 from data_agent.contracts.requirement import (
@@ -94,10 +94,10 @@ def artifact(session_id: str, run_id: str, *, artifact_id: str | None = None) ->
 
 def admin_connection(settings: Settings, *, database: str | None = None) -> Connection:
     return pymysql.connect(
-        host=settings.mysql_host,
-        port=settings.mysql_port,
+        host=settings.mysql_control_host,
+        port=settings.mysql_control_port,
         user="root",
-        password=settings.mysql_root_password.get_secret_value(),
+        password=require_mysql_admin_password(settings, operation="test control admin connection"),
         database=database,
         charset="utf8mb4",
         autocommit=True,

@@ -1,0 +1,106 @@
+version: v0.1
+
+tables:
+  dim_opinion_product:
+    aliases: [舆情产品, 产品, 设备, product]
+    description: 舆情分析产品维度，一条记录代表一款智驾车、智能手表或智能手环产品。
+    business_rules:
+      - product_code 是稳定产品代码；product_name 是对外展示名称。
+      - product_category 仅使用 AUTONOMOUS_VEHICLE、SMARTWATCH、FITNESS_BAND 三个受控值。
+    column_semantics:
+      id:
+        description: 产品唯一标识
+      product_code:
+        description: 稳定产品代码
+      product_name:
+        description: 产品展示名称
+        aliases: [产品名称, 设备名称]
+      product_category:
+        description: 产品品类
+        aliases: [产品类型, 品类]
+      manufacturer:
+        description: 产品制造商或品牌主体
+        aliases: [品牌, 厂商]
+    typical_use_cases: [产品舆情对比, 品类舆情分析, 品牌舆情分析]
+
+  dim_opinion_source:
+    aliases: [舆情来源, 渠道, 平台, source]
+    description: 舆情来源维度，一条记录代表一个公开信息来源类别或平台。
+    business_rules:
+      - source_type 仅表达 NEWS、SOCIAL、FORUM、REVIEW 四类公开渠道。
+    column_semantics:
+      id:
+        description: 舆情来源唯一标识
+      source_code:
+        description: 稳定来源代码
+      source_name:
+        description: 来源展示名称
+        aliases: [平台名称, 来源名称]
+      source_type:
+        description: 来源渠道类型
+        aliases: [渠道类型]
+    typical_use_cases: [渠道舆情对比, 来源分布, 平台风险分析]
+
+  dim_opinion_topic:
+    aliases: [舆情主题, 话题, topic]
+    description: 舆情主题维度，一条记录代表一个受治理的产品舆情主题。
+    business_rules:
+      - topic_category 是受控主题分类，不由查询时模型临时推断。
+    column_semantics:
+      id:
+        description: 舆情主题唯一标识
+      topic_code:
+        description: 稳定主题代码
+      topic_name:
+        description: 舆情主题名称
+        aliases: [主题名称, 话题名称]
+      topic_category:
+        description: 舆情主题分类
+        aliases: [主题分类]
+    typical_use_cases: [主题热度分析, 风险主题分析, 产品主题对比]
+
+  fact_product_opinion:
+    aliases: [产品舆情, 舆情事件, 舆情事实, product opinion]
+    description: 产品舆情事实表，一条记录代表一条去标识化的合成公开舆情事件，不保存原始文本或个人信息。
+    business_rules:
+      - 每行是一条合成舆情事件，post_fingerprint 仅作为不可逆事件标识。
+      - sentiment_score 取值范围为 -1 到 1；大于等于 0.2 为 POSITIVE，小于等于 -0.2 为 NEGATIVE，其余为 NEUTRAL。
+      - engagement_count 是互动量快照，reach_count 是估算触达量，两者口径不同。
+      - risk_level 是数据源提供的受控风险等级，不得由查询时模型重新推断。
+      - published_at 使用 UTC 时间。
+    column_semantics:
+      id:
+        description: 舆情事件唯一标识
+      post_fingerprint:
+        description: 合成舆情事件的不可逆唯一指纹
+      product_id:
+        description: 舆情事件关联的产品
+      source_id:
+        description: 舆情事件关联的信息来源
+      topic_id:
+        description: 舆情事件关联的受治理主题
+      published_at:
+        description: 舆情事件的 UTC 发布时间
+        aliases: [发布时间]
+      sentiment_score:
+        description: 范围为 -1 到 1 的情感得分
+        aliases: [情感分, 情绪得分]
+      sentiment_label:
+        description: POSITIVE、NEUTRAL 或 NEGATIVE 情感标签
+        aliases: [情感倾向, 正负面]
+      engagement_count:
+        description: 点赞、评论和分享等互动量快照
+        aliases: [互动量, 互动数]
+      reach_count:
+        description: 舆情事件的估算触达量
+        aliases: [触达量, 曝光量]
+      risk_level:
+        description: LOW、MEDIUM 或 HIGH 受控舆情风险等级
+        aliases: [风险等级, 舆情风险]
+      language_code:
+        description: 舆情事件语言代码
+        aliases: [语言]
+      region_code:
+        description: 舆情事件地区代码
+        aliases: [地区]
+    typical_use_cases: [产品情感趋势, 高风险舆情识别, 主题热度分析, 品类舆情对比, 渠道舆情对比]

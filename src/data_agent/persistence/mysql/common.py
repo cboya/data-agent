@@ -16,8 +16,8 @@ from data_agent.persistence.errors import (
 
 def control_connection(settings: Settings, *, autocommit: bool = True) -> Connection:
     return pymysql.connect(
-        host=settings.mysql_host,
-        port=settings.mysql_port,
+        host=settings.mysql_control_host,
+        port=settings.mysql_control_port,
         user=settings.mysql_control_user,
         password=settings.mysql_control_password.get_secret_value(),
         database=settings.mysql_control_database,

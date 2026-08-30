@@ -7,6 +7,25 @@ from urllib.parse import urlsplit
 from pydantic import Field, SecretStr, field_validator, model_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
+SYNTHETIC_SOURCE_ID = "synthetic-reference"
+SYNTHETIC_CATALOG_WORKSPACE = "synthetic-reference"
+SYNTHETIC_ALLOWED_TABLES = (
+    "dim_category",
+    "dim_channel",
+    "dim_product",
+    "dim_region",
+    "dim_user",
+    "fact_order",
+    "fact_order_item",
+    "fact_payment_transaction",
+    "fact_refund",
+    "fact_user_event",
+)
+
+
+class MissingMySQLAdminCredentialError(RuntimeError):
+    """An explicitly invoked MySQL admin path has no configured admin secret."""
+
 
 class Settings(BaseSettings):
     """Configuration loaded from environment variables and an optional .env file."""
@@ -53,12 +72,19 @@ class Settings(BaseSettings):
     mysql_host: str = "127.0.0.1"
     mysql_port: int = Field(default=3306, ge=1, le=65535)
     mysql_database: str = Field(default="data_agent", min_length=1)
-    mysql_root_password: SecretStr
+    mysql_root_password: SecretStr | None = None
     mysql_readonly_user: str = Field(default="data_agent_reader", min_length=1)
     mysql_readonly_password: SecretStr
+    mysql_control_host: str = "127.0.0.1"
+    mysql_control_port: int = Field(default=3306, ge=1, le=65535)
     mysql_control_database: str = Field(default="data_agent_control", min_length=1)
     mysql_control_user: str = Field(default="data_agent_control", min_length=1)
     mysql_control_password: SecretStr
+
+    analytics_source_mode: Literal["SYNTHETIC", "EXTERNAL"] = "SYNTHETIC"
+    analytics_source_id: str = SYNTHETIC_SOURCE_ID
+    analytics_allowed_tables: tuple[str, ...] = SYNTHETIC_ALLOWED_TABLES
+    analytics_catalog_workspace: str = SYNTHETIC_CATALOG_WORKSPACE
 
     max_query_time_ms: int = Field(default=5000, gt=0)
     max_result_rows: int = Field(default=1000, gt=0)
@@ -113,6 +139,28 @@ class Settings(BaseSettings):
             raise ValueError("must contain only letters, digits, or underscores")
         return value
 
+    @field_validator("analytics_source_id", "analytics_catalog_workspace")
+    @classmethod
+    def validate_analytics_identity(cls, value: str) -> str:
+        if re.fullmatch(r"[a-z0-9][a-z0-9._-]{0,63}", value) is None:
+            raise ValueError("must be a lowercase safe source/workspace identifier")
+        return value
+
+    @field_validator("analytics_allowed_tables")
+    @classmethod
+    def validate_analytics_allowed_tables(cls, value: tuple[str, ...]) -> tuple[str, ...]:
+        if not value:
+            raise ValueError("analytics allowed-table surface cannot be empty")
+        if len(value) > 100:
+            raise ValueError("analytics allowed-table surface cannot exceed 100 tables")
+        if any(re.fullmatch(r"[A-Za-z0-9_]{1,64}", table) is None for table in value):
+            raise ValueError(
+                "analytics allowed tables must contain only letters, digits, or underscores"
+            )
+        if len(value) != len(set(value)):
+            raise ValueError("analytics allowed tables must be unique")
+        return tuple(sorted(value))
+
     @model_validator(mode="after")
     def control_plane_is_separate(self) -> Self:
         if self.model_runtime_provider == "ollama":
@@ -157,10 +205,30 @@ class Settings(BaseSettings):
                 raise ValueError(
                     "OPENAI_COMPATIBLE_API_KEY is required for the OpenAI-compatible provider"
                 )
-        if self.mysql_control_database == self.mysql_database:
-            raise ValueError("control and analytics MySQL databases must be distinct")
-        if self.mysql_control_user == self.mysql_readonly_user:
-            raise ValueError("control and analytics runtime users must be distinct")
+        same_mysql_endpoint = (
+            self.mysql_control_host.casefold() == self.mysql_host.casefold()
+            and self.mysql_control_port == self.mysql_port
+        )
+        if same_mysql_endpoint and self.mysql_control_database == self.mysql_database:
+            raise ValueError(
+                "control and analytics MySQL databases must be distinct on a shared endpoint"
+            )
+        if same_mysql_endpoint and self.mysql_control_user == self.mysql_readonly_user:
+            raise ValueError(
+                "control and analytics runtime users must be distinct on a shared endpoint"
+            )
+        if self.analytics_source_mode == "SYNTHETIC":
+            if self.analytics_source_id != SYNTHETIC_SOURCE_ID:
+                raise ValueError("synthetic source must retain the reference source identity")
+            if self.analytics_catalog_workspace != SYNTHETIC_CATALOG_WORKSPACE:
+                raise ValueError("synthetic source must retain the reference catalog workspace")
+            if self.analytics_allowed_tables != SYNTHETIC_ALLOWED_TABLES:
+                raise ValueError("synthetic source must retain the reference allowed-table surface")
+        elif (
+            self.analytics_source_id == SYNTHETIC_SOURCE_ID
+            or self.analytics_catalog_workspace == SYNTHETIC_CATALOG_WORKSPACE
+        ):
+            raise ValueError("external source must use independent source and workspace identities")
         if self.retrieval_seed_tables > self.max_retrieved_tables:
             raise ValueError("retrieval seed table bound cannot exceed total retrieved table bound")
         if self.mysql_query_read_timeout_seconds * 1000 <= self.max_query_time_ms:
@@ -168,3 +236,14 @@ class Settings(BaseSettings):
                 "MySQL query read timeout must be greater than the server query-time bound"
             )
         return self
+
+
+def require_mysql_admin_password(settings: Settings, *, operation: str) -> str:
+    """Return the admin secret only for an explicit admin operation, or fail closed."""
+
+    secret = settings.mysql_root_password
+    if secret is None or not secret.get_secret_value().strip():
+        raise MissingMySQLAdminCredentialError(
+            f"MYSQL_ROOT_PASSWORD is required for MySQL admin operation: {operation}"
+        )
+    return secret.get_secret_value()

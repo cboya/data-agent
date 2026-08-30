@@ -108,6 +108,18 @@ tasks:
     cmds:
       - RUN_OPENAI_COMPATIBLE_INTEGRATION=1 uv run pytest tests/integration/test_openai_compatible_runtime.py
 
+  m17-preflight:
+    desc: Run the non-mutating external MySQL metadata preflight
+    deps: [sync]
+    cmds:
+      - uv run data-agent analytics-preflight
+
+  m17-external-smoke:
+    desc: Run the opt-in product-opinion external MySQL conformance smoke
+    deps: [sync]
+    cmds:
+      - RUN_EXTERNAL_MYSQL_INTEGRATION=1 uv run pytest tests/integration/test_external_mysql_runtime.py
+
   reset:
     desc: Reset generated local state
     deps: [sync]
