@@ -6,6 +6,7 @@ import hashlib
 import json
 import shutil
 from collections.abc import Sequence
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any, Literal, Self
 
@@ -13,25 +14,35 @@ import pymysql
 from pydantic import BaseModel, ConfigDict, Field, ValidationError, model_validator
 from pymysql.connections import Connection
 
+from data_agent.analytics import AnalyticsSourceProfile, active_analytics_source
+from data_agent.catalog.workspace import (
+    SYNTHETIC_GENERATED_ROOT,
+    catalog_workspace,
+    ensure_generated_output_path,
+    is_safe_generated_root,
+)
 from data_agent.config import Settings
 
-REPOSITORY_ROOT = Path(__file__).resolve().parents[3]
-GENERATED_CATALOG_ROOT = REPOSITORY_ROOT / "catalog" / "generated"
+GENERATED_CATALOG_ROOT = SYNTHETIC_GENERATED_ROOT
 GENERATED_SCHEMA_PATH = GENERATED_CATALOG_ROOT / "schema.json"
+MAX_INTROSPECTED_COLUMNS = 10_000
+MAX_INTROSPECTED_FOREIGN_KEYS = 10_000
 
 _TABLES_SQL = """
 SELECT TABLE_NAME, TABLE_COMMENT
 FROM information_schema.TABLES
-WHERE TABLE_SCHEMA = %s AND TABLE_TYPE = 'BASE TABLE'
+WHERE TABLE_SCHEMA = %s AND TABLE_TYPE = 'BASE TABLE' AND TABLE_NAME IN ({tables})
 ORDER BY TABLE_NAME
+LIMIT {limit}
 """
 
 _COLUMNS_SQL = """
 SELECT TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, COLUMN_TYPE,
        IS_NULLABLE, COLUMN_KEY, COLUMN_COMMENT
 FROM information_schema.COLUMNS
-WHERE TABLE_SCHEMA = %s
+WHERE TABLE_SCHEMA = %s AND TABLE_NAME IN ({tables})
 ORDER BY TABLE_NAME, ORDINAL_POSITION
+LIMIT {limit}
 """
 
 _FOREIGN_KEYS_SQL = """
@@ -39,7 +50,9 @@ SELECT TABLE_NAME, CONSTRAINT_NAME, COLUMN_NAME, ORDINAL_POSITION,
        REFERENCED_TABLE_SCHEMA, REFERENCED_TABLE_NAME, REFERENCED_COLUMN_NAME
 FROM information_schema.KEY_COLUMN_USAGE
 WHERE TABLE_SCHEMA = %s AND REFERENCED_TABLE_NAME IS NOT NULL
+  AND TABLE_NAME IN ({tables}) AND REFERENCED_TABLE_NAME IN ({tables})
 ORDER BY TABLE_NAME, CONSTRAINT_NAME, ORDINAL_POSITION
+LIMIT {limit}
 """
 
 
@@ -49,6 +62,32 @@ class CatalogIntrospectionError(RuntimeError):
 
 class CatalogOutputError(RuntimeError):
     """Generated catalog output could not be validated or written safely."""
+
+
+class ExternalMySQLPreflightReport(BaseModel):
+    """Bounded non-secret evidence from one external read-only metadata pass."""
+
+    model_config = ConfigDict(extra="forbid", frozen=True)
+
+    version: Literal["external-mysql-preflight-v0.1"] = "external-mysql-preflight-v0.1"
+    source_profile_fingerprint: str = Field(pattern=r"^[0-9a-f]{64}$")
+    source_id: str = Field(min_length=1)
+    backend: Literal["mysql"] = "mysql"
+    database: str = Field(min_length=1)
+    server_version: str = Field(min_length=1, max_length=256)
+    allowed_table_count: int = Field(ge=1, le=100)
+    column_count: int = Field(ge=1, le=MAX_INTROSPECTED_COLUMNS)
+    foreign_key_count: int = Field(ge=0, le=MAX_INTROSPECTED_FOREIGN_KEYS)
+    table_comment_coverage: float = Field(ge=0, le=1)
+    column_comment_coverage: float = Field(ge=0, le=1)
+
+
+@dataclass(frozen=True)
+class ExternalMySQLPreflightResult:
+    """Internal composition result; only report is bounded evidence."""
+
+    report: ExternalMySQLPreflightReport
+    generated_schema: GeneratedSchemaMetadata
 
 
 class _GeneratedMetadataModel(BaseModel):
@@ -196,10 +235,25 @@ def _ordinal(value: object) -> int:
     return value
 
 
-def _rows(connection: Connection, query: str, schema: str) -> Sequence[tuple[Any, ...]]:
+def _rows(
+    connection: Connection,
+    query: str,
+    profile: AnalyticsSourceProfile,
+    *,
+    table_list_count: int = 1,
+    max_rows: int,
+) -> Sequence[tuple[Any, ...]]:
+    placeholders = ", ".join("%s" for _ in profile.allowed_tables)
+    statement = query.format(tables=placeholders, limit=max_rows + 1)
+    parameters: tuple[object, ...] = (profile.database,) + (
+        profile.allowed_tables * table_list_count
+    )
     with connection.cursor() as cursor:
-        cursor.execute(query, (schema,))
-        return cursor.fetchall()
+        cursor.execute(statement, parameters)
+        rows = cursor.fetchall()
+    if len(rows) > max_rows:
+        raise CatalogIntrospectionError("information_schema metadata exceeds the configured bound")
+    return rows
 
 
 def _build_columns(
@@ -278,50 +332,71 @@ def _build_foreign_keys(
     return foreign_keys
 
 
-def introspect_analytics_schema(settings: Settings) -> GeneratedSchemaMetadata:
-    """Read and normalize only the configured analytics schema through its reader principal."""
+def _introspect_connection(
+    connection: Connection,
+    profile: AnalyticsSourceProfile,
+) -> GeneratedSchemaMetadata:
+    table_rows = _rows(connection, _TABLES_SQL, profile, max_rows=len(profile.allowed_tables))
+    tables: list[tuple[str, str | None]] = []
+    for row in table_rows:
+        tables.append(
+            (
+                _required_text(row[0], "table name"),
+                _optional_comment(row[1], "table comment"),
+            )
+        )
+    table_names = {name for name, _ in tables}
+    if len(table_names) != len(tables):
+        raise CatalogIntrospectionError("information_schema returned duplicate table metadata")
+    expected_tables = set(profile.allowed_tables)
+    if table_names != expected_tables:
+        missing = sorted(expected_tables - table_names)
+        unexpected = sorted(table_names - expected_tables)
+        raise CatalogIntrospectionError(
+            f"allowed analytics table coverage mismatch: missing={missing}, unexpected={unexpected}"
+        )
+
+    columns = _build_columns(
+        _rows(connection, _COLUMNS_SQL, profile, max_rows=MAX_INTROSPECTED_COLUMNS),
+        table_names,
+    )
+    foreign_keys = _build_foreign_keys(
+        _rows(
+            connection,
+            _FOREIGN_KEYS_SQL,
+            profile,
+            table_list_count=2,
+            max_rows=MAX_INTROSPECTED_FOREIGN_KEYS,
+        ),
+        schema=profile.database,
+        table_names=table_names,
+    )
+    normalized_tables = tuple(
+        GeneratedTableMetadata(
+            name=name,
+            comment=comment,
+            columns=tuple(columns[name]),
+            foreign_keys=tuple(foreign_keys[name]),
+        )
+        for name, comment in sorted(tables)
+    )
+    return GeneratedSchemaMetadata.build(
+        schema=profile.database,
+        tables=normalized_tables,
+    )
+
+
+def introspect_analytics_schema(
+    settings: Settings,
+    *,
+    profile: AnalyticsSourceProfile | None = None,
+) -> GeneratedSchemaMetadata:
+    """Read only the active source's allowlisted surface through its reader principal."""
+    selected = profile or active_analytics_source(settings)
     connection: Connection | None = None
     try:
         connection = _connect_readonly(settings)
-        table_rows = _rows(connection, _TABLES_SQL, settings.mysql_database)
-        tables: list[tuple[str, str | None]] = []
-        for row in table_rows:
-            tables.append(
-                (
-                    _required_text(row[0], "table name"),
-                    _optional_comment(row[1], "table comment"),
-                )
-            )
-        if not tables:
-            raise CatalogIntrospectionError(
-                "configured analytics schema has no visible base tables"
-            )
-        table_names = {name for name, _ in tables}
-        if len(table_names) != len(tables):
-            raise CatalogIntrospectionError("information_schema returned duplicate table metadata")
-
-        columns = _build_columns(
-            _rows(connection, _COLUMNS_SQL, settings.mysql_database),
-            table_names,
-        )
-        foreign_keys = _build_foreign_keys(
-            _rows(connection, _FOREIGN_KEYS_SQL, settings.mysql_database),
-            schema=settings.mysql_database,
-            table_names=table_names,
-        )
-        normalized_tables = tuple(
-            GeneratedTableMetadata(
-                name=name,
-                comment=comment,
-                columns=tuple(columns[name]),
-                foreign_keys=tuple(foreign_keys[name]),
-            )
-            for name, comment in sorted(tables)
-        )
-        return GeneratedSchemaMetadata.build(
-            schema=settings.mysql_database,
-            tables=normalized_tables,
-        )
+        return _introspect_connection(connection, selected)
     except pymysql.MySQLError as error:
         raise CatalogIntrospectionError("MySQL catalog introspection failed") from error
     except (IndexError, ValidationError) as error:
@@ -331,13 +406,64 @@ def introspect_analytics_schema(settings: Settings) -> GeneratedSchemaMetadata:
             connection.close()
 
 
+def preflight_external_mysql(
+    settings: Settings,
+    *,
+    profile: AnalyticsSourceProfile | None = None,
+) -> ExternalMySQLPreflightResult:
+    """Prove an external allowlisted surface using metadata reads only."""
+
+    selected = profile or active_analytics_source(settings)
+    if selected.mode != "EXTERNAL":
+        raise CatalogIntrospectionError("external MySQL preflight requires an EXTERNAL source")
+    connection: Connection | None = None
+    try:
+        connection = _connect_readonly(settings)
+        with connection.cursor() as cursor:
+            cursor.execute("SELECT DATABASE(), VERSION()")
+            identity_row = cursor.fetchone()
+        if identity_row is None or len(identity_row) != 2:
+            raise CatalogIntrospectionError("external MySQL returned invalid database identity")
+        selected_database = _required_text(identity_row[0], "selected database identity")
+        server_version = _required_text(identity_row[1], "server version")
+        if selected_database != selected.database:
+            raise CatalogIntrospectionError("external MySQL selected database identity mismatch")
+
+        generated = _introspect_connection(connection, selected)
+        column_count = sum(len(table.columns) for table in generated.tables)
+        foreign_key_count = sum(len(table.foreign_keys) for table in generated.tables)
+        table_comments = sum(table.comment is not None for table in generated.tables)
+        column_comments = sum(
+            column.comment is not None for table in generated.tables for column in table.columns
+        )
+        report = ExternalMySQLPreflightReport(
+            source_profile_fingerprint=selected.fingerprint,
+            source_id=selected.source_id,
+            database=selected.database,
+            server_version=server_version,
+            allowed_table_count=len(generated.tables),
+            column_count=column_count,
+            foreign_key_count=foreign_key_count,
+            table_comment_coverage=table_comments / len(generated.tables),
+            column_comment_coverage=column_comments / column_count,
+        )
+        return ExternalMySQLPreflightResult(report=report, generated_schema=generated)
+    except pymysql.MySQLError as error:
+        raise CatalogIntrospectionError("external MySQL preflight failed") from error
+    except (IndexError, ValidationError) as error:
+        raise CatalogIntrospectionError(
+            "external MySQL preflight metadata failed validation"
+        ) from error
+    finally:
+        if connection is not None:
+            connection.close()
+
+
 def _ensure_generated_path(output_path: Path, generated_root: Path) -> None:
-    resolved_output = output_path.resolve()
-    resolved_root = generated_root.resolve()
-    if resolved_root.name != "generated" or resolved_root.parent.name != "catalog":
-        raise CatalogOutputError("generated catalog root must be catalog/generated")
-    if not resolved_output.is_relative_to(resolved_root) or resolved_output == resolved_root:
-        raise CatalogOutputError("generated schema output must stay beneath catalog/generated")
+    try:
+        ensure_generated_output_path(output_path, generated_root)
+    except ValueError as error:
+        raise CatalogOutputError(str(error)) from error
 
 
 def write_generated_schema(
@@ -378,11 +504,12 @@ def load_generated_schema(path: Path = GENERATED_SCHEMA_PATH) -> GeneratedSchema
 def generate_schema_catalog(
     settings: Settings,
     *,
+    profile: AnalyticsSourceProfile | None = None,
     output_path: Path = GENERATED_SCHEMA_PATH,
     generated_root: Path = GENERATED_CATALOG_ROOT,
 ) -> GeneratedSchemaMetadata:
     """Introspect the analytics schema and write its generated artifact."""
-    schema = introspect_analytics_schema(settings)
+    schema = introspect_analytics_schema(settings, profile=profile)
     write_generated_schema(
         schema,
         output_path=output_path,
@@ -391,10 +518,28 @@ def generate_schema_catalog(
     return schema
 
 
+def preflight_and_write_external_schema(
+    settings: Settings,
+) -> ExternalMySQLPreflightResult:
+    """Run external read-only preflight and persist only its local generated schema."""
+
+    profile = active_analytics_source(settings)
+    result = preflight_external_mysql(settings, profile=profile)
+    workspace = catalog_workspace(profile)
+    write_generated_schema(
+        result.generated_schema,
+        output_path=workspace.generated_schema_path,
+        generated_root=workspace.generated_root,
+    )
+    return result
+
+
 def reset_generated_catalog(*, generated_root: Path = GENERATED_CATALOG_ROOT) -> None:
     """Remove rebuildable catalog state while leaving curated semantics untouched."""
     resolved_root = generated_root.resolve()
-    if resolved_root.name != "generated" or resolved_root.parent.name != "catalog":
-        raise CatalogOutputError("generated catalog root must be catalog/generated")
+    if not is_safe_generated_root(resolved_root):
+        raise CatalogOutputError(
+            "generated catalog root must be catalog/generated or catalog/workspaces/<id>/generated"
+        )
     if resolved_root.exists():
         shutil.rmtree(resolved_root)

@@ -734,3 +734,49 @@ Run contains dialogue, retrieval, planning, admission, execution, verification, 
 order at attempt 0. A repaired completion retains the failed attempt-0 prefix, one
 `REPAIR_COMPLETED`, and a fresh planning-through-synthesis attempt-1 suffix. The trace repository
 has append/list operations only; the runtime principal has no UPDATE or DELETE grant.
+
+---
+
+## 20. Internal M17 analytics-source and preflight evidence
+
+M17 has one configuration-owned active source. The profile is identity and scope, never a
+credential container:
+
+```python
+class AnalyticsSourceProfile(BaseModel):
+    version: Literal["analytics-source-profile-v0.1"]
+    source_id: str
+    mode: Literal["SYNTHETIC", "EXTERNAL"]
+    backend: Literal["mysql"]
+    database: str
+    allowed_tables: tuple[str, ...]
+    catalog_workspace: str
+    fingerprint: Sha256
+```
+
+Allowed tables are non-empty, unique, and canonically sorted. The fingerprint covers every field
+except itself. It contains no host, port, username, password, connection string, or other secret.
+The profile selects one local catalog workspace; it does not create a multi-source runtime.
+
+The external preflight report is bounded operational evidence:
+
+```python
+class ExternalMySQLPreflightReport(BaseModel):
+    version: Literal["external-mysql-preflight-v0.1"]
+    source_profile_fingerprint: Sha256
+    source_id: str
+    backend: Literal["mysql"]
+    database: str
+    server_version: str
+    allowed_table_count: int
+    column_count: int
+    foreign_key_count: int
+    table_comment_coverage: float
+    column_comment_coverage: float
+```
+
+It is produced only after `DATABASE()` exactly matches the profile and all allowed base tables are
+visible through the configured analytics reader. Counts and coverage refer only to the allowed
+surface. The report carries no table/column names, SQL, credentials, row values, or connection
+endpoint. The same read-only metadata pass yields `GeneratedSchemaMetadata v0.1` for downstream
+M6 assembly; the report does not become semantic authority.

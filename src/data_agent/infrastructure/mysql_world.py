@@ -11,8 +11,10 @@ import pymysql
 from pymysql.connections import Connection
 from pymysql.cursors import Cursor
 
+from data_agent.analytics import active_analytics_source
 from data_agent.catalog.introspection import generate_schema_catalog, reset_generated_catalog
 from data_agent.catalog.semantic import build_semantic_catalog
+from data_agent.catalog.workspace import catalog_workspace
 from data_agent.config import Settings
 from data_agent.persistence.migrations import apply_control_migrations
 from data_agent.persistence.mysql.common import control_connection
@@ -55,10 +57,11 @@ def _connect(
     user: str,
     password: str,
     database: str | None = None,
+    control_plane: bool = False,
 ) -> Connection:
     return pymysql.connect(
-        host=settings.mysql_host,
-        port=settings.mysql_port,
+        host=settings.mysql_control_host if control_plane else settings.mysql_host,
+        port=settings.mysql_control_port if control_plane else settings.mysql_port,
         user=user,
         password=password,
         database=database,
@@ -119,6 +122,7 @@ def ensure_control_principal(settings: Settings) -> None:
         settings,
         user="root",
         password=settings.mysql_root_password.get_secret_value(),
+        control_plane=True,
     )
     try:
         with connection.cursor() as cursor:
@@ -169,6 +173,7 @@ def verify_control_principal(settings: Settings) -> None:
         settings,
         user="root",
         password=settings.mysql_root_password.get_secret_value(),
+        control_plane=True,
     )
     try:
         with connection.cursor() as cursor:
@@ -270,6 +275,12 @@ def verify_readonly_principal(settings: Settings) -> None:
 
 
 def bootstrap_mysql(settings: Settings) -> FixtureSummary:
+    profile = active_analytics_source(settings)
+    if profile.mode != "SYNTHETIC":
+        raise RuntimeError(
+            "synthetic MySQL bootstrap is forbidden for an external analytics source"
+        )
+    workspace = catalog_workspace(profile)
     start_mysql()
     wait_for_mysql(settings)
     apply_control_migrations(settings)
@@ -277,6 +288,17 @@ def bootstrap_mysql(settings: Settings) -> FixtureSummary:
     ensure_control_principal(settings)
     verify_readonly_principal(settings)
     verify_control_principal(settings)
-    generated_schema = generate_schema_catalog(settings)
-    build_semantic_catalog(generated_schema)
+    generated_schema = generate_schema_catalog(
+        settings,
+        profile=profile,
+        output_path=workspace.generated_schema_path,
+        generated_root=workspace.generated_root,
+    )
+    build_semantic_catalog(
+        generated_schema,
+        tables_path=workspace.tables_semantics_path,
+        relationships_path=workspace.relationships_semantics_path,
+        output_path=workspace.assembled_catalog_path,
+        generated_root=workspace.generated_root,
+    )
     return fixture_summary(settings)

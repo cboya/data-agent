@@ -174,6 +174,29 @@ Use an official/pinned MySQL 8.4 image.
 - bootstrap admin credentials only for migration/seed setup;
 - separate analytics read-only and control-plane runtime principals.
 
+M17 permits the two planes to be independently located while retaining the local shared-server
+defaults:
+
+```text
+Analytics: MYSQL_HOST / MYSQL_PORT / MYSQL_DATABASE / MYSQL_READONLY_*
+Control:   MYSQL_CONTROL_HOST / MYSQL_CONTROL_PORT / MYSQL_CONTROL_DATABASE /
+           MYSQL_CONTROL_*
+```
+
+`ANALYTICS_SOURCE_MODE=synthetic` keeps `task bootstrap` and the existing synthetic catalog paths.
+An external profile must declare its source ID, sorted JSON allowed-table list, and a non-synthetic
+catalog workspace. Run its dedicated preflight with:
+
+```bash
+task m17-preflight
+```
+
+That command performs only reader-principal connectivity/database/version and bounded
+`information_schema` checks, then writes the scoped generated schema into the external workspace.
+It never starts Docker, provisions users/grants, applies migrations, seeds fixtures, or attempts a
+write against the external database. Curated workspace files and later live conformance remain
+separate explicit steps.
+
 ## 4. Environment variables
 
 See root `.env.example`.

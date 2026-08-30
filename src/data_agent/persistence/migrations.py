@@ -75,8 +75,8 @@ def _admin_connection(
     settings: Settings, *, database: str | None = None, autocommit: bool = True
 ) -> Connection:
     return pymysql.connect(
-        host=settings.mysql_host,
-        port=settings.mysql_port,
+        host=settings.mysql_control_host,
+        port=settings.mysql_control_port,
         user="root",
         password=settings.mysql_root_password.get_secret_value(),
         database=database,

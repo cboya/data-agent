@@ -3,6 +3,8 @@
 from data_agent.catalog.introspection import (
     CatalogIntrospectionError,
     CatalogOutputError,
+    ExternalMySQLPreflightReport,
+    ExternalMySQLPreflightResult,
     GeneratedColumnMetadata,
     GeneratedForeignKeyMetadata,
     GeneratedSchemaMetadata,
@@ -10,6 +12,8 @@ from data_agent.catalog.introspection import (
     generate_schema_catalog,
     introspect_analytics_schema,
     load_generated_schema,
+    preflight_and_write_external_schema,
+    preflight_external_mysql,
 )
 from data_agent.catalog.semantic import (
     AssembledSemanticCatalog,
@@ -26,6 +30,8 @@ __all__ = [
     "CatalogIntrospectionError",
     "CatalogOutputError",
     "CuratedSemanticCatalog",
+    "ExternalMySQLPreflightReport",
+    "ExternalMySQLPreflightResult",
     "GeneratedColumnMetadata",
     "GeneratedForeignKeyMetadata",
     "GeneratedSchemaMetadata",
@@ -38,4 +44,6 @@ __all__ = [
     "load_assembled_catalog",
     "load_curated_semantics",
     "load_generated_schema",
+    "preflight_and_write_external_schema",
+    "preflight_external_mysql",
 ]

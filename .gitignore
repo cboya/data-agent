@@ -9,4 +9,5 @@ __pycache__/
 *.py[cod]
 
 catalog/generated/
+catalog/workspaces/*/generated/
 evals/reports/

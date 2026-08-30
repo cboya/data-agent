@@ -12,6 +12,7 @@ from data_agent.catalog.semantic import (
     load_assembled_catalog,
     load_curated_semantics,
 )
+from data_agent.catalog.workspace import active_catalog_workspace
 from data_agent.config import Settings
 from data_agent.model_runtime.composition import start_model_runtime
 from data_agent.model_runtime.ports import ChatModel, ModelRuntimeDiagnostics
@@ -47,11 +48,15 @@ class CurrentRetrievalRuntime:
     chat_model: ChatModel
 
 
-def load_current_catalog_authority() -> CurrentCatalogAuthority:
+def load_current_catalog_authority(settings: Settings) -> CurrentCatalogAuthority:
     """Reject an internally valid catalog that is stale relative to current source authority."""
-    generated = load_generated_schema()
-    curated = load_curated_semantics()
-    assembled = load_assembled_catalog()
+    workspace = active_catalog_workspace(settings)
+    generated = load_generated_schema(workspace.generated_schema_path)
+    curated = load_curated_semantics(
+        tables_path=workspace.tables_semantics_path,
+        relationships_path=workspace.relationships_semantics_path,
+    )
+    assembled = load_assembled_catalog(workspace.assembled_catalog_path)
     fresh = assemble_semantic_catalog(generated, curated)
     if assembled != fresh:
         raise RetrievalIndexStaleError(
@@ -65,7 +70,8 @@ def load_current_catalog_authority() -> CurrentCatalogAuthority:
 
 
 async def rebuild_current_retrieval_index(settings: Settings) -> RetrievalIndex:
-    authority = load_current_catalog_authority()
+    workspace = active_catalog_workspace(settings)
+    authority = load_current_catalog_authority(settings)
     runtime = await start_model_runtime(settings)
     diagnostics = runtime.diagnostics
     index = await build_retrieval_index(
@@ -77,12 +83,17 @@ async def rebuild_current_retrieval_index(settings: Settings) -> RetrievalIndex:
         model_runtime_version=diagnostics.runtime_version,
         embedding_batch_size=runtime.embedding_batch_size,
     )
-    write_retrieval_index(index)
+    write_retrieval_index(
+        index,
+        output_path=workspace.retrieval_index_path,
+        generated_root=workspace.generated_root,
+    )
     return index
 
 
 async def load_current_retrieval_runtime(settings: Settings) -> CurrentRetrievalRuntime:
-    authority = load_current_catalog_authority()
+    workspace = active_catalog_workspace(settings)
+    authority = load_current_catalog_authority(settings)
     runtime = await start_model_runtime(settings)
     diagnostics = runtime.diagnostics
     index = load_retrieval_index(
@@ -91,6 +102,7 @@ async def load_current_retrieval_runtime(settings: Settings) -> CurrentRetrieval
         current_semantic_revision=authority.curated.semantic_revision,
         embedding_fingerprint=diagnostics.embedding,
         model_runtime_version=diagnostics.runtime_version,
+        path=workspace.retrieval_index_path,
     )
     retriever = HybridRetriever(
         index=index,

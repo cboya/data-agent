@@ -11,6 +11,7 @@ from fastapi.testclient import TestClient
 
 from data_agent.answer.evaluation import evaluate_current_answer, format_answer_eval_summary
 from data_agent.api import create_app
+from data_agent.catalog.workspace import active_catalog_workspace
 from data_agent.config import Settings
 from data_agent.dialogue.evaluation import format_dialogue_eval_summary
 from data_agent.dialogue.runtime import evaluate_current_dialogue
@@ -123,13 +124,15 @@ def run_final_acceptance(settings: Settings) -> FinalAcceptanceReport:
             raise RuntimeError(
                 "canonical evaluation requires composition-owned model runtime evidence"
             )
-        authority = load_current_catalog_authority()
+        workspace = active_catalog_workspace(settings)
+        authority = load_current_catalog_authority(settings)
         index = load_retrieval_index(
             catalog=authority.assembled,
             current_generated_schema_fingerprint=authority.generated.fingerprint,
             current_semantic_revision=authority.curated.semantic_revision,
             embedding_fingerprint=model_runtime.embedding_fingerprint,
             model_runtime_version=model_runtime.runtime_version,
+            path=workspace.retrieval_index_path,
         )
         environment = build_environment(
             golden_version=suite.version,

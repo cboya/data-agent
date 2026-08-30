@@ -65,8 +65,11 @@ tie-breakers. The SHA-256 fingerprint covers the canonical artifact payload excl
 `fingerprint` field itself. It contains no generation timestamp or curated semantics.
 
 Introspection uses the analytics read-only principal and explicitly scopes every
-`information_schema` query to the configured analytics schema. Cross-schema foreign keys fail
-closed rather than introducing another schema into the business catalog.
+`information_schema` query to the configured analytics schema. Under M17 it additionally scopes
+all table, column, and FK reads to the active profile's explicit allowed tables. Foreign keys with
+an endpoint outside that surface are not admitted to the normalized selected-source catalog.
+Cross-schema foreign keys fail closed rather than introducing another schema into the business
+catalog.
 
 ### Curated semantics
 
@@ -107,6 +110,25 @@ catalog/
 `catalog/generated/` is rebuildable.
 
 `catalog/semantic/` is source-controlled domain knowledge.
+
+M17 preserves these exact paths for the synthetic reference workspace. One explicitly selected
+external source uses an isolated workspace instead:
+
+```text
+catalog/workspaces/<workspace-id>/
+├── generated/
+│   ├── schema.json
+│   ├── catalog.json
+│   └── index/
+└── semantic/
+    ├── tables.yaml
+    └── relationships.yaml
+```
+
+The active `AnalyticsSourceProfile` deterministically selects one workspace. External generated
+state cannot overwrite the synthetic reference artifacts, and external curated semantics are
+required only for the profile's allowed-table surface. Credentials and network endpoints do not
+enter either workspace identity or generated artifacts.
 
 M6 requires curated table semantics for every generated analytics table and rejects curated
 references to tables or columns absent from the generated snapshot. The assembled

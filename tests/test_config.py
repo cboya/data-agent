@@ -171,6 +171,28 @@ def test_control_plane_configuration_must_be_distinct(overrides: dict[str, str])
         Settings.model_validate(values)
 
 
+def test_separate_mysql_endpoints_may_reuse_local_schema_and_user_names() -> None:
+    settings = Settings(
+        ollama_chat_model="chat-model",
+        ollama_embed_model="embedding-model",
+        mysql_host="analytics.example.test",
+        mysql_port=4406,
+        mysql_database="shared_name",
+        mysql_readonly_user="shared_user",
+        mysql_root_password=SecretStr("root-test-password"),
+        mysql_readonly_password=SecretStr("reader-test-password"),
+        mysql_control_host="control.example.test",
+        mysql_control_port=5506,
+        mysql_control_database="shared_name",
+        mysql_control_user="shared_user",
+        mysql_control_password=SecretStr("control-test-password"),
+    )
+
+    assert settings.mysql_host != settings.mysql_control_host
+    assert settings.mysql_database == settings.mysql_control_database
+    assert settings.mysql_readonly_user == settings.mysql_control_user
+
+
 @pytest.mark.parametrize(
     "base_url",
     ["127.0.0.1:11434", "file:///tmp/ollama", "http://user:secret@localhost:11434"],

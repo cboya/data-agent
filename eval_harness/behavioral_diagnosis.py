@@ -23,6 +23,7 @@ from data_agent.answer.service import (
     AnswerSynthesizer,
 )
 from data_agent.catalog.semantic import AssembledSemanticCatalog
+from data_agent.catalog.workspace import active_catalog_workspace
 from data_agent.config import Settings
 from data_agent.contracts.dialogue import DialogueAction, DialogueProposal
 from data_agent.contracts.query import QueryPlan
@@ -733,13 +734,15 @@ def _build_forensic_application(
     chat_model: ChatModel,
     embedding_model: OllamaEmbeddingModel,
 ) -> _ForensicApplication:
-    authority = load_current_catalog_authority()
+    workspace = active_catalog_workspace(settings)
+    authority = load_current_catalog_authority(settings)
     index = load_retrieval_index(
         catalog=authority.assembled,
         current_generated_schema_fingerprint=authority.generated.fingerprint,
         current_semantic_revision=authority.curated.semantic_revision,
         embedding_fingerprint=diagnostics.embedding,
         model_runtime_version=diagnostics.runtime_version,
+        path=workspace.retrieval_index_path,
     )
     recording_chat = _RecordingChatModel(chat_model)
     retriever = _RecordingRetriever(
